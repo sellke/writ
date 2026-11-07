@@ -563,6 +563,123 @@ class PhaseC2Tests(PhaseGitFixture):
         self.assertEqual(c2["verdict"], "unmet")
         self.assertIn("ordering violation", c2["reason"])
 
+    # --- 2026-11-06-lean-implement-phase Story 1: UAT plans on request -------
+
+    def _run_c2(self) -> dict:
+        _, payload = run_cli(
+            "check", "--command", "implement-phase",
+            "--state", str(self.state_path), "--repo", str(self.repo),
+            "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        return next(c for c in payload["criteria"] if c["id"] == "implement-phase.c2")
+
+    def test_uat_not_requested_is_met_without_plans(self) -> None:
+        """AC-1.1: uatRequested false, merged spec with no uat-plan.md -> met."""
+        sha = self._make_merged_spec("spec-a", plan_text=None, plan_commit_first=False)
+        write_phase_state(self.state_path, uatRequested=False,
+                          specs={"spec-a": self._spec_record(sha)})
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "met", c2)
+        self.assertEqual(c2["evidence"], "UAT not requested")
+
+    def test_uat_requested_missing_plan_is_unmet_naming_the_spec(self) -> None:
+        """AC-1.2: uatRequested true, merged spec with no uat-plan.md -> unmet."""
+        sha = self._make_merged_spec("spec-a", plan_text=None, plan_commit_first=False)
+        write_phase_state(self.state_path, uatRequested=True,
+                          specs={"spec-a": self._spec_record(sha)})
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("lacks a populated uat-plan.md: spec-a", c2["reason"])
+
+    def test_uat_requested_stub_plan_is_unmet_naming_the_spec(self) -> None:
+        """AC-1.2: uatRequested true, merged spec with a stub uat-plan.md -> unmet."""
+        stub = "# UAT Plan: spec-a\n\n> **Generated:** 2026-08-12\n"
+        sha = self._make_merged_spec("spec-a", plan_text=stub, plan_commit_first=False)
+        write_phase_state(self.state_path, uatRequested=True,
+                          specs={"spec-a": self._spec_record(sha)})
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("uat-plan.md is a stub: spec-a", c2["reason"])
+
+    def test_absent_uat_requested_checks_plans(self) -> None:
+        """AC-1.3: a state file with no uatRequested key reads as requested."""
+        sha = self._make_merged_spec("spec-a", plan_text=None, plan_commit_first=False)
+        write_phase_state(self.state_path, specs={"spec-a": self._spec_record(sha)})
+        self.assertNotIn("uatRequested", json.loads(self.state_path.read_text(encoding="utf-8")))
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("lacks a populated uat-plan.md: spec-a", c2["reason"])
+
+    def test_uat_requested_populated_plan_is_met(self) -> None:
+        """AC-1.2: under uatRequested true the existing checks still pass a good plan."""
+        sha = self._make_merged_spec(
+            "spec-a", plan_text=uat_plan_populated("spec-a"), plan_commit_first=False,
+        )
+        write_phase_state(self.state_path, uatRequested=True,
+                          specs={"spec-a": self._spec_record(sha)})
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "met", c2)
+        self.assertNotEqual(c2["evidence"], "UAT not requested")
+
+    def test_c2_text_is_byte_identical_in_all_four_places(self) -> None:
+        """AC-1.5: the command frontmatter, CRITERION_TEXT, eval.sh, and the
+        classification doc carry the same c2 text byte for byte."""
+        text = ("when UAT plans were requested, each merged spec folder contains a "
+                "populated uat-plan.md generated after that spec was implemented")
+        self.assertEqual(ec.CRITERION_TEXT["implement-phase.c2"], text)
+        command = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        self.assertIn(f'  - "{text}"', command.split("---\n", 2)[1].splitlines())
+        eval_sh = (REPO_ROOT / "scripts" / "eval.sh").read_text(encoding="utf-8")
+        self.assertEqual(eval_sh.count(f'"{text}"'), 2)
+        doc = REAL_CLASSIFICATION_PATH.read_text(encoding="utf-8")
+        section = doc[doc.index("## `implement-phase.c2`"):doc.index("## `implement-phase.c3`")]
+        self.assertIn(f'> "{text}"', section)
+
+
+class ImplementPhaseUatOnRequestWordingTests(unittest.TestCase):
+    """AC-1.4: commands/implement-phase.md generates plans only on request
+    and resumes by phase state and story status, not by uat-plan.md."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.text = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+
+    def _section(self, start: str, end: str) -> str:
+        return self.text[self.text.index(start):self.text.index(end)]
+
+    def test_invocation_lists_uat(self) -> None:
+        """AC-1.4: the Invocation table has a --uat row."""
+        section = self._section("## Invocation", "## Initiative")
+        self.assertIn("| `/implement-phase --uat` |", section)
+
+    def test_step_3_2_runs_create_uat_plan_only_when_requested(self) -> None:
+        """AC-1.4: Step 3.2 item 6 is conditional on uatRequested."""
+        section = self._section("#### Step 3.2:", "#### Step 3.2b:")
+        self.assertIn("when `uatRequested` is true, run `/create-uat-plan {spec}`", section)
+
+    def test_step_1_3_skips_by_phase_state_and_story_status(self) -> None:
+        """AC-1.4: phase state first, then story statuses; uat-plan.md never decides a skip."""
+        section = self._section("#### Step 1.3:", "#### Step 1.4:")
+        state_at = section.index("**Phase state**")
+        stories_at = section.index("**Story statuses**")
+        self.assertLess(state_at, stories_at)
+        for status in ("integrated", "quarantined", "skipped_blocked", "closed_not_implemented"):
+            self.assertIn(f"`{status}`", section)
+        self.assertIn("`uat-plan.md` never decides a skip", section)
+        self.assertNotIn("Existing `uat-plan.md`", section)
+
+    def test_step_4_2_report_names_create_uat_plan_lines(self) -> None:
+        """AC-1.4: without --uat the report prints /create-uat-plan {spec} lines."""
+        section = self._section("#### Step 4.2:", "#### Step 4.3:")
+        self.assertIn("UAT: not requested", section)
+        self.assertIn("      /create-uat-plan 2026-07-07-", section)
+        self.assertIn("implement-phase.c2 — met — UAT not requested", section)
+
+    def test_step_2_3_plan_line_offers_uat(self) -> None:
+        """AC-1.4: the execution plan says UAT was not requested and how to request it."""
+        section = self._section("#### Step 2.3:", "### Phase 3:")
+        self.assertIn("UAT: not requested (pass --uat to generate plans per spec)", section)
+
 
 class PhaseC3Tests(PhaseGitFixture):
     def test_missing_exit_criteria_is_unknown_pre_story_2(self) -> None:

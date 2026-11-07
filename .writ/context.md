@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-07T17:25:00Z
+> Last Updated: 2026-11-07T21:20:00Z
 
 ## Product Mission
 
@@ -8,25 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
-- **Status:** Complete — 6/6 stories; implement-spec checker verdict met; integration suite green after fix `bdff146`; not yet shipped
-- **Story:** 6 of 6 complete; trial verdict `lean-pipeline: keep`
-- **Progress:** 40/40 tasks complete
+- **Spec:** 2026-11-06-lean-implement-phase — Lean Implement Phase (branch `spec/lean-implement-phase`, worktree `.claude/worktrees/lean-implement-phase`)
+- **Status:** In Progress — 1/4 stories
+- **Story:** 1 of 4 complete (UAT plans on request); next Story 2
+- **Progress:** 6/24 tasks complete
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (Phases 14, 15, and 17 released in v0.44.0, 2026-11-06; ADR-033)
-- **Active spec:** .writ/specs/2026-11-06-lean-story-pipeline/ — spec.md + spec-lite.md, user-stories/, sub-specs/, recommendation-log.md, drift-log.md, gate-evidence.md, trial-report.md
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.45.0 latest release; lean-story-pipeline merged in PR #68, unreleased)
+- **Active spec:** .writ/specs/2026-11-06-lean-implement-phase/ — spec.md + spec-lite.md, user-stories/, sub-specs/, recommendation-log.md, drift-log.md
 - **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-025 The orchestrator ran the trial and wrote Story 6's files — lean-story-pipeline (Medium)
-- DEV-024 Full-suite escaped-defect check replaced — lean-story-pipeline (Medium)
-- DEV-023 Shipped checker change: `test-integrity.py` credits Python doc-pin tests — lean-story-pipeline (Medium)
+- DEV-002 Handoff lines printed per merged spec — lean-implement-phase (Small)
+- DEV-001 c2 skips only on an explicit `false` — lean-implement-phase (Small)
 
 ## Open Issues
 
-27 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`, 1 Goal Card)
+28 open issue files in .writ/issues/ (46 total; 18 closed with `## Resolution`, 1 Goal Card)

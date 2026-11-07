@@ -70,7 +70,7 @@ CRITERIA_BY_COMMAND: dict[str, tuple[str, ...]] = {
 # bindings need the former (Gate 0 review finding).
 CRITERION_TEXT: dict[str, str] = {
     "implement-phase.c1": "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches",
-    "implement-phase.c2": "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented",
+    "implement-phase.c2": "when UAT plans were requested, each merged spec folder contains a populated uat-plan.md generated after that spec was implemented",
     "implement-phase.c3": "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified",
     "implement-phase.c4": "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE",
     "implement-spec.c1": "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran",
@@ -539,14 +539,23 @@ def _resolve_spec_dir(repo: Path, spec_id: str) -> Path | None:
 
 
 def _predicate_phase_c2(state: dict[str, Any], repo: Path) -> dict[str, Any]:
-    """implement-phase.c2: "each merged spec folder contains a populated
-    uat-plan.md generated after that spec was implemented"
+    """implement-phase.c2: "when UAT plans were requested, each merged spec
+    folder contains a populated uat-plan.md generated after that spec was
+    implemented"
+
+    Plans are checked only when the run requested them (`init --uat`). A
+    state file with no `uatRequested` key predates the flag, when every run
+    promised plans, so it reads as true and its verdict does not change.
+    Only an explicit `false` skips the check; any other value checks plans.
 
     Recorded in the classification as a split entry (presence, ordering,
     and evidence halves); all resolve to evaluable-now but by different
     mechanisms, so a failure in any is named rather than letting the
     presence half stand in for the whole criterion.
     """
+    if state.get("uatRequested", True) is False:
+        return _entry("implement-phase.c2", "met", evidence="UAT not requested")
+
     specs = state.get("specs", {})
     spec_order = state.get("specOrder") or []
     merged = [spec_id for spec_id in spec_order if specs.get(spec_id, {}).get("status") == "integrated"]

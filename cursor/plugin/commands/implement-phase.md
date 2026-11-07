@@ -6,7 +6,7 @@ outcome: "Every spec the phase resolves to has been merged into the phase branch
 entry_level: high
 exit_criteria:
   - "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
-  - "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
+  - "when UAT plans were requested, each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
   - "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified"
   - "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE"
 loop:
@@ -26,7 +26,7 @@ loop:
 
 ## Overview
 
-Reads a roadmap phase from `.writ/product/roadmap.md`, resolves features to specs in `.writ/specs/` (creating missing ones via a decomposition pre-pass), then loops `/implement-spec` → `/create-uat-plan` per spec in dependency order until each spec is implemented and has a UAT plan. Maps results to the phase exit criteria and hands off manual UAT.
+Reads a roadmap phase from `.writ/product/roadmap.md`, resolves features to specs in `.writ/specs/` (creating missing ones via a decomposition pre-pass), then loops `/implement-spec` per spec in dependency order until each spec is implemented, adding `/create-uat-plan` per spec only under `--uat`. Maps results to the phase exit criteria and hands off manual UAT.
 
 Layer above `/implement-spec`: roadmap → `/implement-phase` → `/implement-spec` → `/implement-story`. Owns cross-spec sequencing; `/implement-spec` owns story batching.
 
@@ -45,8 +45,9 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 |---|---|
 | `/implement-phase` | Interactive — select a phase from `roadmap.md` |
 | `/implement-phase 1` | Executes Phase 1 |
-| `/implement-phase --all` | Executes all remaining phases in roadmap order |
+| `/implement-phase --all` | Executes all remaining phases in roadmap order; passes `--uat` through to each phase |
 | `/implement-phase --quick` | Passes `--quick` through to each `/implement-spec` call |
+| `/implement-phase --uat` | Generates a UAT plan per merged spec and records `uatRequested: true`; without it no plan is generated and the report names `/create-uat-plan {spec}` per merged spec |
 | `/implement-phase --resume` | Resumes from last saved phase execution state |
 | `/implement-phase --specs a,b` | No-roadmap fallback: treat the named specs as the phase |
 | `/implement-phase --recommend` | Accepted for older scripts and Goal Cards; prints `--recommend is the default now (Doubt Rule)` once and runs as above |
@@ -125,13 +126,13 @@ Run the Doubt Rule on the proposal (`site: direction`; evidence: the files each 
 
 #### Step 1.3: Inventory Prior Progress
 
-For each specced feature, determine its actual state so `--resume` and re-runs skip finished work:
+For each specced feature, determine its actual state so `--resume` and re-runs skip finished work, in this order:
 
-1. **Story statuses** in `user-stories/story-*.md`: complete / in progress / not started
-2. **Existing `uat-plan.md`** — a populated UAT plan (not a stub) signals the spec was implemented and its validation artifact exists; skip both implementation and UAT generation unless stories changed after the plan's generation date
-3. **Prior execution state** in `.writ/state/phase-execution-*.json`
+1. **Phase state** in `.writ/state/phase-execution-*.json` (`--resume`): `integrated`, `quarantined`, `skipped_blocked`, and `closed_not_implemented` are terminal; skip the spec.
+2. **Story statuses** in `user-stories/story-*.md`: every story `Completed ✅` → skip implementation. Any incomplete story → not skipped.
+3. **Under `uatRequested`**, an integrated spec with no populated `uat-plan.md` still gets `/create-uat-plan` (Step 3.2 item 6).
 
-Specs that are fully complete with a current UAT plan are skipped and reported as such.
+`uat-plan.md` never decides a skip. **`--resume --uat` on a run started without `--uat`** sets `uatRequested: true` in phase state from then on (temp file + rename), so item 3 covers the integrated specs that lack a plan. Skipped specs are reported as such.
 
 #### Step 1.4: Emit Goal files when origin is a Goal Card
 
@@ -184,7 +185,8 @@ Specs: 3 total (0 complete, 3 remaining)
   2. 2026-07-07-drag-and-drop-across-states       (1 story)  — after #1 (shared renderCard)
   3. 2026-07-07-contact-linkedin-website-fields   (1 story)  — after #1 (shared normalizeProspect)
 
-Per spec: /implement-spec → /create-uat-plan
+Per spec: /implement-spec
+UAT: not requested (pass --uat to generate plans per spec)
 
 Exit criteria (from roadmap):
   ✓ machine-checkable: old JSON files load cleanly; no external deps introduced
@@ -193,13 +195,15 @@ Exit criteria (from roadmap):
 Pre-flight flags: [any /implement-spec sizing concerns, surfaced but non-blocking]
 ```
 
+Under `--uat` the two lines read `Per spec: /implement-spec → /create-uat-plan` and `UAT: requested`.
+
 Run the Doubt Rule on the plan (`site: plan`; evidence: the validated dependency graph and the roadmap order). A passing check prints the plan and proceeds to Phase 3; otherwise confirm with AskQuestion: execute / edit spec list / abort. Everything after this runs autonomously except the failure and exit-criteria conditions below.
 
 ### Phase 3: The Loop
 
 #### Step 3.1: Initialize Phase State
 
-Initialize `.writ/state/phase-execution-{timestamp}.json` (schema `phase-execution-v2`) via `scripts/phase-state.py init`, recording the phase, phase branch, topologically ordered spec list, and per-spec record.
+Initialize `.writ/state/phase-execution-{timestamp}.json` (schema `phase-execution-v2`) via `scripts/phase-state.py init` (with `--uat` when the run has it, which records `uatRequested`), recording the phase, phase branch, topologically ordered spec list, and per-spec record.
 
 > **The phase branch must not sit under `writ/phase/{phase-id}`.** Lanes are created at `writ/phase/{phase-id}/{spec-id}` (Step 3.2), so a phase branch named `writ/phase/10` makes every `create-lane` fail: git cannot hold `refs/heads/writ/phase/10` as both a file and a directory. Name it `phase/{N}-{slug}` (e.g. `phase/8-memory-interop`, `phase/10-component-contract`). `create-lane` fails cleanly and mutates nothing, so this costs a retry rather than a corrupted tree. This file is the **resume boundary**: the combination of state plus git reality is the only source of truth on `--resume`. It is updated after every transition using atomic writes (temp file + rename). The canonical contract is [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md).
 
@@ -214,7 +218,7 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 3. **Supervise the result** — before anything else reads it, spawn `supervisor-agent` (fresh context, read-only) with the lane's report verbatim, the spec path, the lane branch, and its base commit. It re-derives each claim from git, the spec's files, and Writ's checkers, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → step 4. `RERUN` → classify the lane as a `transient` failure (Step 3.3; the `spec_attempt` cap applies) with the claims table as its evidence. `ESCALATE` → a `terminal` failure with the same evidence. A missing result line is a mid-task stop: resume the supervisor once and ask for its result.
 4. **Validate the result and merge only verified success** — `scripts/phase-state.py validate-result` gates the merge: **only a verified** `phase-spec-result-v1` with `status: succeeded`, a real commit, and non-empty verification evidence merges (`--no-ff`) into the phase branch (`integrate`), after which the worktree is removed and the merge commit recorded.
 5. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
-6. **On a merged success, run `/create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated after implementation so it reflects what was built. Update phase state and continue.
+6. **On a merged success, when `uatRequested` is true, run `/create-uat-plan {spec}`** — generated after implementation so it reflects what was built. When it is false, generate nothing. Update phase state and continue.
 
 **Iteration bound:** this loop is bounded at `loop.max_iterations` (12) **distinct specs per phase**: the counter resets at each phase boundary in `--all` mode, and a spec retried under Step 3.3 is the same iteration, not a second one (retries are bounded separately by the nested `spec_attempt` cap). On exhaustion, `loop.on_exhaustion: halt_reported` applies: **do not quarantine anything.** Nothing has failed at this point; the phase ran longer than declared, and fabricating a failure record would mark dependents `skipped_blocked` and degrade scope. Unstarted specs stay `pending` and the phase stays `status: executing`; report the unit (`spec`), the bound, the count reached, the last integrated spec, the `phase-execution-*.json` path, and the literal resume command `/implement-phase --resume`. Persist the same facts with `scripts/phase-state.py record-halt --unit spec --bound 12 --reached <n> --last-integrated <spec-id>`, which writes `haltReported` and never sets `terminalStatus`; a halted run has not reached a terminal status.
 
@@ -281,9 +285,9 @@ This check does not use a harness `/goal` Stop hook. That hook exists on one pla
 
 | Spec | Implemented | UAT Plan | Notes |
 |------|-------------|----------|-------|
-| timestamped-notes-stage-history | ✅ 2/2 stories | ✅ 14 scenarios | — |
-| drag-and-drop-across-states     | ✅ 1/1 stories | ✅ 9 scenarios  | — |
-| contact-linkedin-website-fields | ✅ 1/1 stories | ✅ 6 scenarios  | — |
+| timestamped-notes-stage-history | ✅ 2/2 stories | not requested | — |
+| drag-and-drop-across-states     | ✅ 1/1 stories | not requested | — |
+| contact-linkedin-website-fields | ✅ 1/1 stories | not requested | — |
 
 Closed by decision:
   ✖ disclosure-release — pilot measured ~1,017 B irreducible overhead per extracted skill
@@ -291,11 +295,14 @@ Closed by decision:
 Exit criteria:
   ✅ Old JSON files load cleanly — verified (integration check)
   ✅ No external dependencies introduced — verified (no network refs in file)
-  ⚑ UAT scenarios pass — 29 scenarios awaiting manual execution
+  ⚑ UAT scenarios pass — handed off. UAT: not requested. To validate, run:
+      /create-uat-plan 2026-07-07-timestamped-notes-stage-history
+      /create-uat-plan 2026-07-07-drag-and-drop-across-states
+      /create-uat-plan 2026-07-07-contact-linkedin-website-fields
 
-Checker verdict: unmet
+Checker verdict: met
   ✅ implement-phase.c1 — met — 5/5 specs terminal; 0 quarantine branches off phase
-  ❌ implement-phase.c2 — unmet — 2 merged specs lack a populated uat-plan.md
+  ✅ implement-phase.c2 — met — UAT not requested
   ✅ implement-phase.c3 — met — 4 roadmap criteria recorded in exitCriteria[]
   ⚑ implement-phase.c4 — unknown — declared unobservable: report is transcript-only
 
@@ -303,9 +310,9 @@ Phase status: IMPLEMENTED — pending human validation
 Product docs may lag what shipped — run /verify-spec --product.
 ```
 
-The `Product docs may lag` line appears only when `.writ/product/` exists; omit it otherwise.
+The `Product docs may lag` line appears only when `.writ/product/` exists; omit it otherwise. Under `--uat`, the UAT Plan column shows each plan's scenario count (`✅ 14 scenarios`) and the handoff reads `⚑ UAT scenarios pass — 29 scenarios awaiting manual execution`, with no `/create-uat-plan` lines.
 
-**The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
+**The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans (under `--uat`) or the `/create-uat-plan {spec}` lines as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
 
 **A `Closed by decision` section is mandatory whenever any spec is `closed_not_implemented`**: one line per spec with the reason recorded in its `closure`, read from `progress`'s `closed` map. A phase whose specs are all `integrated` or `closed_not_implemented` may report `COMPLETE`, because closure is terminal, but only when this section names what was dropped and why. Omitting it for brevity turns the `COMPLETE` verdict into a false claim of delivered scope.
 
@@ -341,7 +348,7 @@ Everything else is answered from artifacts (roadmap → spec contract → techni
 | `/plan-product` | Creates `roadmap.md`, the source of phases and exit criteria |
 | `/create-spec` | Creates the specs a phase resolves to; invoked per proposed spec by the Step 1.2b decomposition pre-pass (or run manually) to remedy unspecced features |
 | `/implement-spec` | Called once per spec inside an isolated lane; owns story batching (it has no confirmation gate — invoking it executes) |
-| `/create-uat-plan` | Called after each spec completes; produces the per-spec validation artifact and the resume signal |
+| `/create-uat-plan` | Called after each merged spec under `--uat`; otherwise the report names it per merged spec for the user to run |
 | `/assess-spec` | Pre-flight flags from `/implement-spec` are surfaced in the phase plan; run this first for flagged specs if concerned |
 | `/ship` | Natural next step after the phase report — one PR per phase or per spec, per team convention |
 | `/status` | Reads `.writ/state/phase-execution-*.json` to show in-flight phase progress |
@@ -351,11 +358,11 @@ Everything else is answered from artifacts (roadmap → spec contract → techni
 This command succeeds when:
 
 1. **Every specced feature in the phase is implemented** (or explicitly reported as failed/skipped with reasons)
-2. **Every implemented spec has a generated `uat-plan.md`** reflecting what was built
+2. **Under `--uat`, every implemented spec has a generated `uat-plan.md`** reflecting what was built; without it, the report names `/create-uat-plan {spec}` per merged spec
 3. **Machine-checkable exit criteria are verified with evidence** and human-judgment criteria are handed off, not self-certified
 4. **The phase report was presented** with a terminal status: `COMPLETE`, `IMPLEMENTED — pending human validation`, or `PARTIALLY COMPLETE`
 
-**Suggested next step:** Execute the human scenarios the UAT plans hand off; then `/ship`.
+**Suggested next step:** Run the `/create-uat-plan` lines the report names, or under `--uat` execute the human scenarios the plans hand off; then `/ship`.
 
 **Terminal constraint:** After the phase report, stop. Do not offer to execute UAT scenarios on the human's behalf, auto-advance into uncommitted roadmap phases, or open PRs unprompted.
 

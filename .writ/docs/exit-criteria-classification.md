@@ -90,11 +90,17 @@ discovery — both are exactly what `cmd_progress` and `reconcile` already do
 
 ## `implement-phase.c2`
 
-> "each merged spec folder contains a populated uat-plan.md generated after
-> that spec was implemented"
+> "when UAT plans were requested, each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
 
 **Bucket:** evaluable-now (recorded as a **split** entry — the halves need
 different evidence and neither should be rounded away)
+
+**Condition — UAT request:** (added by `2026-11-06-lean-implement-phase`
+Story 1) the halves below run only when the phase state's top-level
+`uatRequested` is true. `phase-state.py init --uat` writes `true`; `init`
+without it writes `false`, and then c2 is `met` with evidence `UAT not
+requested`. A state file with no `uatRequested` key predates the flag, when
+every run promised plans, so it reads as `true` and its verdict is unchanged.
 
 This criterion bundles a presence check with an ordering claim. Both resolve to
 evaluable-now, but by different mechanisms, so both are recorded rather than

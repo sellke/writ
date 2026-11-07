@@ -20,7 +20,7 @@ data. Nothing outside the phase branch, lane branches, and the named state file
 is ever mutated.
 
 Subcommands:
-  init           --state --repo --phase --phase-branch --spec-order
+  init           --state --repo --phase --phase-branch --spec-order [--uat]
   create-lane    --state --repo --spec [--worktree-root]
   validate-result --input
   integrate      --state --repo --spec --result
@@ -180,6 +180,9 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
         "updatedAt": _now(),
         "status": "executing",
         "specOrder": order,
+        # Always written, false without --uat: exit-criteria.py reads a
+        # missing key as true so pre-change state files keep their c2 verdict.
+        "uatRequested": bool(args.uat),
         "specs": specs,
         "challenges": [],
         "knowledgeWritten": [],
@@ -1028,6 +1031,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--phase", required=True)
     p.add_argument("--phase-branch", required=True)
     p.add_argument("--spec-order", default="")
+    p.add_argument("--uat", action="store_true")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("create-lane")

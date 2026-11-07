@@ -97,7 +97,7 @@ Lightweight path (/prototype) — no spec required:
                                               ↑ complexity? → escalate to /create-spec
 
 Phase path (/implement-phase — roadmap-driven, supervised):
-   /plan-product → /implement-phase N → /create-uat-plan (per spec, auto) → UAT (machine where a recipe exists, a person where none can) → /ship
+   /plan-product → /implement-phase N → /create-uat-plan (per spec; auto with --uat) → UAT (machine where a recipe exists, a person where none can) → /ship
                         ↑ loops /implement-spec per spec, sequences by cross-spec dependency,
                           fresh isolated lane per spec, quarantine on failure, resume-safe
 
@@ -130,7 +130,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
-| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. Runs the phase end to end, asking only on doubt; a supervisor checks each lane's report before it merges. Ends at the completion report with the UAT handoff. |
+| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` per spec (adding `/create-uat-plan` per spec with `--uat`), and verifies exit criteria. The layer above `/implement-spec`. Runs the phase end to end, asking only on doubt; a supervisor checks each lane's report before it merges. Ends at the completion report with the UAT handoff: without `--uat`, one `/create-uat-plan {spec}` line per merged spec. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, validates the story dependency graph (blocking gate — cycles, missing/duplicate/self references), resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** Default: boundary map → coding (TDD) → lint → `story-gate.py` pre-review → evaluator → drift → `story-gate.py` post-review (two Task spawns). `--full-pipeline` is the six-agent SDLC. `--quick` is coding only. `--review-only` is evaluator only. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |

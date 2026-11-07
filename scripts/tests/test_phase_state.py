@@ -496,5 +496,38 @@ class KnowledgeWritebackPayloadShapeTests(unittest.TestCase):
             self.assertEqual(list((knowledge / "lessons").glob("*.md")), [])
 
 
+class InitUatRequestedTests(unittest.TestCase):
+    """2026-11-06-lean-implement-phase Story 1: `init --uat` records the UAT
+    request at the top level, so `exit-criteria.py`'s c2 predicate knows
+    whether plans were promised (AC-1.1, AC-1.3)."""
+
+    def _init(self, tmp: str, *extra: str) -> tuple[int, dict, dict]:
+        state_path = Path(tmp) / "state.json"
+        code, payload = run_cli(
+            "init", "--state", str(state_path), "--repo", tmp,
+            "--phase", "6", "--phase-branch", "phase/6-example",
+            "--spec-order", "spec-a,spec-b", *extra,
+        )
+        written = json.loads(state_path.read_text(encoding="utf-8"))
+        return code, payload, written
+
+    def test_init_with_uat_records_uat_requested_true(self) -> None:
+        """AC-1.3: a run launched with --uat promises a plan per merged spec."""
+        with TemporaryDirectory() as tmp:
+            code, payload, written = self._init(tmp, "--uat")
+            self.assertEqual(code, 0)
+            self.assertEqual(payload["status"], "initialized")
+            self.assertIs(written["uatRequested"], True)
+
+    def test_init_without_uat_records_uat_requested_false(self) -> None:
+        """AC-1.1: a new run without --uat writes the key as false explicitly,
+        because a missing key reads as requested for pre-change state files."""
+        with TemporaryDirectory() as tmp:
+            code, _, written = self._init(tmp)
+            self.assertEqual(code, 0)
+            self.assertIn("uatRequested", written)
+            self.assertIs(written["uatRequested"], False)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,7 @@ Later Phase 6 stories extend this schema:
   "updatedAt": "2026-07-10T21:05:00Z",
   "status": "executing",
   "specOrder": ["spec-a", "spec-b"],
+  "uatRequested": false,
   "specs": {
     "spec-a": {
       "dependencies": [],
@@ -60,6 +61,7 @@ Later Phase 6 stories extend this schema:
 | `schemaVersion` | Always `2` for this format. A reader that sees an unsupported major reports before mutating. |
 | `phase` / `phaseBranch` | The roadmap phase ID and the git branch that accumulates only verified work. |
 | `specOrder` | The topologically ordered spec list (see `scripts/spec-deps.py`). |
+| `uatRequested` | `true` when the run was launched with `--uat` (`phase-state.py init --uat`), else `false`. Step 3.2 runs `/create-uat-plan` per merged spec only when it is true, and `exit-criteria.py` checks `implement-phase.c2` only when it is true. A file with no key predates the flag and reads as `true`. `--resume --uat` on a run started without it sets the key to `true` from then on; the orchestrator writes it (temp file + rename) because no reducer subcommand rewrites it. |
 | `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`, `challenge_required`, `closed_not_implemented`. Enforced on **write** by `_set_status`; readers stay tolerant so a status written by a newer reducer is reported, never rejected. |
 | `specs.{id}.blockedBy` | The upstream specs that stopped this one. Reads as "upstream reached a terminal status **without delivering**" — a quarantine *or* a closure. `progress` reports which. |
 | `specs.{id}.closure` | `{reason, closedAt}` on a spec closed by decision. The reason is mandatory; the phase report prints it. |

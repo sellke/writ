@@ -650,7 +650,12 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-05 (ADR-033, Phase 17): 9921 -> 8957; the Recommended Mode section and
     # its three auto-accept clauses become the Doubt Rule; the lane gains the
     # supervisor step.
-    "commands/implement-phase.md": 8957,
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 1): 8957 -> 10297 (file
+    # 33917 -> 35257); UAT plans on request: the `--uat` Invocation row, Step 1.3
+    # resume order by phase state and story status, the Step 2.3 `UAT:` plan line,
+    # the Step 4.2 `/create-uat-plan {spec}` handoff lines, and the new c2 text.
+    # Story 4 of the same spec cuts the file to at most 240 lines.
+    "commands/implement-phase.md": 10297,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
