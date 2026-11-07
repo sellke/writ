@@ -96,6 +96,8 @@ _When empty or absent: no matching `.writ/knowledge/` entries were found. Procee
 ## Recorded Test Results
 {recorded_test_results}
 
+Read `recorded_test_results` for test evidence and never run the full suite. You may run one ADR-032 evidence repro, or re-run a test file the recorded run names; that is not a suite run.
+
 ## Change Surface
 **Classification:** {change_surface}
 

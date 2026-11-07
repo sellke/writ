@@ -125,7 +125,7 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 
 After completing implementation, verify your own work before handing off:
 
-1. **Run the project's test suite** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run the full suite if fast (<30s), or the targeted test files if the full suite is slow.
+1. **Run the story's targeted tests** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run only the story's test files and any test file that imports a changed source file. Never run the full suite, however fast: `implement-spec` Step 4.1 runs it once per spec, and `/writ:ship` runs it for a standalone story.
 2. **Run typecheck** — `tsc --noEmit`, `mypy`, `cargo check`, or equivalent for the project's language.
 3. **If tests fail** — Fix the failures yourself, then re-run to confirm the fix.
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
@@ -180,7 +180,7 @@ Task({
 
 1. Address each issue listed above
 2. Ensure all acceptance criteria are met
-3. Run tests and typecheck to verify fixes (full self-check)
+3. Run the targeted tests and typecheck to verify fixes (Self-Verification steps 1-4)
 4. Provide updated summary of changes
 5. Include updated Self-Check Results in your output
 

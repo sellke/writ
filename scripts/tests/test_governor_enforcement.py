@@ -714,7 +714,13 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-06 (lean-story-pipeline Story 3, Gate 3 recode): 13585 -> 13582
     # (file 38545 -> 38542); Gate 3.5 § A states its order against post-review
     # and Quick Mode keeps post-review, offset by tightening the § A text.
-    "commands/implement-story.md": 13582,
+    # 2026-11-06 (lean-story-pipeline Story 4): 13582 -> 13578
+    # (file 38542 -> 38538); Gate 4's default line states that Gate 3's
+    # recorded run is targeted and the full suite runs once, at implement-spec
+    # Step 4.1 or in /ship (spec Business Rule 6), offset by shortening the
+    # --full-pipeline context routing and the unverifiable bullet, and by
+    # dropping a sentence the Completed-status rule already covers.
+    "commands/implement-story.md": 13578,
 }
 
 

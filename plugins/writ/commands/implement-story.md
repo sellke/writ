@@ -353,12 +353,12 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 #### Gate 4: Testing Agent (with Coverage Enforcement)
 
-**Default:** do not spawn `testing-agent`.
+**Default:** do not spawn `testing-agent`. Gate 3's recorded run is targeted: the story's tests and any test that imports a changed file. The full suite runs once, at `implement-spec` Step 4.1, or in `/writ:ship` for a standalone story.
 
 **`--full-pipeline`:**
 > **Agent:** `${CLAUDE_PLUGIN_ROOT}/agents/testing-agent.md`
 
-**Context routing:** Pass `spec_lite_for_testing` as `spec_lite_content` — success criteria, shadow paths, and edge cases relevant to testing. If agent-specific sections not available, pass full spec-lite.
+**Context routing:** Pass `spec_lite_for_testing` as `spec_lite_content`, or full spec-lite when it is absent.
 
 **Process:** (1) run story-specific tests; (2) run regression tests (related suites); (3) run coverage analysis; (4) fix failures, preferring to fix the implementation over changing tests; (5) add missing test coverage if needed.
 
@@ -372,8 +372,8 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 The checker re-derives the agent's `Coverage threshold met: YES` from the coverage tool's own output; where they disagree the checker wins. Show both the claim and the measurement in the story report.
 
-- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** (`restart: gate4`) → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**. Do not downgrade the story silently.
-- **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** (`restart: gate4`) → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**.
+- **Any `unverifiable` verdict** → continue and surface the reason verbatim; **not** `⚠️ DEGRADED`.
 
 ---
 

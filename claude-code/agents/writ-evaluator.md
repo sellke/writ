@@ -92,6 +92,8 @@ Adjudicate every criterion. The number of verdicts must equal the number supplie
 Use these as evidence for or against each criterion. Do not invent a quality tour from them.
 {recorded_test_results}
 
+Read `recorded_test_results` for test evidence and never run the full suite. You may run one ADR-032 evidence repro, or re-run a test file the recorded run names; that is not a suite run.
+
 ## File Ownership Boundaries (optional)
 {boundary_map}
 
