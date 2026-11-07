@@ -15,6 +15,7 @@
 
 > **AC IDs assigned through:** AC-6.5
 > **Verified by:** AC-6.1 — `git diff 6cfb1e1 2c63dfa -- .writ/specs` empty and the overlay file list in trial-report.md → Method, re-derived in the Gate 3 review (`.writ/state/gate3-review-story-6-lean-pipeline-trial.md`)
+> **Verified by:** AC-6.2 — report sections and every measure row re-derived from the raw streams in the Gate 3 iteration 2 review (`.writ/state/gate3-review-story-6-lean-pipeline-trial.md`); the corrected rows are pinned by `scripts/tests/test_trial_report_tokens_repro.py` and `scripts/tests/test_trial_report_gates_repro.py`
 > **Verified by:** AC-6.3 — `timeline.txt` per arm (one run per story) and the arm-before stop rows in trial-report.md → Results, re-derived in the Gate 3 review
 > **Verified by:** AC-6.5 — `git worktree list` after removal (no arm worktrees) and a clean `git status` under `commands/` and `agents/`, recorded in What Was Built → Review Outcome
 
