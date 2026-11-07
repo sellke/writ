@@ -49,12 +49,18 @@ END_RULE = (
     "`{head_ref}` when the story file has none."
 )
 # The record is current when ANCESTOR_CMD succeeds and AFTER_CMD prints nothing;
-# a lane also needs LANE_TAIL_CMD to print nothing.
+# every story also needs TAIL_CMD to print nothing, or it ESCALATEs.
 ANCESTOR_CMD = "git merge-base --is-ancestor <head_sha> <end>"
 AFTER_CMD = "git log --format=%H <head_sha>..<end> -- . ':(exclude).writ'"
-LANE_TAIL_CMD = "git log --format=%H <last-commit>..{head_ref} -- . ':(exclude).writ'"
+TAIL_CMD = "git log --format=%H <last-commit>..{head_ref} -- . ':(exclude).writ'"
 SECOND_SHA = "The first `<sha>` is `head_sha`; the second is the first SHA"
 RETIRED_HEAD_CMD = "git log -1 --format=%H {base_commit}..{head_ref}"
+TAIL_SCOPE = (
+    "for every story, where `<last-commit>` is the `**Commit:**` SHA of the story "
+    "itself outside a lane, or of the last story the lane completed in a lane"
+)
+TAIL_OUTCOME = "A SHA it prints is code committed with no gate verdict for it: ESCALATE."
+RETIRED_LANE_ONLY_TAIL = "For a lane, also run git log"
 # Lane record path (F2).
 LANE_WORKTREE = (
     "`git worktree list --porcelain` names the worktree whose `branch` is "
@@ -63,6 +69,14 @@ LANE_WORKTREE = (
 LANE_STORY_FILES = "`git show {head_ref}:<path>`"
 # Recommendations accepted at Gate 3: failing record, precedence, ACCEPT row.
 CLAIM_VERDICT = "`story-gate record verdict fail`"
+VERDICT_CONDITION = "`verdict` is `fail`, or `gate3.verdict` is `FAIL`"
+RETIRED_VERDICT_CONDITION = "`gate3.verdict` is not `PASS`"
+VERDICT_ALONE = (
+    "A record with no `gate3` (`--quick`) or with `gate3.verdict: PAUSE` "
+    "(accepted at Gate 3.5) is judged on `verdict` alone."
+)
+FALSE_POSITIVE_ANSWER = "the maintainer answered the BLOCKED escalation (\"Record as false positive\")"
+NO_LANE_EXCEPTION = "In an `/implement-phase` lane no human answered an escalation, so the exception is unavailable."
 PRECEDENCE = "When an ESCALATE condition and a story-gate RERUN rule both apply, ESCALATE wins."
 ACCEPT_ROW = "| story-gate post-review pass | verified |"
 # AC-5.3: the record decides check-verdict claims; no checker re-runs.
@@ -113,8 +127,8 @@ GENERATED = {
 }
 PINS = {
     SUPERVISOR: (INPUT_ROW, CLAIM_MISSING, CLAIM_HEAD, CLAIM_DIRTY,
-                 STALE_RULE, ANCESTOR_CMD, AFTER_CMD, LANE_TAIL_CMD,
-                 LANE_WORKTREE, CLAIM_VERDICT, PRECEDENCE,
+                 STALE_RULE, ANCESTOR_CMD, AFTER_CMD, TAIL_CMD, TAIL_OUTCOME,
+                 LANE_WORKTREE, CLAIM_VERDICT, VERDICT_ALONE, PRECEDENCE,
                  DISAGREE_RULE, NO_RERUN_RULE),
     IMPLEMENT_SPEC: (SPAWN_RECORD, POSTRUN_FIELDS, CONTEXT_SOURCE, SERIAL_BATCH),
 }
@@ -189,9 +203,17 @@ class SupervisorHeadAndDirty(unittest.TestCase):
         """AC-5.2: a code commit after the record makes it stale; each story's
         range ends at its own `> **Commit:**` SHA; the second SHA is defined."""
         rules = story_gate_rules(read(SUPERVISOR))
-        for pin in (STALE_RULE, END_RULE, ANCESTOR_CMD, AFTER_CMD, LANE_TAIL_CMD, SECOND_SHA):
+        for pin in (STALE_RULE, END_RULE, ANCESTOR_CMD, AFTER_CMD, SECOND_SHA):
             self.assertIn(pin, rules)
         self.assertNotIn(RETIRED_HEAD_CMD, rules)
+
+    def test_ac52_tail_check_runs_for_every_story_and_escalates(self) -> None:
+        """AC-5.2: code after the story's (or lane's last) Commit SHA is checked
+        for every story, single stories included, and has one outcome: ESCALATE."""
+        rules = story_gate_rules(read(SUPERVISOR))
+        for pin in (TAIL_CMD, TAIL_SCOPE, TAIL_OUTCOME):
+            self.assertIn(pin, rules)
+        self.assertNotIn(RETIRED_LANE_ONLY_TAIL, rules)
 
 
 ENV = dict(os.environ, GIT_AUTHOR_NAME="T", GIT_AUTHOR_EMAIL="t@example.com",
@@ -233,8 +255,9 @@ def stale_sha(repo: Path, head_sha: str, end: str) -> str:
     return out[0] if out else ""
 
 
-def lane_tail(repo: Path, last_commit: str) -> str:
-    out = run_pinned(repo, LANE_TAIL_CMD, **{"<last-commit>": last_commit,
+def tail(repo: Path, last_commit: str) -> str:
+    """The first code commit after `<last-commit>`, or '' when there is none."""
+    out = run_pinned(repo, TAIL_CMD, **{"<last-commit>": last_commit,
                                             "{head_ref}": "HEAD"}).stdout.split()
     return out[0] if out else ""
 
@@ -266,7 +289,7 @@ class SupervisorHeadRuleGit(unittest.TestCase):
         commit(repo, STORY % 2, "chore: record story 2 sha")
         self.assertEqual(stale_sha(repo, head1, end1), "")
         self.assertEqual(stale_sha(repo, head2, end2), "")
-        self.assertEqual(lane_tail(repo, end2), "")
+        self.assertEqual(tail(repo, end2), "")
 
     def test_ac52_writ_only_story_record_is_current(self) -> None:
         """AC-5.2 (review Minor): a story that changed only `.writ/` passes."""
@@ -313,7 +336,28 @@ class SupervisorHeadRuleGit(unittest.TestCase):
         end = commit(repo, STORY % 1, "docs: complete story 1")
         stray = commit(repo, "src/b.py", "feat: unreviewed code")
         self.assertEqual(stale_sha(repo, head, end), "")
-        self.assertEqual(lane_tail(repo, end), stray)
+        self.assertEqual(tail(repo, end), stray)
+
+    def test_ac52_single_story_code_commit_after_its_commit_sha_is_rejected(self) -> None:
+        """AC-5.2 (Gate 3 iteration 2): outside a lane, a code commit after the
+        story's own Commit SHA is current to the head rule but caught by the tail
+        check, so the story is rejected."""
+        repo = self.repo
+        head = commit(repo, "src/a.py", "feat: code")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        commit(repo, STORY % 1, "chore: record story 1 sha")
+        late = commit(repo, "src/a.py", "fix: late code")
+        self.assertEqual(stale_sha(repo, head, end), "")
+        self.assertEqual(tail(repo, end), late)
+
+    def test_ac52_single_story_with_no_commit_line_has_an_empty_tail(self) -> None:
+        """AC-5.2: with no Commit line, `<end>` is `{head_ref}`, and a code commit
+        after the record is the head claim; the tail check from `{head_ref}` is empty."""
+        repo = self.repo
+        head = commit(repo, "src/a.py", "feat: code")
+        late = commit(repo, "src/a.py", "fix: late code")
+        self.assertEqual(stale_sha(repo, head, "HEAD"), late)
+        self.assertEqual(tail(repo, "HEAD"), "")
 
 
 class SupervisorLaneRecordPath(unittest.TestCase):
@@ -334,13 +378,29 @@ class SupervisorVerdictAndPrecedence(unittest.TestCase):
     """AC-5.3 (accepted Gate 3 recommendations)"""
 
     def test_ac53_failing_record_reruns_unless_drift_log_accepts(self) -> None:
-        """AC-5.3: a `fail` record, or a non-PASS `gate3.verdict`, → RERUN,
-        unless drift-log.md names the check and file as accepted."""
+        """AC-5.3: a `fail` record, or `gate3.verdict: FAIL`, → RERUN, unless
+        drift-log.md names the check id and file as a false positive the
+        maintainer accepted by answering the BLOCKED escalation."""
         rules = story_gate_rules(read(SUPERVISOR))
         line = next(x for x in rules.splitlines() if CLAIM_VERDICT in x)
-        for word in ("`verdict` is `fail`", "`gate3.verdict` is not `PASS`",
-                     "RERUN", "`drift-log.md`", "maintainer-accepted false positive"):
+        for word in (VERDICT_CONDITION, "RERUN", "`drift-log.md`",
+                     "each failing check id and its file", FALSE_POSITIVE_ANSWER):
             self.assertIn(word, line)
+        self.assertNotIn(RETIRED_VERDICT_CONDITION, line)
+
+    def test_ac53_quick_and_accepted_pause_records_are_judged_on_verdict(self) -> None:
+        """AC-5.3: a `--quick` record (no `gate3`) and an accepted Gate 3 PAUSE
+        (`gate3.verdict: PAUSE`) are judged on `verdict` alone."""
+        line = next(x for x in story_gate_rules(read(SUPERVISOR)).splitlines()
+                    if CLAIM_VERDICT in x)
+        self.assertIn(VERDICT_ALONE, line)
+
+    def test_ac53_no_false_positive_exception_in_a_lane(self) -> None:
+        """AC-5.3: in an `/implement-phase` lane no human answered, so the
+        drift-log exception is unavailable."""
+        line = next(x for x in story_gate_rules(read(SUPERVISOR)).splitlines()
+                    if CLAIM_VERDICT in x)
+        self.assertIn(NO_LANE_EXCEPTION, line)
 
     def test_ac53_escalate_wins_and_accept_example_has_a_record_row(self) -> None:
         """AC-5.3: ESCALATE beats a story-gate RERUN; the ACCEPT example cites the record."""
