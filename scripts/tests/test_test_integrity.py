@@ -1339,9 +1339,11 @@ class SearchRootsWalkTests(unittest.TestCase):
 class PythonReadsProjectFileTests(unittest.TestCase):
     """A Python test that reads a shipped project file it names by path
     (a markdown command, an adapter, a config) fails whenever that file
-    changes, so it exercises source. The pass stays conservative: a fixture
-    under a test dir, a path that does not exist, a `.writ/state/` file, or a
-    named file the test never reads does not count."""
+    changes, so it exercises source. The rule is per file: a read call
+    anywhere plus an existing project path anywhere. A file that reads nothing
+    is flagged, and so is one whose only named paths are fixtures under a test
+    dir, missing files, `.writ/state/` files, or `/` chains off a temporary
+    directory."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()
@@ -1485,6 +1487,88 @@ class PythonReadsProjectFileTests(unittest.TestCase):
         self.assertEqual(
             self._flagged("test_cycle.py", text), {"scripts/tests/test_cycle.py"}
         )
+
+    def test_tmp_path_single_operand_write_then_read_is_flagged(self) -> None:
+        # pyproject.toml exists at the project root, but the test writes and
+        # reads its own copy under tmp_path: no project file is read.
+        self.fx.write("pyproject.toml", "[project]\n")
+        text = (
+            "def test_cli(tmp_path):\n"
+            "    cfg = tmp_path / \"pyproject.toml\"\n"
+            "    cfg.write_text('[project]\\n')\n"
+            "    assert cfg.read_text() == '[project]\\n'\n"
+        )
+        self.assertEqual(
+            self._flagged("test_tmp_single.py", text),
+            {"scripts/tests/test_tmp_single.py"},
+        )
+
+    def test_tmp_path_chain_mirroring_a_project_file_is_flagged(self) -> None:
+        text = (
+            "def test_render(tmp_path):\n"
+            "    p = tmp_path / \"commands\" / \"implement-story.md\"\n"
+            "    p.parent.mkdir()\n"
+            "    p.write_text('# x')\n"
+            "    assert p.read_text() == '# x'\n"
+        )
+        self.assertEqual(
+            self._flagged("test_tmp_chain.py", text),
+            {"scripts/tests/test_tmp_chain.py"},
+        )
+
+    def test_tmp_path_slash_literal_operand_is_flagged(self) -> None:
+        text = (
+            "def test_render(tmpdir):\n"
+            "    p = tmpdir / 'commands/implement-story.md'\n"
+            "    assert open(str(p)).read() == '# x'\n"
+        )
+        self.assertEqual(
+            self._flagged("test_tmp_literal.py", text),
+            {"scripts/tests/test_tmp_literal.py"},
+        )
+
+    def test_tempfile_bound_directory_chain_is_flagged(self) -> None:
+        text = (
+            "import tempfile\n"
+            "from pathlib import Path\n"
+            "def test_it():\n"
+            "    with tempfile.TemporaryDirectory() as td:\n"
+            "        (Path(td) / 'README.md').write_text('x')\n"
+            "        assert (Path(td) / 'README.md').read_text() == 'x'\n"
+            "    work = Path(tempfile.mkdtemp())\n"
+            "    (work / 'scripts' / 'tool.py').write_text('x')\n"
+            "    assert (work / 'scripts' / 'tool.py').read_text() == 'x'\n"
+        )
+        self.assertEqual(
+            self._flagged("test_tempfile_chain.py", text),
+            {"scripts/tests/test_tempfile_chain.py"},
+        )
+
+    def test_project_read_beside_tmp_path_use_is_source(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "def test_copy(tmp_path):\n"
+            "    doc = (ROOT / 'commands' / 'implement-story.md').read_text()\n"
+            "    (tmp_path / 'commands' / 'implement-story.md').write_text(doc)\n"
+            "    assert 'Implement' in doc\n"
+        )
+        self.assertEqual(self._flagged("test_tmp_and_root.py", text), set())
+
+    def test_read_call_and_named_path_are_not_matched_to_each_other(self) -> None:
+        # Documented per-file rule (quality-signal-classification.md): one
+        # read call anywhere plus one existing project path anywhere credits
+        # the file, even when the read is of `__file__` and the path is only
+        # asserted text. Pinned so a tightening is a deliberate change.
+        self.fx.write("src/app/pricing.py", "PRICE = 1\n")
+        text = (
+            "def route():\n"
+            "    return 'src/app/pricing.py'\n"
+            "def test_route():\n"
+            "    assert open(__file__).read()\n"
+            "    assert route() == 'src/app/pricing.py'\n"
+        )
+        self.assertEqual(self._flagged("test_per_file_rule.py", text), set())
 
     def test_writ_doc_pin_and_repro_tests_are_not_flagged(self) -> None:
         repo = HELPER_PATH.parent.parent
