@@ -95,6 +95,15 @@
 - **Safety fact:** measured `tested` (claimed `tested`)
 - **Review file:** the reviewer numbered its drift entry DEV-001; the orchestrator renumbered it DEV-003 in the saved review to match the spec-wide drift log
 
+### Review Outcome (recode 84bcdae)
+
+**Result:** PASS
+
+- **Iteration count:** 2 iteration(s); this verdict covers only the AC-2.3 recode commit `84bcdae`
+- **Agent:** `evaluator-agent`, run after the spec's integration check flagged `implement-spec.c4` (a code commit after the verdict with no second verdict)
+- **Evidence:** `test_phase_state.py` 52 passed on 3.9 at HEAD; mutation checks catch a restored Step 1.4, a restored `goal-emit.py`, `--verification` added to the Step 4.1c fence, and a dropped `/status` rule
+- **Minor, not fixed:** `assertIn("never", step)` proves nothing; the "only the sources the phase produced" clause is not pinned; the `/status` phrase match is brittle (full review: `.writ/state/gate3-review-story-2-recode.md`)
+
 ### Deviations from Spec
 
 See `drift-log.md` Story 2: DEV-003 (Small, auto-amended in spec-lite).
