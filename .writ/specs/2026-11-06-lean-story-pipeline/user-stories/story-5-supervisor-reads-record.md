@@ -1,6 +1,7 @@
 # Story 5: Supervisor reads the story-gate record
 
 > **Status:** Completed ✅ (2026-11-07)
+> **Commit:** 0f514b64bbeb85baf622e213044a6fb380b68fc3
 > **Priority:** High
 > **Dependencies:** Story 3
 
@@ -64,7 +65,7 @@
 
 ### Files Modified
 
-- **`agents/supervisor-agent.md`** (6295 → about 9 KB) — `story_gate_record` input (lane records found via `git worktree list --porcelain`); RERUN for a missing, unreadable, dirty, or stale record ("no code commit after the record", bounded by each story's `> **Commit:**` SHA); tail check for every story (code after the last Commit SHA → ESCALATE); verdict rule (`verdict: fail` or `gate3.verdict: FAIL`; no-`gate3` and PAUSE judged on `verdict`), with a false-positive exception that needs the check id and the maintainer's BLOCKED answer and is unavailable in lanes; verdicts of `review-override.py`, `test-integrity.py`, `drift-format.py` read from the record; ESCALATE precedence
+- **`agents/supervisor-agent.md`** (6295 → 10520 bytes) — `story_gate_record` input (lane records found via `git worktree list --porcelain`); RERUN for a missing, unreadable, dirty, or stale record ("no code commit after the record", bounded by each story's `> **Commit:**` SHA); tail check for every story (code after the last Commit SHA → ESCALATE); verdict rule (`verdict: fail` or `gate3.verdict: FAIL`; no-`gate3` and PAUSE judged on `verdict`), with a false-positive exception that needs the check id and the maintainer's BLOCKED answer and is unavailable in lanes; verdicts of `review-override.py`, `test-integrity.py`, `drift-format.py` read from the record; ESCALATE precedence
 - **`commands/implement-spec.md`** (22192 → 21707 bytes) — Step 2.3 removed; Step 3.2 runs a parallel batch's stories one after another in one working tree; Step 3.3 passes `story_gate_record` and no longer regenerates `.writ/context.md`; Step 4.1 names Gate 3's targeted recorded run
 - **`adapters/claude-code.md`, `adapters/codex.md`** — batches run one after another in one tree
 - **`scripts/test-integrity.py`** (maintainer-approved, DEV-023) — Python doc-pin tests that read an existing project file are credited; temp-dir chains are not; `.writ/docs/quality-signal-classification.md` and `scripts/tests/test_test_integrity.py` updated
