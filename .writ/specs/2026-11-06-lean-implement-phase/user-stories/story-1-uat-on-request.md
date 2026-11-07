@@ -1,6 +1,7 @@
 # Story 1: UAT plans on request
 
 > **Status:** Completed ✅ (2026-11-07)
+> **Commit:** e3f3195e335cd0d3d41f7713c467f9e988f3af64
 > **Priority:** High
 > **Dependencies:** None
 
