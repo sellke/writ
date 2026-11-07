@@ -4,6 +4,9 @@
 # Updated for 2026-10-01-behavioral-verification Story 4 (AC-4.3): Gate 4.5 is
 # script-backed, the clean fixture is 9 script + 1 prose-only at cap 1, and a
 # second prose-only gate is a blocking finding.
+# Updated for 2026-11-06-lean-story-pipeline Story 1 (AC-1.1, AC-1.2): each
+# fixture entry carries catches / evidence / kill_when, and eval relays the
+# missing-field and unknown-path findings like any other drift line.
 #
 # Harness: copy eval.sh and verdict-provenance.py into a temp scripts/ so
 # PROJECT_ROOT is the fixture tree, then write a commands/implement-story.md
@@ -66,6 +69,8 @@ report_of() {
 #   drop-entry    gate2_5_surface entry removed  -> heading_without_entry
 #   drop-heading  Gate 3.5 heading removed       -> entry_without_heading
 #   bad-value     gate5_docs verification: manual -> unknown_verification_value
+#   no-catches    gate2_build has no catches:     -> missing_catches
+#   bad-path      gate4_tests path: optional      -> unknown_path_value
 write_fixture() {
   local dest="$1" mutate="${2:-}"
   python3 - "$dest" "$mutate" <<'PY'
@@ -103,6 +108,12 @@ for gid in ids:
         fm.append("    script: %s" % scripts[gid])
     else:
         fm.append("    verification: prose-only")
+    if mutate == "bad-path" and gid == "gate4_tests":
+        fm.append("    path: optional")
+    if not (mutate == "no-catches" and gid == "gate2_build"):
+        fm.append('    catches: "A broken build reaches review; cost: a red main branch"')
+    fm.append('    evidence: "none recorded"')
+    fm.append('    kill_when: "sole_catches == 0 over 20 default-path records"')
 fm.append("---")
 
 body = ["# Fixture", "", "## Overview", "", "### Step 3: Run Pipeline", ""]
@@ -154,6 +165,8 @@ check_drift() {
 check_drift drop-entry heading_without_entry gate2_5_surface
 check_drift drop-heading entry_without_heading gate3_5_drift
 check_drift bad-value unknown_verification_value gate5_docs
+check_drift no-catches missing_catches gate2_build
+check_drift bad-path unknown_path_value gate4_tests
 
 ROOT="$(new_root)"
 write_fixture "$ROOT/commands/implement-story.md" two-prose

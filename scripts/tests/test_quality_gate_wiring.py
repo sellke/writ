@@ -45,14 +45,39 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def story_gate():
+    """scripts/story-gate.py: since lean-story-pipeline Story 3 (2026-11-06) the
+    default path runs these checkers through its two phases, not one by one."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def gate_row(check_id: str):
+    return next(row for rows in story_gate().CHECKS.values() for row in rows
+                if row.id == check_id)
+
+
+def gate2_block(text: str) -> str:
+    """Gate 2's pre-review paragraph, where build smoke now runs."""
+    return text.split("**Pre-review.**", 1)[1].split("---", 1)[0]
+
+
 class Gate4OverrideTests(unittest.TestCase):
     """AC-5.1 — the checker's verdict is authoritative over the agent's
     self-reported `Coverage threshold met` field."""
 
     def test_gate_4_runs_the_coverage_re_derivation(self) -> None:
         text = read(IMPLEMENT_STORY)
-        self.assertIn("scripts/test-integrity.py coverage", text)
-        self.assertIn("scripts/test-integrity.py authenticity", text)
+        gate4 = between(text, "#### Gate 4:", "### Full-Pipeline Gates")
+        self.assertIn("Post-review runs `test-integrity.py coverage`", gate4)
+        self.assertIn("`authenticity`", gate4)
+        for cid in ("gate4_coverage", "gate4_authenticity"):
+            self.assertEqual((gate_row(cid).gate, gate_row(cid).script),
+                             ("gate4_tests", "test-integrity.py"), cid)
 
     def test_gate_4_states_the_checker_wins(self) -> None:
         text = read(IMPLEMENT_STORY)
@@ -80,22 +105,33 @@ class Gate2SmokeTests(unittest.TestCase):
     the existing shared BLOCKED escalation rather than new control flow."""
 
     def test_gate_2_runs_the_build_smoke_check(self) -> None:
-        self.assertIn(
-            "scripts/build-smoke.py check --project .", read(IMPLEMENT_STORY)
-        )
+        """Gate 2's pre-review runs `build-smoke.py check --project <repo>`."""
+        smoke = gate2_block(read(IMPLEMENT_STORY))
+        self.assertIn("python3 scripts/story-gate.py run --phase pre-review", smoke)
+        self.assertIn("build smoke (`build-smoke.py`", smoke)
+        row = gate_row("gate2_build_smoke")
+        self.assertEqual((row.gate, row.script), ("gate2_build", "build-smoke.py"))
+        self.assertIn('["check", "--project", str(ctx.repo)]',
+                      read(REPO_ROOT / "scripts" / "story-gate.py"))
 
     def test_source_failure_uses_the_existing_blocked_escalation(self) -> None:
+        """`build_failed_source` prints `restart: gate2`, which the restart
+        table sends to the shared BLOCKED escalation."""
         text = read(IMPLEMENT_STORY)
-        smoke = text.split("**Build smoke.**", 1)[1].split("---", 1)[0]
-        self.assertIn("build_failed_source", smoke)
-        self.assertIn("#blocked-agent-escalation", smoke)
+        smoke = gate2_block(text)
+        self.assertIn("**`build_failed_source`** prints `restart: gate2`", smoke)
+        row = next(ln for ln in text.splitlines() if ln.startswith("| `gate2` |"))
+        self.assertIn("#blocked-agent-escalation", row)
+        self.assertIn("restart **Gate 2**", row)
 
     def test_no_iteration_cap_was_added_to_gate_2(self) -> None:
         """eval-loop-bounds.py cross-reads `loop.nested` against prose like
         '2 fix iterations max'; a cap in one place and not the other drifts."""
         text = read(IMPLEMENT_STORY)
-        smoke = text.split("**Build smoke.**", 1)[1].split("---", 1)[0]
-        self.assertNotRegex(smoke, r"\d+\s+(fix\s+)?iterations?\s+max")
+        smoke = gate2_block(text)
+        row = next(ln for ln in text.splitlines() if ln.startswith("| `gate2` |"))
+        for block in (smoke, row):
+            self.assertNotRegex(block, r"\d+\s+(fix\s+)?iterations?\s+max")
         self.assertIn("no iteration cap", smoke.lower())
 
     def test_coding_agents_describe_gate_2s_new_remit(self) -> None:
@@ -109,7 +145,7 @@ class UnverifiableIsNotDegradedTests(unittest.TestCase):
 
     def test_both_gates_state_the_distinction(self) -> None:
         text = read(IMPLEMENT_STORY)
-        smoke = text.split("**Build smoke.**", 1)[1].split("---", 1)[0]
+        smoke = gate2_block(text)
         gate4 = text.split("**Verify the claim, don't trust it.**", 1)[1]
 
         for block, name in ((smoke, "Gate 2"), (gate4, "Gate 4")):
@@ -287,10 +323,10 @@ class Gate3RiskRouteTests(unittest.TestCase):
     rather than adding one."""
 
     MAP = ".writ/state/boundary-<story-stem>.json"
-    CROSSINGS = (
-        "python3 scripts/boundary-map.py crossings --map " + MAP
-        + " --changed <files> --story <story-file> --surface <class>"
-    )
+    # lean-story-pipeline Story 3 (2026-11-06): pre-review runs crossings on
+    # that map with the classifier's class as --surface (test_story_gate.py
+    # test_risk_route_runs_blast_radius_and_turns_safety_fact_on).
+    CROSSINGS = "`boundary-map.py crossings` on the Gate 0.5 map"
     REPORT_LINE = 'gate3-route: <agent> (<reasons joined by "; ">)'
 
     def setUp(self) -> None:
@@ -313,6 +349,8 @@ class Gate3RiskRouteTests(unittest.TestCase):
             self.gate25.index(self.CROSSINGS),
         )
         self.assertIn("`gate3_route`", self.gate25)
+        ids = [row.id for row in story_gate().CHECKS["pre-review"]]
+        self.assertLess(ids.index("gate2_5_change_surface"), ids.index("gate0_5_crossings"))
 
     def test_crossings_that_cannot_run_route_up(self) -> None:
         """AC-2.2: an unreadable map or missing helper never falls back to
@@ -378,15 +416,9 @@ class Gate2ArchLintTests(unittest.TestCase):
     runs a project's architecture ruleset through its existing lint failure
     path, and the story report carries one `arch-lint:` line."""
 
-    DETECT = "python3 scripts/arch-lint.py detect --repo ."
-    REPORT_FORMS = (
-        '`arch-lint: <names joined ", ">`',
-        "`(via eslint)`",
-        "`(via tests)`",
-        "`(not installed)`",
-        "`arch-lint: none — see .writ/docs/architecture-lint.md`",
-        "`arch-lint: unverifiable (<reason>)`",
-    )
+    # lean-story-pipeline Story 3 (2026-11-06): pre-review runs detect and each
+    # `command:` line, and prints the `arch-lint:` line itself.
+    DETECT = "the architecture ruleset (`arch-lint.py`, then each `command:` line"
 
     def setUp(self) -> None:
         self.text = read(IMPLEMENT_STORY)
@@ -397,23 +429,41 @@ class Gate2ArchLintTests(unittest.TestCase):
         self.assertIn(self.DETECT, self.gate2)
         self.assertLess(
             self.gate2.index("Auto-detect and run project linters"),
-            self.gate2.index(self.DETECT),
+            self.gate2.index("python3 scripts/story-gate.py run --phase pre-review"),
         )
+        row = gate_row("gate2_arch_lint")
+        self.assertEqual((row.gate, row.script), ("gate2_build", "arch-lint.py"))
 
     def test_each_command_runs_through_the_lint_failure_path(self) -> None:
-        """AC-3.4 (spec Business Rule 2): no auto-fix, flag for review."""
-        self.assertIn("run each `command:` line from the repo root", self.gate2)
-        self.assertIn("a non-zero exit takes the **On failure** path", self.gate2)
-        self.assertIn("flag for review", self.gate2)
+        """AC-3.4 (spec Business Rule 2): no auto-fix, flag for review. A
+        failing command is advisory: the check is never counted."""
+        self.assertIn("a failing one is advisory: flag it for review", self.gate2)
+        self.assertIs(gate_row("gate2_arch_lint").counted, False)
 
     def test_missing_ruleset_never_blocks(self) -> None:
-        """AC-3.4 (spec Business Rule 1)"""
-        self.assertIn("A missing or not-installed ruleset never fails the gate", self.gate2)
+        """AC-3.4 (spec Business Rule 1): a not-installed ruleset has no
+        `command:` line, so the check passes; it is uncounted in any case."""
+        line = story_gate().arch_lint_line(
+            {"verdict": "pass", "detail": ["tool: import-linter not-installed setup.cfg"]})
+        self.assertEqual(line, "arch-lint: import-linter (not installed)")
+        self.assertIs(gate_row("gate2_arch_lint").counted, False)
 
     def test_gate_2_names_every_report_form(self) -> None:
-        """AC-3.4"""
-        for form in self.REPORT_FORMS:
-            self.assertIn(form, self.gate2, form)
+        """AC-3.4: the runner prints every documented `arch-lint:` form."""
+        self.assertIn("`arch-lint:` line", self.gate2)
+        line = story_gate().arch_lint_line
+        self.assertEqual(line({"verdict": "pass", "detail": [
+            "tool: dependency-cruiser run .dependency-cruiser.js",
+            "command: npx --no-install depcruise src",
+            "tool: eslint-plugin-boundaries via-eslint package.json",
+            "tool: archunit via-tests pom.xml",
+            "tool: import-linter not-installed setup.cfg"]}),
+            "arch-lint: dependency-cruiser, eslint-plugin-boundaries (via eslint), "
+            "archunit (via tests), import-linter (not installed)")
+        self.assertEqual(line({"verdict": "pass", "detail": []}),
+                         "arch-lint: none — see .writ/docs/architecture-lint.md")
+        self.assertEqual(line({"verdict": "unverifiable", "reasons": ["config_unreadable x"]}),
+                         "arch-lint: unverifiable (config_unreadable x)")
 
     def test_step_4_item_8_reports_the_line(self) -> None:
         """AC-3.4, AC-3.5"""

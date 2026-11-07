@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T18:55:00Z
+> Last Updated: 2026-11-07T17:25:00Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-lean-story-tasks — Lean Story Tasks (branch `spec/lean-story-tasks`)
-- **Status:** Complete — all 5 stories done; integration suite green (4261 passed on Python 3.9 and 3.14, eval.sh exit 0); not yet shipped
-- **Story:** 5 of 5 — Trial lean tasks on one archived spec (Completed ✅; verdict `lean-tasks: keep`)
-- **Progress:** 32/32 tasks complete
+- **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
+- **Status:** Complete — 6/6 stories; implement-spec checker verdict met; integration suite green after fix `bdff146`; not yet shipped
+- **Story:** 6 of 6 complete; trial verdict `lean-pipeline: keep`
+- **Progress:** 40/40 tasks complete
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md (Phases 14, 15, and 17 released in v0.44.0, 2026-11-06; ADR-033)
-- **Active spec:** .writ/specs/2026-11-06-lean-story-tasks/ — spec.md + spec-lite.md, user-stories/, sub-specs/, recommendation-log.md, drift-log.md, trial-report.md
-- **Knowledge:** .writ/knowledge/ (29 entries)
+- **Active spec:** .writ/specs/2026-11-06-lean-story-pipeline/ — spec.md + spec-lite.md, user-stories/, sub-specs/, recommendation-log.md, drift-log.md, gate-evidence.md, trial-report.md
+- **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-010 Reduced, hand-run pipeline instead of `/implement-story` in the trial — lean-story-tasks (Medium)
-- DEV-009 arm-original seeded from the pre-implementation commit — lean-story-tasks (Small)
-- DEV-008 context-hint-format.md drops the "after the Definition of Done" placement — lean-story-tasks (Small)
+- DEV-025 The orchestrator ran the trial and wrote Story 6's files — lean-story-pipeline (Medium)
+- DEV-024 Full-suite escaped-defect check replaced — lean-story-pipeline (Medium)
+- DEV-023 Shipped checker change: `test-integrity.py` credits Python doc-pin tests — lean-story-pipeline (Medium)
 
 ## Open Issues
 
-26 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`, 1 Goal Card)
+27 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`, 1 Goal Card)

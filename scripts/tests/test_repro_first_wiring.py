@@ -183,6 +183,10 @@ ORDERED_LEAD = "**Ordered commits.**"
 SCRIPT_NAME = "repro-order.py"
 # Both consumers run the check from the checkout's root against the recorded base.
 CONSUMER_CHECK = "`python3 scripts/repro-order.py check --repo . --base <that SHA>`"
+# lean-story-pipeline Story 3 (2026-11-06): `/implement-story` runs the check
+# through `story-gate.py` post-review, as `check --repo <repo> --base <base>`.
+STORY_GATE_CHECK = "post-review runs `repro-order.py check` from `<base>`"
+BASE_LEAD = "**Base:**"
 WITH_ISSUES = "Prototype Complete (with issues)"
 DEGRADED = "⚠️ DEGRADED"
 # A `### Repro` block names commits only in its bug-with-a-repro form.
@@ -911,14 +915,22 @@ def test_gate1_bug_path_line():
     assert paragraph_after(gate, BUG_PATH_LEAD, GATE1).startswith(BLOCKED_LEAD), (
         "the %s handling no longer follows the %s line" % (BLOCKED_LEAD, BUG_PATH_LEAD)
     )
+    # lean-story-pipeline Story 3 (2026-11-06): both runner phases take the base,
+    # so its own `**Base:**` paragraph precedes `**Report:**`; post-review
+    # runs `repro-order.py check --repo <repo> --base <base>`.
+    base = one_paragraph(gate, BASE_LEAD, GATE1)
+    assert paragraph_after(gate, BASE_LEAD, GATE1).startswith(REPORT_LEAD), base
+    assert_in_order(base, ["`git rev-parse HEAD`", "`<base>`",
+                           "before the story's first Gate 1 spawn", "reuse it on recodes"])
+    runner = read("scripts/story-gate.py")
+    assert '["check", "--repo", str(ctx.repo), "--base", ctx.base]' in runner, (
+        "story-gate.py no longer runs repro-order.py check against the base"
+    )
     assert_in_order(
         line,
         [
-            "`git rev-parse HEAD`",
-            "before the story's first Gate 1 spawn",
-            "reuse it on recodes",
             "names commits",
-            CONSUMER_CHECK,
+            STORY_GATE_CHECK,
             "after integration",
             "`repro-order:`",
             "Step 4 report",
@@ -939,11 +951,17 @@ def test_gate1_stays_prose_only():
     """AC-4.2: the `gates:` frontmatter keeps `gate1_coding` as
     `verification: prose-only` with no `script:`, and
     `scripts/verdict-provenance.py check` passes, so no gate names both a
-    script and prose-only."""
+    script and prose-only.
+
+    Updated 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): the entry
+    also carries `path:`, `catches:`, `evidence:`, and `kill_when:`, so the
+    pin reads its verdict-source lines only."""
     frontmatter = read(IMPLEMENT_STORY_REL).split("\n---\n", 1)[0] + "\n"
     entry = re.search(r"(?m)^  - id: gate1_coding\n((?:    \S.*\n)*)", frontmatter)
     assert entry, "gates: has no gate1_coding entry"
-    assert entry.group(1).split("\n")[:-1] == ["    verification: prose-only"], (
+    source = [ln for ln in entry.group(1).split("\n")[:-1]
+              if ln.startswith(("    script:", "    verification:"))]
+    assert source == ["    verification: prose-only"], (
         "gate1_coding changed: %r" % entry.group(1)
     )
     proc = subprocess.run(
@@ -976,13 +994,14 @@ def test_bug_path_fires_only_on_named_commits(rel, heading):
     the agent's bug-with-a-repro form names commits, so a `Repro: off`,
     `Repro: none`, or not-a-bug report never triggers it."""
     line = bug_path_line(rel, heading)
-    cond = re.search(r"When the (agent's|report's) `### Repro` block names commits", line)
+    check = CONSUMER_CHECK if rel == PROTOTYPE_REL else STORY_GATE_CHECK
+    cond = re.search(r"(?i)When the (agent's|report's) `### Repro` block names commits", line)
     assert cond, "%s %s does not limit the check to a report that names commits: %r" % (
         rel,
         heading,
         line,
     )
-    assert cond.start() < line.index(CONSUMER_CHECK), "the condition must come before the check"
+    assert cond.start() < line.index(check), "the condition must come before the check"
     for needle in (".writ/config.md", "Repro First"):
         assert needle not in line, "%s %s reads the switch itself (%r)" % (rel, heading, needle)
     block = agent_repro_block()

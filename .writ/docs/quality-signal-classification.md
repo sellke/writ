@@ -204,6 +204,23 @@ has to a self-reported COMPLETE.
 string)` — a copy annotated "matches implementation" — then asserts against the copy. It
 cannot fail when the route changes. It passed review and testing gates for months.
 
+**What counts as project source for a Python test.** Besides a JS/TS module specifier, a
+Python test exercises source when it imports a project module (`import x`, `from x import y`),
+runs a project script by path (subprocess, importlib, runpy), reads a project file, or imports a
+test helper that does one of these. A test that pins shipped markdown or config fails when that
+file changes, so it is not a `test_imports_no_source` case.
+
+The read rule is per file, not per path. A test file counts when it calls `read_text`,
+`read_bytes` or `open(` anywhere and names an existing project file by path anywhere
+(`ROOT / "commands" / "x.md"` or `"commands/x.md"`). The two are not matched to each other: a
+file that reads only `__file__` or a fixture but names `src/app/pricing.py` in an assertion is
+credited. A named path counts only when it exists, sits outside test directories and
+`.writ/state/`, and is not a `/` chain off a temporary directory (`tmp_path`, `tmpdir`, `tmp`,
+`tmp_dir`, or a name bound from `tempfile`). A bare filename used as asserted text is not a
+path. So a test is still flagged when it reads nothing, or when every path it names is a
+fixture, a `.writ/state/` file, a missing file or a temporary-directory copy. Shell tests still
+have no handler.
+
 **A test that legitimately tests only types or only constants will trip this code.** That is a
 waiver case, recorded in the baseline, not a bug. But if the waiver list grows past a handful
 on a real project, the heuristic is wrong and should be narrowed rather than waived around.

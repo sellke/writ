@@ -22,14 +22,23 @@ script: <n>, prose-only: <n>, findings: <n>)`.
 
 Finding codes: heading_without_entry, entry_without_heading,
 entry_without_source, entry_both_sources, script_missing,
-unknown_verification_value.
+unknown_verification_value, missing_catches, missing_evidence,
+missing_kill_when, unknown_path_value.
+
+Every entry also declares `catches:` (the failure the gate catches and the
+cost of missing it), `evidence:` (a dated recorded catch, or `none
+recorded`), and `kill_when:` (a checkable removal condition); a missing or
+empty one is a `missing_<field>` finding. The optional `path:` is `default`
+or `full-pipeline`; absent means default, any other value is
+`unknown_path_value` (spec 2026-11-06-lean-story-pipeline, Story 1).
 
 Exit codes: 0 no findings · 1 findings · 2 usage (missing file, no
 frontmatter fence, a `gates:` entry with no `id`).
 
 No YAML library: the frontmatter reader is a minimal stdlib line parser that
 understands only the `gates:` list's fixed shape (`- id:` plus `script:` or
-`verification:`), not general YAML. Python 3.9 floor.
+`verification:`, then flat `key: value` scalars such as `path:` and the three
+evidence fields), not general YAML. Python 3.9 floor.
 """
 
 from __future__ import annotations
@@ -65,7 +74,21 @@ FINDING_CODES = (
     "entry_both_sources",
     "script_missing",
     "unknown_verification_value",
+    "missing_catches",
+    "missing_evidence",
+    "missing_kill_when",
+    "unknown_path_value",
 )
+
+# Business Rule 1 of 2026-11-06-lean-story-pipeline: each field -> what it holds.
+EVIDENCE_FIELDS: Dict[str, str] = {
+    "catches": "the failure and the cost of missing it",
+    "evidence": "a dated recorded catch, or none recorded",
+    "kill_when": "a checkable removal condition",
+}
+
+# Optional `path:` values; an entry without the key runs on the default path.
+PATH_VALUES = ("default", "full-pipeline")
 
 _HEADING = re.compile(r"^#### Gate (\d+(?:\.\d+)?)\b")
 _LIST_ITEM = re.compile(r"^(\s*)- (.*)$")
@@ -206,6 +229,13 @@ def run_check(command: Path, repo: Path, max_prose_only: int,
         if has_verification and gate["verification"] != PROSE_ONLY:
             findings.append("unknown_verification_value: %s %s (%r is not %r)"
                             % (label, gid, gate["verification"], PROSE_ONLY))
+        for field, meaning in EVIDENCE_FIELDS.items():
+            if not gate.get(field):
+                findings.append("missing_%s: %s %s (no %s: value; give %s)"
+                                % (field, label, gid, field, meaning))
+        if "path" in gate and gate["path"] not in PATH_VALUES:
+            findings.append("unknown_path_value: %s %s (%r is not one of %s)"
+                            % (label, gid, gate["path"], ", ".join(PATH_VALUES)))
 
     script_count = sum(1 for g in gates if "script" in g)
     prose_count = sum(1 for g in gates if g.get("verification") == PROSE_ONLY)

@@ -139,7 +139,7 @@ The orchestrator reconciles those changes by following the [worktree integration
 - `writ-coder` — implements in isolation, no conflicts with parallel stories
 - `writ-story-gen` — generates story files in parallel without conflicts
 
-**Parallel stories:** `/implement-spec` runs independent stories in parallel batches, and each `/implement-story` reconciles its agents' worktrees per the skill before it trusts their output.
+**Parallel stories:** `/implement-spec` groups independent stories into batches and runs them one after another in one working tree, and each `/implement-story` reconciles its agents' worktrees per the skill before it trusts their output.
 
 ### Persistent Memory (`memory: project`)
 

@@ -695,7 +695,38 @@ KNOWN_OVER_BUDGET = {
     # in the Overview, the reviewer-filters paragraph, the safety-fact sentence, and
     # Gate 3.5, less the leftover-config line and the `--panel` rejection. Stories
     # 3 + 4 + 7: net 0 (file 39929 -> 38551 bytes, at most 40759).
-    "commands/implement-story.md": 13591,
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): 13591 -> 16566 (file
+    # 38551 -> 41526); every gates: entry gains path, catches, evidence, and
+    # kill_when (spec Business Rule 1). Frontmatter only; no body change. The
+    # Gate 3 recode replaced the gate3_5_drift citation (+50). The spec's
+    # Stories 2-3 shrink the file below 38551 (Success Criteria).
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 2): 16566 -> 16168 (file
+    # 41526 -> 41128); Gates 0, 4.5 and 5 move under the --full-pipeline heading
+    # and lose their default-path text. Still temporary: 2577 bytes above 38551,
+    # which Story 3 closes when the runner replaces the per-script blocks.
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 3): 16168 -> 13585 (file
+    # 41128 -> 38545, under the spec-start 38551); two `story-gate.py` runs
+    # replace the per-script blocks of Gates 1 (repro-order), 2 (arch-lint, build
+    # smoke), 2.5 (classify, crossings, switch, blast radius), 3 (two switches,
+    # check, safety-fact, evidence and its nine-row table, Jev shadow), 3.5
+    # (drift-format), and 4 (test-integrity), less a restart table and a
+    # Step 3 pointer to Gate 0. The temporary raise is closed.
+    # 2026-11-06 (lean-story-pipeline Story 3, Gate 3 recode): 13585 -> 13582
+    # (file 38545 -> 38542); Gate 3.5 § A states its order against post-review
+    # and Quick Mode keeps post-review, offset by tightening the § A text.
+    # 2026-11-06 (lean-story-pipeline Story 4): 13582 -> 13578
+    # (file 38542 -> 38538); Gate 4's default line states that Gate 3's
+    # recorded run is targeted and the full suite runs once, at implement-spec
+    # Step 4.1 or in /ship (spec Business Rule 6), offset by shortening the
+    # --full-pipeline context routing and the unverifiable bullet, and by
+    # dropping a sentence the Completed-status rule already covers.
+    # 2026-11-06 (lean-story-pipeline Story 4, Gate 3 recode): 13578 -> 13577
+    # (file 38538 -> 38537); plain /ship runs no tests, so Gate 4 names
+    # /ship --test, and Gate 3's recorded run adds test files that import a
+    # changed source file, offset by dropping Gate 4's restatement of it.
+    # 2026-11-07 (lean-story-pipeline spec-end cleanup, DEV-022): Step 4 item 3
+    # no longer says implement-spec regenerates context.md. 38537 -> 38517.
+    "commands/implement-story.md": 13557,
 }
 
 

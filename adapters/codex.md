@@ -302,7 +302,7 @@ neutral reducer:
 
 ### `/implement-spec` batches
 
-`/implement-spec` computes story dependency batches. Parallel batches map to concurrent Codex subagent threads when safe; sequential batches stay ordered. The orchestrator session owns dependency bookkeeping; subagents must not mutate story files outside their assigned scope.
+`/implement-spec` computes story dependency batches. A parallel batch's stories run one after another in the shared working tree, because each story's `story-gate` record must name its own final code commit (Step 3.2); sequential batches stay ordered. The orchestrator session owns dependency bookkeeping; subagents must not mutate story files outside their assigned scope.
 
 ### Autonomous multi-spec execution (retired CLI loop)
 

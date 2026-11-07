@@ -289,8 +289,17 @@ class DriftFormatTests(unittest.TestCase):
         start = text.index("#### Gate 3.5:")
         end = text.index("#### Gate 4:", start)
         gate = text[start:end]
-        self.assertIn("scripts/drift-format.py check", gate)
+        # lean-story-pipeline Story 3 (2026-11-06): `story-gate.py` post-review
+        # runs the check after § A; Gate 3.5 names it and the runner holds it.
+        self.assertIn("§ A runs before post-review, whose `drift-format.py` check", gate)
         self.assertIn("⚠️ DEGRADED", gate)
+        import importlib.util as _util
+        spec = _util.spec_from_file_location("story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+        module = _util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        rows = {row.id: row for row in module.CHECKS["post-review"]}
+        self.assertEqual(rows["gate3_5_drift_format"].script, "drift-format.py")
+        self.assertEqual(rows["gate3_5_drift_format"].gate, "gate3_5_drift")
         self.assertIn("  - id: gate3_5_drift\n    script: scripts/drift-format.py", text)
 
     def test_visual_qa_has_no_percentage_thresholds(self) -> None:

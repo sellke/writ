@@ -437,7 +437,9 @@ def step_2_6a() -> str:
 
 
 def anchor_confirmation() -> str:
-    gate0 = section(read(IMPLEMENT_STORY), "#### Gate 0: Architecture Check", "#### Gate 0.5:")
+    # 2026-11-06-lean-story-pipeline Story 2: Gate 0 sits under the
+    # --full-pipeline heading, followed by Gate 4.5.
+    gate0 = section(read(IMPLEMENT_STORY), "#### Gate 0: Architecture Check", "#### Gate 4.5:")
     lines = [line for line in gate0.splitlines()
              if line.startswith("**Anchor confirmation (ADR-024):**")]
     if len(lines) != 1:

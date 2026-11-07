@@ -232,9 +232,12 @@ class ParallelStoriesAndStaleWorktrees(unittest.TestCase):
         self.text = adapter_text()
 
     def test_parallel_stories_are_implement_spec_batches(self) -> None:
-        """AC-3.3: `/implement-spec` runs independent stories in parallel batches."""
+        """AC-3.3: `/implement-spec` groups independent stories into batches and runs
+        them one after another in one working tree."""
         worktree = section(self.text, "### Git Worktree Isolation")
-        self.assertIn("`/implement-spec` runs independent stories in parallel batches", worktree)
+        self.assertIn(
+            "`/implement-spec` groups independent stories into batches and runs them "
+            "one after another in one working tree", worktree)
 
     def test_merge_conflict_gotcha_is_gone(self) -> None:
         """AC-3.3: the 'Worktree merges can conflict' gotcha is replaced."""
