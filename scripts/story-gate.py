@@ -190,17 +190,21 @@ def _env_cap() -> Optional[int]:
     return int(raw) if raw.isdigit() and int(raw) > 0 else None
 
 
-def _git(repo: Path, *args: str) -> Optional[str]:
+def _git(repo: Path, *args: str, strip: bool = True) -> Optional[str]:
     try:
         out = subprocess.run(["git", "-C", str(repo)] + list(args), capture_output=True,
                              text=True, timeout=60)
     except (OSError, subprocess.SubprocessError):
         return None
-    return out.stdout.strip() if out.returncode == 0 else None
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() if strip else out.stdout
 
 
 def _git_list(repo: Path, *args: str) -> List[str]:
-    out = _git(repo, *args)
+    # Never strip -z output: a porcelain entry opens with a status column that
+    # may be a space (` M path`), and a path may start or end with a space.
+    out = _git(repo, *args, strip=False)
     return [p for p in (out or "").split("\0") if p]
 
 
