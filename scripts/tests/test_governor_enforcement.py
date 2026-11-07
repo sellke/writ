@@ -664,7 +664,20 @@ KNOWN_OVER_BUDGET = {
     # resumes the lane once, then classifies `transient`, when the file is
     # missing; the truncated-result paragraph is gone. The template itself is
     # an underscore partial, outside the command budget.
-    "commands/implement-phase.md": 10119,
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 4): 10119 -> 1331 (file
+    # 35079 -> 26291, 358 -> 236 lines); a shrink. Text moved and cut only:
+    # Step 3.3 and mid-run closure become an event -> subcommand -> effect table,
+    # the Step 3.1 branch note and Step 3.2 iteration bound one line each,
+    # Initiative, the inherited-answer rule and Step 4.3's partial-completion
+    # rule merge into one Question Policy section (Step 4.3 now holds the
+    # checker branches), Step 1.2b keeps the proposal shape, and the rationale moves
+    # to .writ/docs/phase-execution-state-format.md -> Why. Re-pinned down
+    # because total_overage is asserted exactly.
+    # 2026-11-07 (same story, Gate 3 recode): 1331 -> 1465 (file 26291 -> 26425);
+    # the Step 3.3 reconcile row regains "continue only when they agree", the
+    # Question Policy says an unanswered lane question returns as
+    # `challenge_required`, and the `--all` boundary regains "as an interactive run".
+    "commands/implement-phase.md": 1465,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.

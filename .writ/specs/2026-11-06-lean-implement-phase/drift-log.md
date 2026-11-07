@@ -105,3 +105,28 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: the adapters' lane-result wording.
 
 ---
+
+## Story 4: Compress implement-phase.md to 240 lines — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-009] ⚠️ The 240-line target was met mostly by removing blank lines
+- **Severity:** Medium
+- **Spec said:** The contract Deliverable: the file "shrinks from 366 lines to at most 240 by cutting prose its scripts already enforce" (AC-4.1: `wc -l` ≤ 240).
+- **Implementation did:** 358 → 236 lines; 74 of the 122 lines removed are blank lines (124 → 50). Non-blank lines 234 → 186 (−48); words 4904 → 3628 (−26%); bytes 35079 → 26425 (−24.7%). With the original spacing the file would be about 310 lines.
+- **Reason:** AC-4.1 is met as written and the Markdown renders the same. Bytes and words measure the story's goal (context spent on the phase) better than lines; on that measure the cut is about a quarter. The line count overstates the prose cut by about 2.5×.
+- **Resolution:** ⚠️ Logged (Medium), PASS.
+- **Spec amendment:** None.
+
+#### [DEV-010] ⚠️ A resume stop condition was cut in round 1, restored in round 2
+- **Severity:** Medium
+- **Spec said:** Business Rule 7: "The prose cuts change no behavior."
+- **Implementation did:** Round 1's Step 3.3 table dropped "continues only if they agree" from the `--resume` / `reconcile` row; `cmd_reconcile` exits 0 on a mismatch, so the command text is the only stop. Round 2 restored "continue only when they agree", and the reviewer's repro `scripts/tests/test_story4_reconcile_stop_repro.py` now pins it.
+- **Reason:** Found by Gate 3 (F1, Major). Post-review's evidence gate did not confirm it (the repro ran only in the scratchpad) and overrode the FAIL to PASS (row 9); the orchestrator recoded anyway because the reviewer showed the repro fails on the round-1 file and passes on the old one.
+- **Resolution:** ⚠️ Logged (Medium), PASS. Fixed in the round-2 recode.
+- **Spec amendment:** None.
+
+---
