@@ -1,6 +1,7 @@
 # Story 3: Lane result file and shipped brief template
 
 > **Status:** Completed ✅ (2026-11-07)
+> **Commit:** 57d5f63025942da324f30175f54b5d371e0dc74f
 > **Priority:** Normal
 > **Dependencies:** Story 2
 
