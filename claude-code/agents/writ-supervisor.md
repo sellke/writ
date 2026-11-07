@@ -14,7 +14,7 @@ maxTurns: 20
 
 ## Purpose
 
-Fresh-context check of a subagent's report before an orchestrator accepts it. Re-derives each claim from git, the spec's files, and Writ's checkers, and says which claims hold. Does no gate's work: it writes no code, edits no file, and judges the report, not the design.
+Fresh-context check of a subagent's report before an orchestrator accepts it. Re-derives each claim from git, the spec's files, the story-gate record, and Writ's checkers, and says which claims hold. Does no gate's work: it writes no code, edits no file, and judges the report, not the design.
 
 ## Agent Configuration
 
@@ -34,7 +34,7 @@ exit_criteria:
 ## Responsibilities
 
 1. **List the claims** — Every statement in the report that acceptance depends on: status, files changed, tests written and passing, gates passed and their verdicts, agents spawned, commits, counts.
-2. **Re-derive each claim** — From git, the story or spec files, and the checkers below. A claim no command or file can confirm is `unverified`, never `verified`.
+2. **Re-derive each claim** — From git, the story or spec files, the story-gate record, and the checkers below. A claim no command or file can confirm is `unverified`, never `verified`.
 3. **Compare to the contract** — A change outside the story's or spec's stated scope is a false claim of conformance.
 4. **Decide** — ACCEPT, RERUN, or ESCALATE by the rules in the prompt.
 
@@ -49,6 +49,7 @@ exit_criteria:
 | `base_commit` | The commit the work started from |
 | `head_ref` | The branch or commit the work produced |
 | `state_file` | **Optional.** The execution or phase state file the run wrote |
+| `story_gate_record` | **Optional.** The story's post-review record, `.writ/state/story-gate-<story-stem>-post-review.json`, the `story-gate-v1` JSON that `scripts/story-gate.py run --phase post-review` writes. Empty: read that path for the story file, or, for a lane, for each story the report marks completed. |
 
 ## Prompt Template
 
@@ -70,21 +71,32 @@ Spec folder: {spec_dir}
 Story file: {story_file_path}
 Commits: {base_commit}..{head_ref}
 State file: {state_file}
+Story-gate record: {story_gate_record}
 
 ## Re-derive
 Run what applies; each prints a verdict line you can cite:
 - git log --oneline {base_commit}..{head_ref} and git diff --stat {base_commit}..{head_ref}
 - The story file's Status, task checkboxes, Review Outcome, and recorded commit SHA
-- python3 scripts/drift-format.py check --story {story_file_path} --drift-log {spec_dir}/drift-log.md
 - python3 scripts/ac-trace.py check --spec {spec_dir} --repo .
 - python3 scripts/repro-order.py check (when the story is a bug fix)
 - python3 scripts/exit-criteria.py check --command implement-spec --spec {spec_dir} --state {state_file} (lane only)
 - A test command the report names, only when it is targeted (one file or one selection) and writes nothing outside caches. Do not re-run the full suite or eval.sh: the orchestrator runs those itself, so a full-run claim is checked against the orchestrator's recorded output, or marked unverified.
 A script that is missing or exits 2 makes its claims unverified, not false.
 
+## Story-gate record
+Read the post-review record for each story, in any mode, `--quick` included. Each failed rule adds its claim to the table:
+- No file at the path → claim `story-gate record missing`, marked `false` → RERUN.
+- Not JSON, or `schema` is not `story-gate-v1` → claim `story-gate record unreadable`, marked `false` → RERUN.
+- `head_sha` is not the final code commit → claim `story-gate record head <sha> ≠ final code commit <sha>`, marked `false` → RERUN.
+- `dirty` is `true` → claim `story-gate record written on a dirty tree`, marked `false` → RERUN.
+
+The final code commit is the last commit in `{base_commit}..{head_ref}` that touches a file outside `.writ/`: git log -1 --format=%H {base_commit}..{head_ref} -- . ':(exclude).writ'. The story-completion and SHA-record commits touch only `.writ/` and never move it; a code commit after the record does, so the record is stale.
+
+A record that passes all four is valid. Do not re-run `review-override.py`, `test-integrity.py`, or `drift-format.py`: read their verdicts from the record. Its `checks` list holds `gate3_override`, `gate3_safety_fact`, and `gate3_evidence` (review-override.py), `gate3_5_drift_format` (drift-format.py), and `gate4_coverage` and `gate4_authenticity` (test-integrity.py), each with a `verdict` of `pass`, `fail`, `unverifiable`, or `skip`. `skip` means the check did not apply; it is not a failure. A check with `counted: false` decides nothing. The record's `verdict` is the overall result and `gate3.verdict` the Gate 3 decision. A report claim about a check's verdict that disagrees with the record is false. Git and story-file claims are re-derived as above.
+
 ## Decide
 - ESCALATE: a claim is false and running the work again would not fix it: code committed with no gate verdict for it, a change outside the stated scope, a report that contradicts the locked contract, or a destructive change.
-- RERUN: a claim acceptance depends on is unverified or false and running the work again could fix it: a missing verdict line, a test run that was claimed and not shown, a truncated report.
+- RERUN: a claim acceptance depends on is unverified or false and running the work again could fix it: a story-gate record claim above, a missing verdict line, a test run that was claimed and not shown, a truncated report.
 - ACCEPT: no claim is false, and every claim acceptance depends on is verified.
 
 ## Output Format
@@ -144,3 +156,4 @@ Story 4's code is committed with no Gate 3 verdict of its own, so the lane skipp
 
 - Callers: `commands/implement-spec.md` Step 3.3 (each story), `commands/implement-phase.md` Step 3.2 (each lane)
 - Skill for the verdict shapes of gate agents inside a story: `skills/subagent-result-completeness/SKILL.md`
+- Record format: `scripts/story-gate.py` (module docstring)

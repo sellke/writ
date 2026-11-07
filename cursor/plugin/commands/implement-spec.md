@@ -103,16 +103,9 @@ Batch 3 (sequential): batches[2] → Story 5             — depends on batch 2
 
 If `--from story-N` is specified, prune the **already-validated** `batches` array to story N and everything at or after its batch. Validation in Step 2.1 already ran against the full graph, so pruning here never re-opens a graph question — it only narrows which validated batches execute.
 
-#### Step 2.3: Estimate Scope
-
-For each story, count:
-- Implementation tasks
-- Acceptance criteria
-- Estimated complexity (task count × avg)
-
 #### Step 2.3b: Pre-Flight Assessment
 
-Run lightweight sizing checks against remaining stories. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
+Count each remaining story's tasks and acceptance criteria. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
 
 **If no flags:** Proceed silently. **If flags found:** Show concerns above the execution plan and point to `/assess-spec` for a full analysis. Pre-flight is advisory — never blocks execution.
 
@@ -124,7 +117,6 @@ Present the plan for visibility, then proceed directly to Phase 3 — there is n
 ## Execution Plan: 2026-02-22-feature-name
 
 Stories to implement: 5 (2 already complete, 3 remaining)
-Estimated phases per story: arch-check → code → lint → review → test → docs
 
   Batch 1 (parallel):
     ├── Story 3: API Endpoints (5 tasks, 4 AC) — no dependencies
@@ -174,8 +166,8 @@ For each batch in order:
 **Platform note:** on a harness where invoking `/implement-story` loads its
 instructions into the current context rather than running it as a
 backgrounded subagent, "spawn ... concurrently" means the orchestrator issues
-one parallel tool-call per story (each running that story's own Gate
-0/1/3/4/4.5 sequence) — not a nested command call the harness
+one parallel tool-call per story (each running that story's own gate
+sequence) — not a nested command call the harness
 auto-parallelizes. Confirm which behavior your platform's invocation gives
 before assuming concurrency.
 
@@ -188,7 +180,7 @@ before assuming concurrency.
 #### Step 3.3: Update State After Each Story
 
 After each `/implement-story` completes:
-- **Supervise the result first.** Spawn `supervisor-agent` (fresh context, read-only) with the story's report verbatim, the story file, and the commit range the story produced. It re-derives each claim from git, the story file, the drift log, and Writ's checkers, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → record the story as reported. `RERUN` → run `/implement-story {id}` once more; a second `RERUN` is a story failure. `ESCALATE` → a story failure, with the claims table as its reason. A missing result line is a mid-task stop: resume the supervisor once and ask for its result. In Phase-Orchestrated Lane Mode, skip this step: `/implement-phase` supervises the lane's result.
+- **Supervise the result first.** Spawn `supervisor-agent` (fresh context, read-only) with the story's report verbatim, the story file, the commit range the story produced, and `story_gate_record`: `.writ/state/story-gate-<story-stem>-post-review.json`. It reads check verdicts from that record, re-derives the other claims from git and the story file, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → record the story as reported. `RERUN` → run `/implement-story {id}` once more; a second `RERUN` is a story failure. `ESCALATE` → a story failure, with the claims table as its reason. A missing result line is a mid-task stop: resume the supervisor once and ask for its result. In Phase-Orchestrated Lane Mode, skip this step: `/implement-phase` supervises the lane's result.
 - **Update execution state file with result** — this is a required disk
   write: update the story's `stories.{id}` entry in
   `.writ/state/execution-{timestamp}.json` immediately, before dispatching
@@ -196,7 +188,6 @@ After each `/implement-story` completes:
   progress solely in conversation state does not substitute for it and will
   not survive a restart.
 - Log: pass/fail, review iterations, test count, coverage
-- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2 (including the `## Artifact Map` + Integrity line), reflecting the updated story progress. Each write replaces the entire file.
 
 **On story failure:** run the Doubt Rule (`site: plan`; recommend skipping only the failed story's dependents when `story-deps.py` shows independent stories remain, otherwise retry once). When it asks, present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
@@ -208,7 +199,7 @@ After each `/implement-story` completes:
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work together.
+After all stories complete, run a single integration check to catch cross-story breakage. Each story's tests ran once, as Gate 3's targeted recorded run, which `story-gate.py` post-review checks — this step only verifies that the stories work together.
 
 Detect the runners the way `/ship` Step 1 does — never hard-code a stack:
 
@@ -217,9 +208,9 @@ Detect the runners the way `/ship` Step 1 does — never hard-code a stack:
 
 If integration fails: run `git log --oneline` over the stories' completion commits, name the story whose commit most plausibly introduced the failure, and present three options via AskQuestion — **Fix in place** (spawn `/implement-story {id} --review-only` against the failing suite so the same story owns the repair), **Revert** (`/revert` that story's completion commit, mark the story `Not Started`, and stop so the user decides whether to re-run it), or **Abort** (leave the tree as is, record `postRun.testSuite: fail`, and report). Never mark the spec `Complete` while the integration suite fails.
 
-> **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
+> **Why not proportional?** Each story already ran its targeted tests and post-review's coverage check. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
 
-Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`; a stack with no typechecker records `typecheck: "skipped"` plus a non-empty `typecheckReason`, never a stand-in `pass`. `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
+Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`; a stack with no typechecker records `typecheck: "skipped"` plus a non-empty `typecheckReason`, never a stand-in `pass`. `contextRewritten` is a boolean: `true` when `implement-story` Step 4's last regeneration of `.writ/context.md` (with its `## Artifact Map`) ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
 **Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would report `unknown` instead of the true verdict:
 
