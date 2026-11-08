@@ -308,7 +308,7 @@ Flag if obvious dependencies are undeclared
 **4d. Cross-spec dependency validation:**
 
 This validates the spec-level `> **Dependencies:** [spec-folder-id, ...]` header — a
-**separate contract** from the story-level checks in 4a–4c. Existing story dependency validation is unchanged; the two graphs stay distinct.
+**separate contract** from the story-level checks in 4a–4c. The two graphs stay distinct.
 
 ```
 For the reachable cross-spec graph (this spec + every spec it references):
