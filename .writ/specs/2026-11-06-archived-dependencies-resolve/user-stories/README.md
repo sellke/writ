@@ -6,7 +6,7 @@
 
 | Story | Status | Tasks | Progress |
 |---|---|---|---|
-| [Story 1: Archived dependencies resolve](story-1-archived-dependencies-resolve.md) | Not Started | 0 / 7 | 0% |
+| [Story 1: Archived dependencies resolve](story-1-archived-dependencies-resolve.md) | Completed ✅ | 7 / 7 | 100% |
 
 **Total:** 1 story, 7 tasks, 5 acceptance criteria.
 

@@ -16,6 +16,10 @@ exercises scripts/spec-deps.py, asserting the authoritative contract:
   - deterministic topological order
   - roadmap order as the independent-spec tie-break
   - story-level `Dependencies: Story N` is never conflated with spec deps
+  - archived dep   -> satisfied, listed in archived_dependencies, not ordered
+  - archived spec  -> never parsed (a malformed archived header blocks nothing)
+  - missing ref    -> summary names both .writ/specs/<id>/ and archive/<id>/
+  - active + archived id -> the active folder wins and keeps its edge
 """
 
 from __future__ import annotations
@@ -56,8 +60,9 @@ def run(*args: str) -> tuple[int, dict]:
     return proc.returncode, payload
 
 
-def make_spec(root: Path, spec_id: str, header: str | None) -> Path:
-    folder = root / spec_id
+def make_spec(root: Path, spec_id: str, header: str | None,
+              archived: bool = False) -> Path:
+    folder = (root / "archive" if archived else root) / spec_id
     folder.mkdir(parents=True, exist_ok=True)
     lines = ["# Spec", ""]
     if header is not None:
@@ -161,9 +166,57 @@ def scenario_validate() -> None:
              and "->" in payload.get("blocker", {}).get("summary", ""), payload)
 
 
+def scenario_archive() -> None:
+    """Archived dependencies resolve (2026-11-06-archived-dependencies-resolve)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        make_spec(root, "consumer", "> **Dependencies:** [done]")
+        make_spec(root, "done", "> **Dependencies:** []", archived=True)
+        code, payload = run("validate", "--specs-dir", str(root))
+        emit("validate-archived-dependency-satisfied",
+             code == 0 and payload.get("status") == "ok"
+             and payload.get("order") == ["consumer"]
+             and payload.get("graph", {}).get("consumer") == ["done"]
+             and payload.get("archived_dependencies") == {"consumer": ["done"]},
+             payload)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        make_spec(root, "done", "> **Dependencies:** not a list", archived=True)
+        make_spec(root, "loop", "> **Dependencies:** [done]", archived=True)
+        make_spec(root, "consumer", "> **Dependencies:** [done, loop]")
+        code, payload = run("validate", "--specs-dir", str(root))
+        emit("validate-archived-never-parsed",
+             code == 0 and "blocker" not in payload
+             and payload.get("archived_dependencies", {}).get("consumer") == ["done", "loop"],
+             payload)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        make_spec(root, "consumer", "> **Dependencies:** [ghost]")
+        make_spec(root, "done", "> **Dependencies:** []", archived=True)
+        code, payload = run("validate", "--specs-dir", str(root))
+        summary = payload.get("blocker", {}).get("summary", "")
+        emit("validate-missing-names-archive-path",
+             code != 0 and payload.get("blocker", {}).get("code") == "missing_reference"
+             and ".writ/specs/ghost/" in summary
+             and ".writ/specs/archive/ghost/" in summary, payload)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        make_spec(root, "done", "> **Dependencies:** []")
+        make_spec(root, "done", "> **Dependencies:** []", archived=True)
+        make_spec(root, "consumer", "> **Dependencies:** [done]")
+        code, payload = run("validate", "--specs-dir", str(root))
+        emit("validate-active-wins-over-archive",
+             code == 0 and payload.get("order") == ["done", "consumer"]
+             and payload.get("archived_dependencies") == {}, payload)
+
+
 def main() -> int:
     scenario_parse()
     scenario_validate()
+    scenario_archive()
     return 0 if failed == 0 else 1
 
 

@@ -91,10 +91,13 @@ Every existing spec-enumeration call site in the command suite uses a **single-l
 | `commands/verify-spec.md` — `--all` folder enumeration (`.writ/specs/*/`) | single-level | No |
 | `scripts/spec-status.py` — `scan --specs-dir` (`specs_dir.glob("*/spec.md")`) | single-level | No |
 | `scripts/archive-sweep.py` — eligibility scan (delegates to `spec-status.py`) | single-level | No |
+| `scripts/spec-deps.py` — `validate`: `_discover` (`specs_dir.glob("*/spec.md")`) and `_archived_ids` (`archive/*/spec.md` folder names only) | single-level, plus one deliberate archive read | `_discover`: No. `_archived_ids`: Yes, deliberately (see below) |
 
 **This is deliberate, not incidental.** The glob depth *is* the exclusion mechanism. No command in the list above contains a separate, explicit `archive/` skip check — none is needed.
 
 > **⚠️ Do not add a second, separate exclusion check for `archive/` anywhere.** The one-level-deeper glob already handles it for every present and future single-level-glob call site. Only add explicit handling if a command deliberately needs to **include** archived specs (e.g. a hypothetical future `--include-archived` flag on `/verify-spec` — deferred, not built, per Business Rule 6). If you find yourself writing `grep -v archive` or `-path '*/archive/*' -prune`, stop: either the call site already uses a single-level glob (no fix needed) or it uses a recursive glob and the *narrowest* fix is to tighten it back to single-level, not bolt on a parallel filter.
+
+**Deliberate inclusion: dependency resolution.** `scripts/spec-deps.py validate` reads `.writ/specs/archive/*/spec.md` folder names so that an active spec's dependency on an archived spec resolves as satisfied and is reported under `archived_dependencies` in its output. This is the sanctioned inclusion the warning above anticipates: archived specs are never parsed or ordered, only their folder names are read, and the single-level `_discover` glob is unchanged. An id found in both places resolves to the active folder. An id in neither place still blocks with `missing_reference`.
 
 ### The `backups/` invariant (a second, pre-existing case of the same mechanism)
 

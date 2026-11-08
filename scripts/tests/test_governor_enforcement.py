@@ -640,7 +640,12 @@ KNOWN_OVER_BUDGET = {
     # since the story template stopped emitting one. Re-pinned down because
     # total_overage is asserted exactly.
     "commands/create-spec.md": 14121,
-    "commands/verify-spec.md": 10818,
+    # 2026-11-08 (2026-11-06-archived-dependencies-resolve Story 1): 10818 -> 10791
+    # (file 35778 -> 35751); a shrink. Check 4d's missing-reference line names
+    # .writ/specs/archive/ (+24), offset by dropping the "Existing story dependency
+    # validation is unchanged" clause (-51). Re-pinned down because total_overage
+    # is asserted exactly.
+    "commands/verify-spec.md": 10791,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
     # for the conditional /verify-spec --product line in the Step 4.2 report.
@@ -677,7 +682,12 @@ KNOWN_OVER_BUDGET = {
     # the Step 3.3 reconcile row regains "continue only when they agree", the
     # Question Policy says an unanswered lane question returns as
     # `challenge_required`, and the `--all` boundary regains "as an interactive run".
-    "commands/implement-phase.md": 1465,
+    # 2026-11-08 (2026-11-06-archived-dependencies-resolve Story 1): 1465 -> 1464
+    # (file 26425 -> 26424); a shrink. Step 2.1 says an archived dependency is
+    # satisfied and listed in `archived_dependencies`, offset by naming the
+    # `blocker` result instead of listing its five codes. Re-pinned down because
+    # total_overage is asserted exactly.
+    "commands/implement-phase.md": 1464,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.

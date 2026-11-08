@@ -13,6 +13,9 @@ Subcommands:
   validate --specs-dir DIR [--roadmap-order a,b,c]
              Build the reachable cross-spec graph across every spec folder in
              DIR, validate it, and emit a deterministic topological order.
+             A dependency whose folder sits under `DIR/archive/` resolves as
+             satisfied and is reported under `archived_dependencies`; archived
+             specs are never parsed or ordered.
 
 Success prints a JSON object and exits 0. A contract violation prints a JSON
 object with a `blocker` of {code, summary} and exits non-zero. Nothing is ever
@@ -200,32 +203,55 @@ def _find_cycle(graph: dict[str, list[str]]) -> list[str] | None:
     return None
 
 
+def _archived_ids(specs_dir: Path) -> set[str]:
+    """Folder names of archived specs. Names only; archived headers are never parsed."""
+    archive = specs_dir / "archive"
+    if not archive.is_dir():
+        return set()
+    return {p.parent.name for p in archive.glob("*/spec.md")}
+
+
 def validate_graph(specs_dir: Path, roadmap_order: list[str]) -> dict[str, Any]:
     graph = _discover(specs_dir)
     known = set(graph)
+    archived = _archived_ids(specs_dir)
 
+    # Resolve each declared dep: an active folder is an ordering edge, an
+    # archived folder is satisfied but never ordered, anything else blocks.
+    # `known` is tested first so an id in both places keeps its edge.
+    # Archived ids must stay out of active_graph: _topo_order releases a spec
+    # only when its dep set is empty, so an archived id left in would read as
+    # a false dependency_cycle.
+    active_graph: dict[str, list[str]] = {}
+    archived_deps: dict[str, list[str]] = {}
     for spec in sorted(graph):
+        active_graph[spec] = []
         for dep in graph[spec]:
-            if dep not in known:
+            if dep in known:
+                active_graph[spec].append(dep)
+            elif dep in archived:
+                archived_deps.setdefault(spec, []).append(dep)
+            else:
                 raise ContractError(
                     "missing_reference",
                     f"{spec}: depends on unknown spec {dep!r}"
-                    f" (no folder .writ/specs/{dep}/)",
+                    f" (no folder .writ/specs/{dep}/ or .writ/specs/archive/{dep}/)",
                 )
 
-    cycle = _find_cycle(graph)
+    cycle = _find_cycle(active_graph)
     if cycle:
         raise ContractError(
             "dependency_cycle",
             "cross-spec cycle: " + " -> ".join(cycle),
         )
 
-    order = _topo_order(graph, roadmap_order)
+    order = _topo_order(active_graph, roadmap_order)
     return {
         "schema": GRAPH_SCHEMA,
         "status": "ok",
         "order": order,
         "graph": graph,
+        "archived_dependencies": archived_deps,
     }
 
 

@@ -101,7 +101,7 @@ Order comes from each spec's `> **Dependencies:** [...]` header, not prose:
 2. **Roadmap order** — breaks ties among independent specs, so the plan is reproducible.
 3. **Shared-surface inference remains advisory** — two unrelated specs touching the same files get a warning and run in roadmap order; inference never reorders a valid graph.
 
-Run `scripts/spec-deps.py validate --specs-dir .writ/specs --roadmap-order <phase spec order>`. **Invalid metadata is blocking:** on a malformed header, missing reference, self-reference, duplicate, or cycle, stop before the confirmation gate and show the affected spec with the exact diagnostic; never guess an order. Independent specs still run sequentially.
+Run `scripts/spec-deps.py validate --specs-dir .writ/specs --roadmap-order <phase spec order>`. An archived dependency is satisfied: listed in `archived_dependencies`, not ordered. **Invalid metadata is blocking:** on a `blocker`, stop before the confirmation gate and show its exact diagnostic; never guess an order. Independent specs still run sequentially.
 
 #### Step 2.2: Verify Exit Criteria Exist
 Read the phase's **Exit Criteria** and **Success Metrics** from the roadmap and classify each as **machine-checkable** (tests pass, files load, no external dependencies, typecheck clean) or **human-judgment** ("feels complete for daily use", UAT scenario passes). No exit criteria → Question Policy condition 1.
