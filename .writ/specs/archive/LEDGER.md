@@ -78,3 +78,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-10-02T02:30:38Z — `2026-10-01-product-check-direction` archived (evidence: no knowledge evidence yet)
 - 2026-10-21T01:34:30Z — `2026-10-12-agent-cli-contract` archived (evidence: no knowledge evidence yet; moved by hand in the main checkout, ledger line added during /implement-phase 13)
 - 2026-11-04T18:29:31Z — `2026-10-25-design-divergence` archived (evidence: no knowledge evidence yet)
+- 2026-11-08T03:18:57Z — `2026-11-06-lean-implement-phase` archived (evidence: no knowledge evidence yet, via PR #69)
