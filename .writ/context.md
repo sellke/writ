@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-08T15:00:00Z
+> Last Updated: 2026-11-08T21:30:00Z
 
 ## Product Mission
 
@@ -8,8 +8,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete, merged in PR #71 (`19f56e8`), and released in v0.47.0. One real-PR `/ship --watch` run is outstanding.
-- **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
+- **Spec:** `2026-11-06-archived-dependencies-resolve` — 1/1 stories complete on branch `spec/archived-dependencies-resolve`, unmerged. `spec-deps.py validate` resolves archived dependencies as satisfied.
+- **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.0 (2026-11-08) is the latest release.
 
 ## Artifact Map
 
@@ -21,9 +21,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-002 Byte-budget offsets: two prose trims and a ledger re-pin — archived-dependencies-resolve (Small)
+- DEV-001 `/verify-spec` section named "Check 3f" in the spec is Check 4d — archived-dependencies-resolve (Small)
 - DEV-011 The first spec's contract tests follow the Callers cells — ship-watch-and-merge (Small)
-- DEV-010 Step 6 names the landed SHA for a `--watch` merge, and the Gate 3 repro ships as its own test file — ship-watch-and-merge (Small)
-- DEV-009 `test_harness_cuts.py`'s AC-3.3 frontmatter test is renamed and joined by a `--watch` merge-claim test — ship-watch-and-merge (Small)
 
 ## Open Issues
 

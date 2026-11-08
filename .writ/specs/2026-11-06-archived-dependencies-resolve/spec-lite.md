@@ -19,7 +19,9 @@
 - `scripts/tests/test_spec_deps.py`: new, import-by-path like `test_story_deps.py`
 - `scripts/eval-spec-deps.py`: four archive scenarios
 - `.writ/docs/spec-lifecycle.md`: "Deliberate inclusion: dependency resolution" paragraph
-- `commands/verify-spec.md` Check 3f, `commands/implement-phase.md` Step 2.1: one line each
+- `commands/verify-spec.md` Check 4d: the missing-reference line names both paths
+- `commands/implement-phase.md` Step 2.1: one sentence that an archived dependency is satisfied, listed in `archived_dependencies`, and not ordered; byte growth offset within the step
+- `scripts/tests/test_governor_enforcement.py`: re-pin `KNOWN_OVER_BUDGET` for `verify-spec.md` and `implement-phase.md` when the command edits change their byte size
 - `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/spec.md`: restore `2026-10-25-design-divergence` to `Dependencies:`
 - Never: `scripts/archive-sweep.py`, `scripts/spec-status.py`, `scripts/ac-trace.py`
 
@@ -29,7 +31,7 @@
 - Id active and archived → active wins, ordering edge kept
 
 **Integration Points:**
-- `/implement-phase` Step 2.1 and `/verify-spec` Check 3f call `validate`; `phase-state.py` consumes `order` only
+- `/implement-phase` Step 2.1 and `/verify-spec` Check 4d call `validate`; `phase-state.py` consumes `order` only
 
 ---
 
@@ -40,7 +42,7 @@
 2. Archived specs are never parsed: a malformed or cyclic archived header raises nothing `[AC-1.2]`
 3. An id absent from both places blocks with `missing_reference` and a summary naming both paths; every other blocker is unchanged `[AC-1.3]`
 4. An id present in both places resolves to the active folder with its ordering edge `[AC-1.2]`
-5. The lifecycle doc, Check 3f, and Step 2.1 say an archived dependency is satisfied; `eval.sh` checks stay green `[AC-1.4]`
+5. The lifecycle doc, Check 4d, and Step 2.1 say an archived dependency is satisfied; `eval.sh` checks stay green `[AC-1.4]`
 6. The restored removal-measurement header validates `ok` on this repo `[AC-1.5]`
 
 **Business Rules:**
