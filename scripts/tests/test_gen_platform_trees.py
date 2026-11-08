@@ -97,6 +97,8 @@ COMMAND_SENTENCES = [
 ISSUE = ".writ/issues/improvements/2026-10-22-create-spec-discovery-skips-plan-mode-on-claude-code.md"
 SPEC_SLUG = "2026-10-22-generated-platform-trees"
 SPEC_REF = "> **spec_ref:** .writ/specs/%s/spec.md" % SPEC_SLUG
+# The spec may be archived, so spec_ref may name either location.
+SPEC_REFS = (SPEC_REF, "> **spec_ref:** .writ/specs/archive/%s/spec.md" % SPEC_SLUG)
 LANE_BRANCH = "writ/phase/14/%s" % SPEC_SLUG
 RESOLUTION_PHRASES = (
     "2026-10-22", "`%s`" % SPEC_SLUG, "`%s`" % LANE_BRANCH,
@@ -341,7 +343,7 @@ def test_issue_resolution():
     for phrase in RESOLUTION_PHRASES:
         assert phrase in text, "Resolution lacks %r" % phrase
     refs = [line for line in lines if line.startswith("> **spec_ref:**")]
-    assert refs == [SPEC_REF], refs
+    assert len(refs) == 1 and refs[0] in SPEC_REFS, refs
 
 
 # ---------------------------------------------------------------------------

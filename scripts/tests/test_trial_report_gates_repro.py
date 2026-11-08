@@ -1,7 +1,10 @@
 from pathlib import Path
 
-REPORT = (Path(__file__).resolve().parents[2] / ".writ" / "specs"
-          / "2026-11-06-lean-story-pipeline" / "trial-report.md")
+_SPECS = Path(__file__).resolve().parents[2] / ".writ" / "specs"
+# An archived spec moves under specs/archive/; follow it.
+REPORT = next((d / "2026-11-06-lean-story-pipeline" / "trial-report.md" for d in (_SPECS, _SPECS / "archive")
+               if (d / "2026-11-06-lean-story-pipeline").is_dir()),
+              _SPECS / "2026-11-06-lean-story-pipeline" / "trial-report.md")
 
 
 def test_arm_after_gates_row_names_post_review_failures():

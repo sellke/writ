@@ -47,6 +47,8 @@ ADR_029 = ADR_DIR / "adr-029-agent-cli-contract.md"
 ADR_031 = ADR_DIR / "adr-031-script-location.md"
 ISSUE = REPO_ROOT / ".writ" / "issues" / "improvements" / "2026-10-12-script-install-location.md"
 SPEC_PATH = ".writ/specs/2026-10-22-plugin-distribution/spec.md"
+# The spec may be archived, so spec_ref may name either location.
+SPEC_PATHS = (SPEC_PATH, ".writ/specs/archive/2026-10-22-plugin-distribution/spec.md")
 
 EXPECTED_PATHS = [
     ".writ/specs",
@@ -462,7 +464,7 @@ def test_adr_029_is_superseded_in_part_by_adr_031():
 def test_issue_is_resolved_by_adr_031():
     """AC-4.5 — `## Resolution` names ADR-031 and spec.md; `spec_ref` is the spec path."""
     text = ISSUE.read_text(encoding="utf-8")
-    assert "> **spec_ref:** %s\n" % SPEC_PATH in text
+    assert any("> **spec_ref:** %s\n" % p in text for p in SPEC_PATHS), "spec_ref names neither location"
     assert "\n## Resolution\n" in text
     resolution = text.split("\n## Resolution\n", 1)[1]
     assert "adr-031-script-location.md" in resolution

@@ -28,7 +28,7 @@ In the 2026-10-22 UAT run of `2026-10-20-shipped-command-hygiene` Scenario 29 (C
 
 - `commands/create-spec.md`: Steps 1.3, 1.4, and 1.4b
 - `adapters/claude-code.md`: the `AskQuestion` mapping
-- `.writ/specs/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
+- `.writ/specs/archive/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
 
 ## Resolution
 

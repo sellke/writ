@@ -29,4 +29,4 @@ Phase 13's specs remove the friction-signal no-op lines and the internal links i
 - `.writ/docs/model-tiers.md`
 - `commands/*.md` (bare `ADR-0NN` labels)
 - `scripts/tests/`, `scripts/eval-*.py` (prose pins)
-- Origin: grounding notes in `.writ/specs/2026-10-20-harness-cuts/` and `.writ/specs/2026-10-20-shipped-command-hygiene/`
+- Origin: grounding notes in `.writ/specs/archive/2026-10-20-harness-cuts/` and `.writ/specs/archive/2026-10-20-shipped-command-hygiene/`

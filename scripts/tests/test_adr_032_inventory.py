@@ -42,7 +42,10 @@ DECISIONS = REPO_ROOT / ".writ" / "decision-records"
 ADR = DECISIONS / "adr-032-evidence-gated-review.md"
 ADR_028 = DECISIONS / "adr-028-behavioral-verification-and-cross-family-panels.md"
 LEDGER = DECISIONS / "pruned-instructions-ledger.md"
-TECH_SPEC = REPO_ROOT / ".writ" / "specs" / SPEC_ID / "sub-specs" / "technical-spec.md"
+# An archived spec moves under specs/archive/; follow it.
+TECH_SPEC = next((p for p in (REPO_ROOT / ".writ" / "specs" / SPEC_ID / "sub-specs" / "technical-spec.md",
+                              REPO_ROOT / ".writ" / "specs" / "archive" / SPEC_ID / "sub-specs" / "technical-spec.md")
+                  if p.exists()), REPO_ROOT / ".writ" / "specs" / SPEC_ID / "sub-specs" / "technical-spec.md")
 ROADMAP = REPO_ROOT / ".writ" / "product" / "roadmap.md"
 
 ORIGIN_LINK = "(../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md)"

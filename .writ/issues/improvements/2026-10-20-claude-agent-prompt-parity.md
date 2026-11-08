@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-10-20
-> **spec_ref:** .writ/specs/2026-10-20-claude-agent-generator/spec.md
+> **spec_ref:** .writ/specs/archive/2026-10-20-claude-agent-generator/spec.md
 
 ## TL;DR
 

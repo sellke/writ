@@ -91,8 +91,11 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / "scripts" / "gen-platform-trees.py"
-TECH_SPEC = (REPO_ROOT / ".writ" / "specs" / "2026-10-22-plugin-distribution"
-             / "sub-specs" / "technical-spec.md")
+# An archived spec moves under specs/archive/; follow it.
+TECH_SPEC = next((d / "2026-10-22-plugin-distribution" / "sub-specs" / "technical-spec.md"
+                  for d in (REPO_ROOT / ".writ" / "specs", REPO_ROOT / ".writ" / "specs" / "archive")
+                  if (d / "2026-10-22-plugin-distribution").is_dir()),
+                 REPO_ROOT / ".writ" / "specs" / "2026-10-22-plugin-distribution" / "sub-specs" / "technical-spec.md")
 
 RECORD_HEADING = "## Verification Record"
 RECORD_COLUMNS = ["Claim", "Platform & version", "Observed", "Source", "Status"]

@@ -9,7 +9,7 @@
 > **Keeps:** ADR-029 rules 1 to 7. Every shipped script follows the agent CLI contract on both install paths, and the contract test reads the shipped set from `is_shippable_script` as before.
 > **Extends:** [ADR-030](adr-030-contract-verifier-boundary-front-door.md). Its 2026-10-20 amendment to ADR-029 said Phase 14's plugin, with scripts inside it, would settle the script-location consequence. This record settles it.
 > **Respects:** [ADR-015](adr-015-leanness-self-governance.md) (no new command), [ADR-027](adr-027-optional-judgment-provider.md) (no runtime dependency: the installers stay bash and never call Python)
-> **Evidence base:** [`technical-spec.md`](../specs/2026-10-22-plugin-distribution/sub-specs/technical-spec.md) § Verification Record of spec `2026-10-22-plugin-distribution`, rows V07, V08, V34, V49, V58 (Claude Code docs and Cursor docs read 2026-10-23; Claude Code 2.1.309 live run 2026-10-23). See Evidence below.
+> **Evidence base:** [`technical-spec.md`](../specs/archive/2026-10-22-plugin-distribution/sub-specs/technical-spec.md) § Verification Record of spec `2026-10-22-plugin-distribution`, rows V07, V08, V34, V49, V58 (Claude Code docs and Cursor docs read 2026-10-23; Claude Code 2.1.309 live run 2026-10-23). See Evidence below.
 
 ## Decision
 
@@ -141,5 +141,5 @@ The collision ADR-029 named stays, for `install.sh` projects only. It is accepte
 - [ADR-029](adr-029-agent-cli-contract.md) — the agent CLI contract and the superseded consequence
 - [ADR-030](adr-030-contract-verifier-boundary-front-door.md) — Phase 14 and its amendment to ADR-029
 - [`2026-10-12-script-install-location`](../issues/improvements/2026-10-12-script-install-location.md) — the issue this record closes
-- [`2026-10-22-plugin-distribution`](../specs/2026-10-22-plugin-distribution/spec.md) — spec, Rules 7 and 8; [`technical-spec.md`](../specs/2026-10-22-plugin-distribution/sub-specs/technical-spec.md) § Verification Record, § Relative Path Inventory, § `scaffold-writ.py`, § ADR-031 Outline; [`drift-log.md`](../specs/2026-10-22-plugin-distribution/drift-log.md) DEV-005, DEV-006
+- [`2026-10-22-plugin-distribution`](../specs/archive/2026-10-22-plugin-distribution/spec.md) — spec, Rules 7 and 8; [`technical-spec.md`](../specs/archive/2026-10-22-plugin-distribution/sub-specs/technical-spec.md) § Verification Record, § Relative Path Inventory, § `scaffold-writ.py`, § ADR-031 Outline; [`drift-log.md`](../specs/archive/2026-10-22-plugin-distribution/drift-log.md) DEV-005, DEV-006
 - [`.writ/docs/agent-cli-contract.md`](../docs/agent-cli-contract.md) — the contract and the Classification table

@@ -4,7 +4,7 @@
 > **Priority:** Medium
 > **Effort:** Small
 > **Created:** 2026-10-22
-> **spec_ref:** .writ/specs/2026-10-22-generated-platform-trees/spec.md
+> **spec_ref:** .writ/specs/archive/2026-10-22-generated-platform-trees/spec.md
 
 ## TL;DR
 
@@ -28,7 +28,7 @@ ADR-001 puts `/create-spec` discovery in Plan Mode as a conversation and keeps A
 - `commands/create-spec.md`: Step 1.3
 - `adapters/claude-code.md`: Plan Mode mapping
 - `.writ/decision-records/adr-001-askquestion-vs-plan-mode.md`
-- `.writ/specs/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
+- `.writ/specs/archive/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
 
 ## Resolution
 

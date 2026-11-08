@@ -17,7 +17,7 @@ Recorded at phase close from evidence-bound knowledge writeback.
 
 **Cited evidence:**
 
-- .writ/specs/2026-10-20-harness-cuts/drift-log.md DEV-009: guard test failed on the phase branch after integration because a UAT plan committed during the lane named a lean file
+- .writ/specs/archive/2026-10-20-harness-cuts/drift-log.md DEV-009: guard test failed on the phase branch after integration because a UAT plan committed during the lane named a lean file
 - Phase 13 lane 1: a peer session committed the claude-agent-generator spec on the phase branch mid-lane; merging it into the lane surfaced a .writ/context.md conflict before integrate would have aborted
 
 ## Related
