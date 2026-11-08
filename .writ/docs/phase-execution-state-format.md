@@ -33,6 +33,7 @@ Later Phase 6 stories extend this schema:
   "updatedAt": "2026-07-10T21:05:00Z",
   "status": "executing",
   "specOrder": ["spec-a", "spec-b"],
+  "uatRequested": false,
   "specs": {
     "spec-a": {
       "dependencies": [],
@@ -40,6 +41,7 @@ Later Phase 6 stories extend this schema:
       "attempts": 1,
       "laneBranch": "writ/phase/6/spec-a",
       "worktreePath": "/abs/path/.writ-lanes-6/spec-a",
+      "resultPath": "/abs/path/repo/.writ/state/lane-result-6-spec-a.json",
       "agentRunId": null,
       "mergeCommit": null,
       "quarantineBranch": null,
@@ -60,12 +62,14 @@ Later Phase 6 stories extend this schema:
 | `schemaVersion` | Always `2` for this format. A reader that sees an unsupported major reports before mutating. |
 | `phase` / `phaseBranch` | The roadmap phase ID and the git branch that accumulates only verified work. |
 | `specOrder` | The topologically ordered spec list (see `scripts/spec-deps.py`). |
+| `uatRequested` | `true` when the run was launched with `--uat` (`phase-state.py init --uat`), else `false`. Step 3.2 runs `/create-uat-plan` per merged spec only when it is true, and `exit-criteria.py` checks `implement-phase.c2` only when it is true. A file with no key predates the flag and reads as `true`. `--resume --uat` on a run started without it sets the key to `true` from then on; the orchestrator writes it (temp file + rename) because no reducer subcommand rewrites it. |
 | `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`, `challenge_required`, `closed_not_implemented`. Enforced on **write** by `_set_status`; readers stay tolerant so a status written by a newer reducer is reported, never rejected. |
 | `specs.{id}.blockedBy` | The upstream specs that stopped this one. Reads as "upstream reached a terminal status **without delivering**" — a quarantine *or* a closure. `progress` reports which. |
 | `specs.{id}.closure` | `{reason, closedAt}` on a spec closed by decision. The reason is mandatory; the phase report prints it. |
 | `specs.{id}.attempts` | Incremented on each lane launch; Story 4 bounds retries against it. |
 | `specs.{id}.laneBranch` | The active lane branch `writ/phase/{phase}/{spec}`. |
 | `specs.{id}.worktreePath` | The isolated worktree path while active; nulled after a successful merge removes it. |
+| `specs.{id}.resultPath` | Written by `create-lane`: the absolute path `<repo>/.writ/state/lane-result-<phase>-<spec>.json` in the main checkout, outside the lane worktree, so it survives worktree removal after a merge or quarantine. The lane writes its `phase-spec-result-v1` there; the orchestrator runs `validate-result --input` on it. A state file written before the field has none. |
 | `specs.{id}.agentRunId` | The platform-native fresh-subagent run identifier when available. |
 | `specs.{id}.mergeCommit` | The no-ff merge commit recorded on a verified success. |
 | `specs.{id}.evidence` | Verification evidence strings copied from the structured result. |
@@ -141,10 +145,14 @@ spec_path: repo-relative path
 phase_state_path: repo-relative path
 lane_branch: string
 lane_worktree: path
+result_path: absolute path        # specs.{id}.resultPath
 mode: standard | quick
 inherited_answer_sources: [roadmap, spec contract, technical spec, story files]
 expected_result_schema: phase-spec-result-v1
 ```
+
+`commands/_lane-brief.md` is the shipped brief that carries this payload. The lane
+writes its result to `result_path` as its last action and replies with the path.
 
 ### `phase-spec-result-v1`
 
@@ -162,7 +170,9 @@ challenge: object | null         # required when challenge_required (Story 3)
 
 `scripts/phase-state.py validate-result` is the authoritative validator. A
 `succeeded` result without a commit or without verification evidence is rejected as
-`invalid_result` and treated as a preserved (non-merged) lane.
+`invalid_result` and treated as a preserved (non-merged) lane. Given a path with
+no file, it reports `result_missing`; a file that is not a JSON object reports
+`invalid_result`.
 
 ## User Challenges (D5 — Story 3)
 
@@ -353,17 +363,95 @@ numeric score — over three ordered categories:
 
 - **Healthy** — every *available* evidence source passes and recorded state agrees
   with git.
-- **Warning** — one or more required evidence sources are **missing or stale**.
-  Absent evidence is a Warning input, never silently upgraded to Healthy and never
-  counted as a failure; mixed-age evidence cannot exceed Warning without an
-  affirmative current failure signal.
+- **Warning** — one or more evidence sources the caller passed are **missing or
+  stale**. A passed path that does not exist is a Warning input, never silently
+  upgraded to Healthy and never counted as a failure; mixed-age evidence cannot
+  exceed Warning without an affirmative current failure signal. A source the
+  caller did not pass is `not_requested` and does not affect the category.
 - **Attention** — an **affirmative current failure** exists: eval findings present,
   a failing verification report, unresolved material drift, or a `phase-state`/git
   mismatch surfaced by read-only reconciliation.
 
-Health draws on the latest eval summary, verification report, drift log, and
-reconciliation result. It performs no deep, external, or mutating checks, and the
-absence of a source degrades the category rather than fabricating a pass.
+Health draws on the eval summary, verification report, and drift logs it is given
+(`--drift` repeats, one per log), plus the reconciliation result. It performs no
+deep, external, or mutating checks, and a passed source that is absent degrades
+the category rather than fabricating a pass.
+
+## Why
+
+The reasons behind rules `/implement-phase` states in one line. They moved here
+from the command (2026-11-06-lean-implement-phase, Story 4); the command keeps
+the rule, this section keeps the reason.
+
+### Why the phase branch is not under `writ/phase/`
+
+Lanes are created at `writ/phase/{phase-id}/{spec-id}`. A phase branch named
+`writ/phase/10` makes every `create-lane` fail: git cannot hold
+`refs/heads/writ/phase/10` as both a file and a directory. Name the phase branch
+`phase/{N}-{slug}` (e.g. `phase/8-memory-interop`, `phase/10-component-contract`).
+`create-lane` fails cleanly and mutates no branch or state, so a wrong name costs a retry,
+not a corrupted tree.
+
+### Why exhausting the iteration bound halts instead of quarantining
+
+`loop.max_iterations` (12 distinct specs per phase) running out means the phase
+ran longer than declared. Nothing failed. Quarantining a spec at that point
+would fabricate a failure record, mark its dependents `skipped_blocked`, and
+shrink the phase's scope for no recorded cause. So `loop.on_exhaustion:
+halt_reported` applies: unstarted specs stay `pending`, the phase stays
+`status: executing`, and `record-halt` writes `haltReported` but never
+`terminalStatus`, because a halted run has not reached a terminal status. The
+report gives the unit, the bound, the count reached, the last integrated spec,
+the state path, and `/implement-phase --resume`. A later `set-terminal-status`
+clears the stale `haltReported`, so a resumed phase never carries both fields.
+
+### Why one transient retry
+
+A `transient` failure (a lane that stopped mid-task, a result file that never
+arrived, a supervisor `RERUN`) gets one fresh subagent in the same lane, because
+the work is usually intact and a second attempt often finishes it: in Writ's
+own phase runs, 4 of 20 specs took a second attempt and all 20 integrated. A
+second failure is evidence the cause is not transient, so it quarantines
+instead of looping. The cap lives in `phase-state.py`, not in the orchestrator's
+judgment: `classify` retries only while `attempts < 2`, and `retry` raises
+`retry_exhausted` at 2 (the command's nested `spec_attempt` bound). A retry is
+the same iteration of the spec loop, not a new one, so retries never count
+toward the 12-spec bound; each bound limits one thing.
+
+### Why closure keeps the lane branch
+
+`close-spec` frees the worktree but leaves the lane branch under its
+`writ/phase/{phase}/{spec}` name. Renaming it into `writ/quarantine/…` would
+assert a failure that did not happen, and a reader would go looking for broken
+work. Keeping the branch preserves any partial work without that claim. Closure
+offers no recovery command because nothing is meant to resume. Details are in
+Closure by Decision above.
+
+### Why lane briefs carry context, never new scope
+
+A lane brief seeds the subagent with artifact paths and constraints the spec
+already established. Work no spec's acceptance criteria cover, added as a brief
+instruction, gets the edit made while leaving no trace in any spec, and it
+silently invalidates artifacts written against the prior state, including UAT
+plans already generated for earlier specs. Amend the spec with `/edit-spec`
+before opening the lane, or record the gap. Step 1.2b's single-owner-per-file
+rule exists so a lane never edits a file its own spec says it will not touch.
+
+### Why the checker verdict governs
+
+`exit-criteria.py check` re-derives the phase's criteria from files on disk; the
+run's own assessment is the claim being checked. On `impossible` the command
+does not call `set-terminal-status`, matching the `haltReported` behavior: a
+phase the checker cannot certify has not reached a terminal status. On `unmet`
+the status cannot be `COMPLETE`, and the report states the disagreement instead
+of reconciling it silently.
+
+### Why the report names every closed spec
+
+Closure is terminal, so a phase whose specs are all `integrated` or
+`closed_not_implemented` may report `COMPLETE`. Without a `Closed by decision`
+line per closed spec, that `COMPLETE` would read as delivered scope that was
+dropped.
 
 ## Atomic Writes
 

@@ -119,11 +119,12 @@ under `plugins/writ/` (`render_plugin`):
 
 - `.claude-plugin/plugin.json`: name, `version` read from VERSION,
   description, author, repository, license, `commands` (every
-  `./commands/<x>.md` but `_preamble.md`, which would otherwise register as
-  `/writ:_preamble`; the key replaces the default scan) and `agents` (the
+  `./commands/<x>.md` but the underscore partials `_preamble.md` and
+  `_lane-brief.md`, which would otherwise register as `/writ:_preamble` and
+  `/writ:_lane-brief`; the key replaces the default scan) and `agents` (the
   generated Claude agents, so the prompt-template docs beside them never load
   as agents). Fixed key order, two-space indent, one trailing newline.
-- `commands/*.md` (the preamble included), `agents/*.md` (the prompt-template
+- `commands/*.md` (the partials included), `agents/*.md` (the prompt-template
   docs and gen-claude-agents.py's render of each, from agents/<stem>.md and
   its overlay, not from claude-code/agents/ on disk), and
   `skills/<name>/SKILL.md`: the YAML frontmatter verbatim, the generated-file
@@ -186,7 +187,8 @@ segment, and a class's own output never match: `script-root` and
 `${CLAUDE_PLUGIN_ROOT}/scripts/<name>`; dev-only and unknown names stay),
 `agent-path` (`[../]agents/<x>.md` for a file the plugin's agents/ holds),
 `skill-path` (`[../]skills/<x>/SKILL.md`), `preamble-path`
-(`[../]commands/_preamble.md` and a bare `_preamble.md`), each to
+(`[../]commands/_<x>.md` and a bare `_<x>.md` for a partial commands/
+holds: `_preamble.md`, `_lane-brief.md`), each to
 `${CLAUDE_PLUGIN_ROOT}/<path>`, `instructions-path` (a Markdown link whose
 target is `[../]system-instructions.md`: the target and the name in its text;
 a bare mention names an installed file and stays), and
@@ -1001,7 +1003,9 @@ PATH_END = r"(?![A-Za-z0-9_-])"
 SCRIPT_REF = re.compile(PATH_START + r"(?:\.\./)?scripts/([a-z0-9_-]+\.(?:py|sh|json))" + PATH_END)
 AGENT_REF = re.compile(PATH_START + r"(?:\.\./)?agents/([a-z0-9-]+\.md)" + PATH_END)
 SKILL_REF = re.compile(PATH_START + r"(?:\.\./)?skills/([a-z0-9-]+)/SKILL\.md" + PATH_END)
-PREAMBLE_REF = re.compile(PATH_START + r"(?:(?:\.\./)?commands/)?_preamble\.md" + PATH_END)
+# Every underscore partial in commands/ (`_preamble.md`, `_lane-brief.md`):
+# shipped beside the commands, linked as a sibling, never a command itself.
+PREAMBLE_REF = re.compile(PATH_START + r"(?:(?:\.\./)?commands/)?(_[a-z0-9-]+)\.md" + PATH_END)
 # instructions-path rewrites the Markdown link only, its target and the name
 # in its text; a bare mention names an installed or project file and stays
 # (technical-spec.md -> Relative Path Inventory, Story 2 review 2026-10-23).
@@ -1013,13 +1017,20 @@ class PluginNames(NamedTuple):
     scripts: FrozenSet[str]   # shipped scripts/ file names
     agents: FrozenSet[str]    # file names in the plugin's agents/
     skills: FrozenSet[str]    # skill directory names
-    commands: FrozenSet[str]  # command names, the preamble excluded
+    commands: FrozenSet[str]  # command names, the partials excluded
+    partials: FrozenSet[str] = frozenset((PREAMBLE,))  # underscore stems in commands/
 
 
 class PluginFile(NamedTuple):
     rel: str               # path under the output root (the repository root in place)
     data: bytes
     mode: Optional[int]    # a script copy's source mode; None keeps write_file's default
+
+
+def is_partial(stem: str) -> bool:
+    """An underscore commands/ file (`_preamble`, `_lane-brief`): shipped and
+    linked by commands, never registered as a command."""
+    return stem.startswith("_")
 
 
 def is_shippable_script(name: str) -> bool:
@@ -1053,7 +1064,8 @@ def rewrite_plugin_line(line: str, names: PluginNames, commands: "Optional[re.Pa
                          if m.group(1) in names.agents else m.group(0), line)
     line = SKILL_REF.sub(lambda m: "%s/skills/%s/SKILL.md" % (root, m.group(1))
                          if m.group(1) in names.skills else m.group(0), line)
-    line = PREAMBLE_REF.sub(lambda m: "%s/commands/%s.md" % (root, PREAMBLE), line)
+    line = PREAMBLE_REF.sub(lambda m: "%s/commands/%s.md" % (root, m.group(1))
+                            if m.group(1) in names.partials else m.group(0), line)
     line = INSTRUCTIONS_LINK.sub(lambda m: "[%s](%s)" % (
         INSTRUCTIONS_REF.sub(lambda _: instructions, m.group(1)), instructions), line)
     if commands is not None:
@@ -1143,7 +1155,8 @@ def names_of(sources: PluginSources) -> PluginNames:
         scripts=frozenset(p.name for p in sources.scripts),
         agents=frozenset([p.name for p in sources.docs] + [name for _, name, _ in sources.agents]),
         skills=frozenset(p.parent.name for p in sources.skills),
-        commands=frozenset(p.stem for p in sources.commands if p.stem != PREAMBLE),
+        commands=frozenset(p.stem for p in sources.commands if not is_partial(p.stem)),
+        partials=frozenset(p.stem for p in sources.commands if is_partial(p.stem)),
     )
 
 
@@ -1171,7 +1184,7 @@ def render_plugin_manifest(version: str, commands: List[Path], agents: List[str]
         "repository": PLUGIN_REPOSITORY,
         "license": PLUGIN_LICENSE,
         "commands": ["./commands/%s.md" % stem
-                     for stem in sorted(p.stem for p in commands if p.stem != PREAMBLE)],
+                     for stem in sorted(p.stem for p in commands if not is_partial(p.stem))],
         "agents": ["./agents/%s" % name for name in agents],
     }
     return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"

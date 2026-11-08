@@ -281,8 +281,10 @@ agent threads and git worktrees:
   **no prior conversational transcript** is forwarded. Load context from
   repository artifacts by path rather than replaying history.
 - **Run identifier.** Record the Codex thread/agent ID as `agentRunId`.
-- **Structured result.** The thread returns a single `phase-spec-result-v1`
-  object; the parent validates it with `scripts/phase-state.py validate-result`
+- **Structured result.** The thread writes a single `phase-spec-result-v1`
+  object to the result file named in its brief (`commands/_lane-brief.md`) and
+  replies with the path; the parent validates that file with
+  `scripts/phase-state.py validate-result --input`
   and merges only a verified success into the phase branch.
 
 ### Quarantine and Resume

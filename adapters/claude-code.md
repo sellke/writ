@@ -306,14 +306,17 @@ native subagents and git worktrees:
 - **Isolated worktree.** The orchestrator runs `scripts/phase-state.py create-lane`
   to create the lane branch `writ/phase/{phase-id}/{spec-id}` and an
   isolated worktree from the phase-branch head. The subagent works only inside
-  that worktree; the primary checkout is untouched during lane work.
+  that worktree; the primary checkout is untouched during lane work, apart
+  from the result file named in the brief.
 - **Fresh context.** Dispatch the spec to a native subagent seeded only with
   artifact paths (spec path, phase-state path, lane branch/worktree, mode) —
   **no prior conversational transcript** is forwarded. Claude Code subagents
   already start with clean context; do not replay the parent transcript.
 - **Run identifier.** Record the subagent invocation ID as `agentRunId`.
-- **Structured result.** The subagent returns a single `phase-spec-result-v1`
-  object; the parent validates it with `scripts/phase-state.py validate-result`
+- **Structured result.** The subagent writes a single `phase-spec-result-v1`
+  object to the result file named in its brief (`commands/_lane-brief.md`) and
+  replies with the path; the parent validates that file with
+  `scripts/phase-state.py validate-result --input`
   and merges only a verified success into the phase branch.
 
 ### Quarantine and Resume
@@ -428,7 +431,7 @@ Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop ho
 
 Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is satisfiable by pausing as well as by finishing (spec.md Business Rule 1: "Reaching a retained pause satisfies the gate"). A condition that only accepts a clean checker pass pushes the model past a human gate; spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") causing this.
 
-**Paste the emitter's printed invoke line unchanged.** After `/create-goal` saves a `loop: yes` card, or `/implement-phase` resolves a Goal Card origin, `python3 scripts/goal-emit.py emit --card PATH` prints the `/goal` text between its `pass` line and its summary. Paste that printed text as-is. It must match the three-way template below; do not rewrite clauses (a)/(b)/(c).
+**Paste the emitter's printed invoke line unchanged.** After `/create-goal` saves a `loop: yes` card, `python3 scripts/goal-emit.py emit --card PATH` prints the `/goal` text between its `pass` line and its summary. Paste that printed text as-is. It must match the three-way template below; do not rewrite clauses (a)/(b)/(c).
 
 Word the condition as an explicit three-way disjunction:
 

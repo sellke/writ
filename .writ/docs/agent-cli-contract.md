@@ -99,7 +99,7 @@ These steps apply in the Writ source repo.
 | `docs-check.py` | check |  | commands/implement-story.md |
 | `drift-format.py` | check |  | commands/implement-story.md, commands/implement-spec.md |
 | `exit-criteria.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, adapters/claude-code.md |
-| `goal-emit.py` | check |  | commands/create-goal.md, commands/implement-phase.md, adapters/claude-code.md |
+| `goal-emit.py` | check |  | commands/create-goal.md, adapters/claude-code.md |
 | `jev-judge.py` | check | network: opt-in, bounded-wait | commands/_preamble.md, commands/create-spec.md, commands/implement-story.md, commands/retro.md, commands/verify-spec.md |
 | `knowledge-consolidate.py` | data |  | commands/knowledge.md, commands/retro.md |
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |

@@ -69,7 +69,7 @@ and is not installed.
 | Command | File | Purpose |
 |---------|------|---------|
 | `/create-uat-plan` | `commands/create-uat-plan.md` | Generate deterministic implementation-derived UAT plans. |
-| `/implement-phase` | `commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs. |
+| `/implement-phase` | `commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec per spec (adding /create-uat-plan per spec with --uat), and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs. |
 | `/implement-spec` | `commands/implement-spec.md` | Execute dependency-aware story batches through the per-story pipeline; explicit execute command with no confirmation gate. |
 | `/implement-story` | `commands/implement-story.md` | Run the full story SDLC pipeline from architecture check through documentation. |
 | `/prototype` | `commands/prototype.md` | Ship small code changes with lightweight scan, coding, and verification. |
