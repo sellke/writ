@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-11-06
+> Regenerated from mission.md on 2026-11-08
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-11-06
+> Last Updated: 2026-11-08
 
 ## Core Value
 
@@ -67,9 +67,9 @@ Code and methodology that score well on six production-grade criteria — audita
 - **14, Front Door and Distribution (✅ merged in PR #63, 2026-11-04; released in v0.44.0):** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check. Open: five unrecorded person checks, and the keep-or-remove review of `/writ` (recommendation: keep, confirm only on doubt).
 - **15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; released in v0.44.0):** `/why`, the Gate 2.5 safety fact (floor `tested`), repro-first bug fixing, reviewer filters, `/retro`'s fix ladder, and evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). The `design-divergence` skill lost its blind trial and is removed.
 - **17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; released in v0.44.0):** one rule replaces the gate classes; Jev runs first and shadows until calibrated; a supervisor agent checks every story and lane report; `--recommend` is a no-op and every `doubt` call is logged.
-- **16, Verified Landing (◐ built 2026-11-06 on `phase/16-verified-landing`, unmerged; ahead of its Phase 12 gate at the maintainer's direction):** a PR-readiness check, a ledger bound to the head SHA, and a `/ship` watch mode that merges on a green ledger with doubt low. Open: one real-PR `/ship --watch` run.
+- **16, Verified Landing (◐ merged in PR #71, 2026-11-08; unreleased; built ahead of its Phase 12 gate at the maintainer's direction):** a PR-readiness check, a ledger bound to the head SHA, and a `/ship` watch mode that merges on a green ledger with doubt low. Open: one real-PR `/ship --watch` run.
 
-**Current focus (2026-11-06):** close. v0.44.0 (2026-11-06) released Phases 14, 15, and 17 and Phase 13's follow-up fix. The queue, in order: close Phase 12 on its agent UAT run, the Gate 4.5 issue, and one real-project run; record or strike Phase 14's five person checks and decide the front door; Phase 15's held Repro First and Phase 17's three open criteria; ADR-023's review on 2026-11-11. Phase 16 follows Phase 12's close.
+**Current focus (2026-11-08):** close. v0.44.0 (2026-11-06) released Phases 14, 15, and 17 and Phase 13's follow-up fix; v0.46.0 (2026-11-07) is the latest release. Phase 16 merged on 2026-11-08 and is unreleased. The queue, in order: close Phase 12 on its agent UAT run, the Gate 4.5 issue, and one real-project run; record or strike Phase 14's five person checks and decide the front door; Phase 15's held Repro First and Phase 17's three open criteria; ADR-023's review on 2026-11-11. Phase 16 closes on one real-PR `/ship --watch` run.
 
 ## What Writ Is Not Building
 

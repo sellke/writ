@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-08T14:00:00Z
+> Last Updated: 2026-11-08T15:00:00Z
 
 ## Product Mission
 
@@ -8,7 +8,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete and merges with this branch; unreleased (v0.46.0 is the latest release). One real-PR `/ship --watch` run is outstanding.
+- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete and merged in PR #71 (`19f56e8`); unreleased (v0.46.0 is the latest release). One real-PR `/ship --watch` run is outstanding.
 - **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
 
 ## Artifact Map
