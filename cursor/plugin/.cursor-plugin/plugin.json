@@ -1,6 +1,6 @@
 {
   "name": "writ",
-  "version": "0.46.0",
+  "version": "0.47.0",
   "description": "AI development workflow: contract-first specs, a test-first multi-agent story pipeline, and script-backed quality gates.",
   "author": {
     "name": "Adam Sellke"

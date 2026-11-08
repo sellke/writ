@@ -8,12 +8,12 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete and merged in PR #71 (`19f56e8`); unreleased (v0.46.0 is the latest release). One real-PR `/ship --watch` run is outstanding.
+- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete, merged in PR #71 (`19f56e8`), and released in v0.47.0. One real-PR `/ship --watch` run is outstanding.
 - **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (v0.46.0 latest release, 2026-11-07)
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.47.0 latest release, 2026-11-08)
 - **Specs:** 6 under .writ/specs/; completed specs under .writ/specs/archive/
 - **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.47.0] - 2026-11-08
+
+**`/ship --watch` can take a PR to merge.** This release carries Phase 16 (Verified Landing): a read-only PR-readiness check, a verification ledger keyed to the PR head, and a watch mode that merges when both pass and the doubt check passes. ([pr-ready-and-ledger](.writ/specs/2026-11-06-pr-ready-and-ledger/spec.md), [ship-watch-and-merge](.writ/specs/2026-11-06-ship-watch-and-merge/spec.md), [PR #71](https://github.com/sellke/writ/pull/71))
+
+### Added
+- **`scripts/pr-ready.py`.** Judges a saved `gh` snapshot of one PR and reports typed blockers: conflicts, unresolved threads, failing checks, and merge gates, each with its own exit code. It is read-only, makes no network call, and never polls. `--json` gives machine output, and a PR whose head has no VERIFIED ledger row is not ready.
+- **`scripts/verify-ledger.py`.** `record` stores which PR heads passed the project's test and eval commands. `check` answers whether a head is VERIFIED, matching by exact SHA or by `git patch-id --verbatim` within the same PR. A new head with a different patch reads `NOT VERIFIED`; a mutation test proves it.
+- **`/ship --watch`.** After the PR opens, each pass takes one action on the first blocker, in a fixed order (conflicts, then review threads, then CI), bounded at 24 passes. Review comment bodies never reach a command line. A CI failure in the diff gets a fix; one outside it gets a base merge when the branch is stale, then one rerun per check and head, then a question. The merge uses `gh pr merge --match-head-commit`.
+- **Merge rule in `jev-judge.py doubt`.** A `site: merge` record re-runs `pr-ready.py check --json` for the same PR and head and passes only with a VERIFIED ledger row. ADR-033 is amended: a merge may act under this rule; release, tag, and publish still always ask.
+
+### Changed
+- **`/ship` opens the PR without asking.** Every question before the PR opens goes through the Doubt Rule, and `/ship --test` records the ledger row itself when every saved command exits 0.
+- **`story-context.py` resolves `Business Rule N` hints.** A story's context hint naming a business rule now pulls that rule from the spec. This was a v0.45.0 known issue. ([PR #70](https://github.com/sellke/writ/pull/70))
+
+### Known Issues
+- Jev is uncalibrated, so the doubt check never passes a merge: every `--watch` merge still asks. The autonomous path is built but unexercised.
+- `/ship --watch` has not yet run on a real Writ PR.
+- `commands/ship.md` grew from 28,907 to 34,070 bytes against a net-zero aim.
+- This repo registers no `writ-*` agent types, so Phase 16's lanes wrote code without a coding subagent (Gate 1 waived; [issue](.writ/issues/bugs/2026-11-06-no-coder-agent-type-in-writ-repo.md)). Every story still passed an independent Gate 3 review.
+
+### Internal
+- 16 complete specs moved to `.writ/specs/archive/`, with links repointed and tests resolving a spec in either location.
+- The three lean-* improvement issues are closed with `## Resolution` sections.
+
 ## [0.46.0] - 2026-11-07
 
 **The story and phase pipelines run fewer prescribed steps.** This release carries the lean story pipeline and lean implement-phase specs. ([lean-story-pipeline](.writ/specs/archive/2026-11-06-lean-story-pipeline/spec.md), [lean-implement-phase](.writ/specs/archive/2026-11-06-lean-implement-phase/spec.md))

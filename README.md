@@ -141,7 +141,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. With the Evidence Gate on, it asks before running the branch's tests. After the run, a Critical or High finding that no failing test or cited input-to-sink path confirms reads `Medium (unconfirmed)`. |
-| `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → (optional `/ship --test`) → split commits → create PR with structured body, optional inline spec health, and auto-labels. |
+| `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → (optional `/ship --test`) → split commits → create PR with structured body, optional inline spec health, and auto-labels. `--watch` then works the PR to merge-ready and merges it when `pr-ready.py`, the verification ledger, and the doubt check pass. |
 
 ### Validation & Release
 | Command | Purpose |
@@ -415,10 +415,9 @@ When Writ runs, it creates a `.writ/` directory in your project:
 
 ## Where Writ is going
 
-The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Phase 17, Doubt-Gated Autonomy, shipped with it: one rule replaces the human gates by category, Jev runs first on every decision, and a supervisor checks subagent reports. Phases 14, 15, and 17 are in v0.44.0. Next:
+The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Phase 17, Doubt-Gated Autonomy, shipped with it: one rule replaces the human gates by category, Jev runs first on every decision, and a supervisor checks subagent reports. Phases 14, 15, and 17 are in v0.44.0. Phase 16, Verified Landing, is in v0.47.0: a read-only PR-readiness check, a verification ledger bound to the PR head, and a `/ship --watch` mode that drives a PR to merge-ready and merges it when the ledger is green and doubt is low. Until Jev is calibrated, every merge still asks. Next:
 
 - **Calibrate Jev on real decisions.** On 98 of the maintainer's past answers, Jev could not yet tell which ones the person would change, so it shadows and the decision's kind decides. Each answered question becomes a label; once they bound the share of its acts you would have overridden under 10%, Jev decides.
-- **Phase 16 — Verified Landing.** A read-only PR-readiness check, a verification ledger bound to the PR head, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it. Release, tag, and publish stay asks.
 - **After that:** command consolidation, measured by what is still invoked directly once the front door asks only on doubt, and a parking lot that earns its way in one phase at a time.
 
 The standing rule is subtraction: each phase opens by removing what no longer earns its place, and no new phase starts while two finished ones wait on a person.
