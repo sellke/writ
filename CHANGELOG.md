@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.46.0] - 2026-11-07
+
+**The story and phase pipelines run fewer prescribed steps.** This release carries the lean story pipeline and lean implement-phase specs. ([lean-story-pipeline](.writ/specs/2026-11-06-lean-story-pipeline/spec.md), [lean-implement-phase](.writ/specs/archive/2026-11-06-lean-implement-phase/spec.md))
+
+### Added
+- **`scripts/story-gate.py`.** `run --phase pre-review|post-review` runs the default path's checker scripts in a fixed order and writes one record per story and phase to `.writ/state/story-gate-<stem>-<phase>.json`, keyed to the head SHA it checked. `tally` reports how often each gate changed a verdict. ([Story 3](.writ/specs/2026-11-06-lean-story-pipeline/user-stories/story-3-story-gate-runner.md))
+- **Gate declarations.** Each gate in `implement-story.md` states what it catches, the evidence that it has caught something, and when to remove it. `verdict-provenance.py check` fails a gate missing any of the three. ([Story 1](.writ/specs/2026-11-06-lean-story-pipeline/user-stories/story-1-gate-evidence.md))
+- **`/implement-phase --uat`.** UAT plans are generated only when asked for. Without the flag, the report lists a `/create-uat-plan {spec}` line per merged spec. ([Story 1](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-1-uat-on-request.md))
+- **Lane result file.** Each `/implement-phase` lane writes its `phase-spec-result-v1` result to `.writ/state/lane-result-<phase>-<spec>.json`, from a shipped brief template (`commands/_lane-brief.md`). A missing or invalid file gets one lane resume, then counts as a transient failure. ([Story 3](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-3-lane-result-file.md))
+- **Lean-pipeline trial report.** One archived spec ran through the old and new default pipelines. The new one finished 2 of 2 stories and fixed the planted data-loss defect; the old one stopped on both. Escaped Major+ defects: 0 in each. Sample of one; verdict `lean-pipeline: keep`. ([report](.writ/specs/2026-11-06-lean-story-pipeline/trial-report.md))
+
+### Changed
+- **Gates 0 (architecture check), 4.5 (behavior) and 5 (docs) run only under `--full-pipeline`.** None had a recorded catch. Their scripts, tests and agents remain. ([Story 2](.writ/specs/2026-11-06-lean-story-pipeline/user-stories/story-2-demote-unproven-gates.md))
+- **Agents run targeted tests only.** The coding, evaluator and review agents run the story's tests. The full suite runs once per spec at `/implement-spec` Step 4.1, or via `/ship --test` for a standalone story. ([Story 4](.writ/specs/2026-11-06-lean-story-pipeline/user-stories/story-4-targeted-test-ownership.md))
+- **The supervisor reads the story-gate record.** It re-runs a story whose record is missing, unreadable, dirty, or older than the story's last code commit. ([Story 5](.writ/specs/2026-11-06-lean-story-pipeline/user-stories/story-5-supervisor-reads-record.md))
+- **`/implement-spec` drops Step 2.3** and no longer regenerates `context.md` after every story.
+- **`/implement-phase` no longer emits a Goal Card.** `/create-goal` is the only emitter. ([Story 2](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-2-health-and-goal-emit.md))
+- **Phase health counts only the sources a run produced.** `phase-state.py health` reads an omitted `--eval`, `--verification` or `--drift` as `not_requested`, not as a missing source. ([Story 2](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-2-health-and-goal-emit.md))
+- **`commands/implement-phase.md` is 236 lines, down from 366.** Step 3.3 is an event → subcommand → effect table, and the rationale moved to `.writ/docs/phase-execution-state-format.md`. Most of the line cut is blank lines: 48 non-blank lines and about 25% of the bytes went. ([Story 4](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-4-prose-compression.md))
+
+### Known Issues
+- A standalone `/implement-story` followed by plain `/ship` never runs the full suite. Use `/ship --test`.
+- `story-gate.py tally` can double count when post-review and Gate 3.5 run out of order (lean-story-pipeline DEV-012).
+- The authenticity check records `skip` where `unverifiable` fits (lean-story-pipeline DEV-016).
+
+### Internal
+- `test-integrity.py` credits Python tests that read an existing project file and stops crediting temp-dir path chains.
+- `gen-platform-trees.py` treats every underscore command file as a partial. `eval-leanness.py` counts only invocable commands toward `MAX_COMMANDS`.
+- ADR-029 records why `story-gate.py` is one command's fixed step, not a dispatcher.
+- `lean-implement-phase` is archived.
+
 ## [0.45.0] - 2026-11-06
 
 **Generated story tasks stop prescribing implementation.** This release carries the lean story tasks spec. ([spec](.writ/specs/2026-11-06-lean-story-tasks/spec.md))
