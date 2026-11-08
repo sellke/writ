@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.47.1] - 2026-11-08
+
+**Archiving a finished spec no longer breaks the specs that depend on it.** ([archived-dependencies-resolve](.writ/specs/archive/2026-11-06-archived-dependencies-resolve/spec.md), [PR #72](https://github.com/sellke/writ/pull/72))
+
+### Fixed
+- **`spec-deps.py validate` resolves archived dependencies.** A dependency whose folder sits under `.writ/specs/archive/` is satisfied: it is listed under a new `archived_dependencies` key and is never parsed or ordered. An id found in neither `.writ/specs/` nor the archive still blocks with `missing_reference`, and the message now names both paths. Every other blocker keeps its code and exit. `/implement-phase` Step 2.1 and `/verify-spec` Check 4d no longer stop on a correct `Dependencies:` header after `/release` archives a dependency.
+
+### Internal
+- `.writ/docs/spec-lifecycle.md` records `spec-deps.py validate` as the one deliberate reader of `.writ/specs/archive/`.
+- `commands/implement-phase.md` and `commands/verify-spec.md` were trimmed to stay under their pinned byte overage; `KNOWN_OVER_BUDGET` moved down for both.
+- `2026-10-25-gate-upgrade-removal-measurement` lists `2026-10-25-design-divergence` as a dependency again.
+- PR #72 is the first real-PR `/ship --watch` run: two passes, `pr-ready.py` passed with the ledger VERIFIED for the head, and the merge asked because Jev is uncalibrated (`fallback_merge`).
+- New spec `2026-11-08-writ-agents-registered` (not started): register the `writ-*` agents in this repo and state the spawn fallback.
+
 ## [0.47.0] - 2026-11-08
 
 **`/ship --watch` can take a PR to merge.** This release carries Phase 16 (Verified Landing): a read-only PR-readiness check, a verification ledger keyed to the PR head, and a watch mode that merges when both pass and the doubt check passes. ([pr-ready-and-ledger](.writ/specs/2026-11-06-pr-ready-and-ledger/spec.md), [ship-watch-and-merge](.writ/specs/2026-11-06-ship-watch-and-merge/spec.md), [PR #71](https://github.com/sellke/writ/pull/71))

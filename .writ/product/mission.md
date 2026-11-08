@@ -4,7 +4,7 @@
 > Last Updated: 2026-11-06
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — ADR-010 to ADR-013; 2026-10-20 refresh — [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md); 2026-11-05 refresh — [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md))
-> Last Revision: 2026-11-08 — v0.47.0 released Phase 16 (PR #71). v0.44.0 released Phases 14, 15, and 17 (PR #63, #64, #65). The 2026-11-05 reconcile pass recorded the **direction change**: Writ asks a person on doubt, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Earlier revisions are in the roadmap's [Revision Log](roadmap.md#revision-log).
+> Last Revision: 2026-11-08 — v0.47.1 released the archived-dependency fix (PR #72), Phase 16's first real-PR `/ship --watch` run. v0.47.0 released Phase 16 (PR #71). v0.44.0 released Phases 14, 15, and 17 (PR #63, #64, #65). The 2026-11-05 reconcile pass recorded the **direction change**: Writ asks a person on doubt, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Earlier revisions are in the roadmap's [Revision Log](roadmap.md#revision-log).
 
 ## Pitch
 
@@ -203,7 +203,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
   - `--recommend` retires; every run writes a decision log; overrides recalibrate the thresholds; `/writ` and `/create-uat-plan` ask only on doubt.
 - **Phase 16, Verified Landing (◐ merged in PR #71, 2026-11-08; released in v0.47.0):**
   - A read-only PR-readiness check, a verification ledger bound to the PR head SHA and patch-id, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it.
-  - Built ahead of its gate (Phase 12's close) at the maintainer's direction. ADR-033 is its ceiling: release, tag, and publish stay asks. Open: one recorded `/ship --watch` run on a real Writ PR.
+  - Built ahead of its gate (Phase 12's close) at the maintainer's direction. ADR-033 is its ceiling: release, tag, and publish stay asks. The first real-PR `/ship --watch` run is recorded (PR #72, 2026-11-08); its merge asked because Jev is uncalibrated.
 
 ### Next Horizon
 

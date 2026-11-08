@@ -8,12 +8,12 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-11-06-archived-dependencies-resolve` — 1/1 stories complete on branch `spec/archived-dependencies-resolve`, unmerged. `spec-deps.py validate` resolves archived dependencies as satisfied.
-- **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.0 (2026-11-08) is the latest release.
+- **Spec:** `2026-11-08-writ-agents-registered` — 0/2 stories, Not Started: register the `writ-*` agents in this repo and state the spawn fallback. `2026-11-06-archived-dependencies-resolve` merged in PR #72, released in v0.47.1, archived.
+- **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.1 (2026-11-08) is the latest release.
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (v0.47.0 latest release, 2026-11-08)
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.47.1 latest release, 2026-11-08)
 - **Specs:** 6 under .writ/specs/; completed specs under .writ/specs/archive/
 - **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
