@@ -4,7 +4,7 @@
 > **Priority:** High
 > **Effort:** Large
 > **Created:** 2026-11-06
-> **spec_ref:** .writ/specs/2026-11-06-lean-story-pipeline/spec.md
+> **spec_ref:** .writ/specs/archive/2026-11-06-lean-story-pipeline/spec.md
 
 ## TL;DR
 
@@ -49,3 +49,7 @@
 
 - Source: Phase 15 retro (`.writ/retros/2026-10-30-phase-15.md`) F6, F7, F8, F21, F26, and the execution records in `.writ/state/execution-*.json`.
 - Retro findings F7, F8 and F26 propose adding rules to Gate 3 and the coding agent. Weigh each against this issue before applying it, or the pipeline grows again.
+
+## Resolution
+
+2026-11-07, PR #68 (merge `3154388`), released in v0.46.0. Spec [`2026-11-06-lean-story-pipeline`](../../specs/archive/2026-11-06-lean-story-pipeline/spec.md). The default `/implement-story` path runs its checks through two `story-gate.py` calls; every gate declares `catches`, `evidence` and `kill_when`; Gates 0, 4.5 and 5 run only under `--full-pipeline`; agents run targeted tests and the full suite runs once per spec; the supervisor reads the story-gate record. Trial verdict `lean-pipeline: keep` (one spec). Retro F7, F8 and F26 were left out of scope and not applied. Open follow-ups: DEV-012 (tally can double count), DEV-016 (`skip` where `unverifiable` fits), and a standalone `/implement-story` followed by plain `/ship` never runs the full suite.

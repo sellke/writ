@@ -47,3 +47,7 @@ Cut `implement-phase.md` from about 366 to about 200 lines by deleting prose tha
 
 - Source: Phase 15 retro (`.writ/retros/2026-10-30-phase-15.md`) F6, F10, F22, F24, F25; `.writ/state/phase-execution-*.json`.
 - No quarantines in 20 specs does not show quarantine is useless; it is the safety net for a rare event and costs only prose. Keep the scripts; cut the explanation.
+
+## Resolution
+
+2026-11-07, PR #69 (merge `ca51030`), released in v0.46.0. Spec [`2026-11-06-lean-implement-phase`](../../specs/archive/2026-11-06-lean-implement-phase/spec.md). `/implement-phase` generates UAT plans only with `--uat`, judges health only on the sources a run produced, reads each lane's result from `.writ/state/lane-result-<phase>-<spec>.json` (brief template `commands/_lane-brief.md`), and no longer emits a Goal Card. `commands/implement-phase.md` went from 366 to 236 lines, mostly blank lines (48 non-blank lines, about 25% of bytes). Quarantine and its scripts stay.
