@@ -1,0 +1,26 @@
+Writ Audit Digest (spec)
+========================
+Spec:     2026-11-06-archived-dependencies-resolve — Archived Dependencies Resolve
+Landed:   main @ a5f5dc0c7c19c779aa49f16767f7d9d9c25bf058
+Source:   6564532..8534973 (5 commits; PR #72)
+Shipped:  2026-11-08 by Adam Sellke
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-archived-dependencies-resolve | PASS | Small (DEV-001, DEV-002) | unverifiable (coverage_report_absent) |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Small; 2 small, 0 medium, 0 large
+Coverage:  unverifiable (only new file is a test file)
+Files:     1 created, 12 modified (5 generated)
+Review:    2 iterations (one Gate 1 recode); review-agent PASS, safety-fact tested; supervisor ACCEPT
+Landing:   /ship --watch, 2 passes; pr-ready pass with ledger VERIFIED for head 8534973; doubt fallback_merge (Jev uncalibrated), merge approved by the person (/ship merge), label as_recommended id=7f2c6755ac97
+
+Refs
+----
+Spec:      .writ/specs/2026-11-06-archived-dependencies-resolve/spec.md
+Drift log: .writ/specs/2026-11-06-archived-dependencies-resolve/drift-log.md
