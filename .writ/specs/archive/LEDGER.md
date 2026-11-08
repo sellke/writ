@@ -95,3 +95,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-11-08T13:05:23Z — `2026-11-04-evidence-gated-review` archived (evidence: no knowledge evidence yet)
 - 2026-11-08T13:05:23Z — `2026-11-06-lean-story-pipeline` archived (evidence: no knowledge evidence yet)
 - 2026-11-08T13:05:23Z — `2026-11-06-lean-story-tasks` archived (evidence: no knowledge evidence yet)
+- 2026-11-08T22:35:11Z — `2026-11-06-archived-dependencies-resolve` archived (evidence: no knowledge evidence yet, via PR #72)

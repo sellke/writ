@@ -4,7 +4,7 @@
 > **Priority:** Medium
 > **Effort:** Small
 > **Created:** 2026-11-06
-> **spec_ref:** .writ/specs/2026-11-06-archived-dependencies-resolve/spec.md
+> **spec_ref:** .writ/specs/archive/2026-11-06-archived-dependencies-resolve/spec.md
 
 ## TL;DR
 
@@ -30,3 +30,7 @@ A test covers it: an active spec depending on an archived one validates `ok`, or
 - `scripts/spec-deps.py`: `validate`
 - `scripts/archive-sweep.py`: `archive_one()`
 - `.writ/docs/spec-lifecycle.md`
+
+## Resolution
+
+2026-11-08, PR #72 (merge `a5f5dc0`). Spec [`2026-11-06-archived-dependencies-resolve`](../../specs/archive/2026-11-06-archived-dependencies-resolve/spec.md). `spec-deps.py validate` treats a dependency under `.writ/specs/archive/` as satisfied, lists it under `archived_dependencies`, and never parses or orders it; an id in neither place still blocks with `missing_reference`, now naming both paths. `2026-10-25-gate-upgrade-removal-measurement` lists `2026-10-25-design-divergence` again and validates `ok`.
