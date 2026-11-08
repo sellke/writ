@@ -12,6 +12,7 @@ temp `scripts/` the way `test_review_panel.py` does.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -270,6 +271,57 @@ class RealTreeTests(unittest.TestCase):
         self.assertIn(["PASS", "shipped-refs-tree"], rows)
         self.assertEqual(code, 0)
 
+
+
+LANE_BRIEF = "commands/_lane-brief.md"
+# Generated trees that ship commands/ (scripts/gen-platform-trees.py
+# PLUGIN_TREES); codex/ ships no commands/ copy.
+COMMAND_TREES = ("plugins/writ", "cursor/plugin")
+
+
+class LaneBriefShippedTests(unittest.TestCase):
+    """Spec 2026-11-06-lean-implement-phase, Story 3, AC-3.4: the lane brief
+    template ships with install.sh and in each generated tree that ships
+    commands/, and the Claude Code plugin neither registers it as a command
+    nor leaves a link to it that only resolves in the source tree."""
+
+    def test_source_template_exists_and_is_scanned_clean(self):
+        """AC-3.4: the template is a commands/*.md file, so this helper scans
+        it with the rest of the shipped commands."""
+        self.assertTrue((REPO_ROOT / LANE_BRIEF).is_file())
+        _, rows = run_helper(REPO_ROOT)
+        self.assertEqual([row for row in fails(rows) if "_lane-brief" in row[1]], [])
+
+    def test_install_ships_every_command_file_whatever_its_name(self):
+        """AC-3.4: install.sh copies commands/*.md through overlay_scan with
+        the default `*.md` pattern and no underscore filter."""
+        text = (REPO_ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+        self.assertIn('pattern="${5:-*.md}"', text)
+        self.assertIn('overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" '
+                      '"commands" "apply"\n', text)
+        self.assertNotRegex(text, r"\[\[ \"?\$\w+\"? == _\*")
+
+    def test_template_is_in_each_generated_tree_that_ships_commands(self):
+        """AC-3.4: gen-platform-trees.py writes it under each tree's commands/."""
+        for tree in COMMAND_TREES:
+            self.assertTrue((REPO_ROOT / tree / LANE_BRIEF).is_file(), tree)
+
+    def test_plugin_does_not_register_the_template_as_a_command(self):
+        """AC-3.4: like _preamble.md, it would otherwise load as
+        /writ:_lane-brief."""
+        manifest = json.loads((REPO_ROOT / "plugins" / "writ" / ".claude-plugin"
+                               / "plugin.json").read_text(encoding="utf-8"))
+        self.assertNotIn("./" + LANE_BRIEF, manifest["commands"])
+        self.assertIn("./commands/implement-phase.md", manifest["commands"])
+
+    def test_plugin_links_to_the_template_from_the_plugin_root(self):
+        """AC-3.4: the plugin's implement-phase and implement-spec point at
+        ${CLAUDE_PLUGIN_ROOT}/commands/_lane-brief.md, as they do for the
+        preamble, not at a sibling path the agent resolves from the project."""
+        for name in ("implement-phase.md", "implement-spec.md"):
+            text = (REPO_ROOT / "plugins" / "writ" / "commands" / name).read_text(encoding="utf-8")
+            self.assertIn("${CLAUDE_PLUGIN_ROOT}/" + LANE_BRIEF, text, name)
+            self.assertNotIn("](_lane-brief.md)", text, name)
 
 LOOP_BOUNDS = REPO_ROOT / "scripts" / "eval-loop-bounds.py"
 # The five rewritten values: (command, unit).

@@ -633,6 +633,23 @@ class Gate05WiringTests(unittest.TestCase):
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
         self.assertIn("  - id: gate0_5_boundary\n    script: scripts/boundary-map.py", text)
 
+    def test_pre_review_reads_the_map_gate_0_5_saves(self) -> None:
+        """lean-story-pipeline Story 3 (2026-11-06): Gate 0.5 tees the map to
+        `.writ/state/boundary-<story-stem>.json`; `story-gate.py` pre-review
+        runs `crossings` on that file as a gate0_5_boundary check."""
+        import importlib.util
+        text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
+        start = text.index("#### Gate 0.5: Boundary Computation")
+        gate = text[start:text.index("#### Gate 1:", start)]
+        self.assertIn("| tee .writ/state/boundary-<story-stem>.json", gate)
+        path = REPO_ROOT / "scripts" / "story-gate.py"
+        spec = importlib.util.spec_from_file_location("story_gate", str(path))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        row = next(r for r in module.CHECKS["pre-review"] if r.id == "gate0_5_crossings")
+        self.assertEqual((row.gate, row.script), ("gate0_5_boundary", "boundary-map.py"))
+        self.assertIn('"boundary-%s.json"', path.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

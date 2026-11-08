@@ -5,24 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.46.0] - 2026-11-07
+
+**The story and phase pipelines run fewer prescribed steps.** This release carries the lean story pipeline and lean implement-phase specs. ([lean-story-pipeline](.writ/specs/archive/2026-11-06-lean-story-pipeline/spec.md), [lean-implement-phase](.writ/specs/archive/2026-11-06-lean-implement-phase/spec.md))
+
+### Added
+- **`scripts/story-gate.py`.** `run --phase pre-review|post-review` runs the default path's checker scripts in a fixed order and writes one record per story and phase to `.writ/state/story-gate-<stem>-<phase>.json`, keyed to the head SHA it checked. `tally` reports how often each gate changed a verdict. ([Story 3](.writ/specs/archive/2026-11-06-lean-story-pipeline/user-stories/story-3-story-gate-runner.md))
+- **Gate declarations.** Each gate in `implement-story.md` states what it catches, the evidence that it has caught something, and when to remove it. `verdict-provenance.py check` fails a gate missing any of the three. ([Story 1](.writ/specs/archive/2026-11-06-lean-story-pipeline/user-stories/story-1-gate-evidence.md))
+- **`/implement-phase --uat`.** UAT plans are generated only when asked for. Without the flag, the report lists a `/create-uat-plan {spec}` line per merged spec. ([Story 1](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-1-uat-on-request.md))
+- **Lane result file.** Each `/implement-phase` lane writes its `phase-spec-result-v1` result to `.writ/state/lane-result-<phase>-<spec>.json`, from a shipped brief template (`commands/_lane-brief.md`). A missing or invalid file gets one lane resume, then counts as a transient failure. ([Story 3](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-3-lane-result-file.md))
+- **Lean-pipeline trial report.** One archived spec ran through the old and new default pipelines. The new one finished 2 of 2 stories and fixed the planted data-loss defect; the old one stopped on both. Escaped Major+ defects: 0 in each. Sample of one; verdict `lean-pipeline: keep`. ([report](.writ/specs/archive/2026-11-06-lean-story-pipeline/trial-report.md))
+
+### Changed
+- **Gates 0 (architecture check), 4.5 (behavior) and 5 (docs) run only under `--full-pipeline`.** None had a recorded catch. Their scripts, tests and agents remain. ([Story 2](.writ/specs/archive/2026-11-06-lean-story-pipeline/user-stories/story-2-demote-unproven-gates.md))
+- **Agents run targeted tests only.** The coding, evaluator and review agents run the story's tests. The full suite runs once per spec at `/implement-spec` Step 4.1, or via `/ship --test` for a standalone story. ([Story 4](.writ/specs/archive/2026-11-06-lean-story-pipeline/user-stories/story-4-targeted-test-ownership.md))
+- **The supervisor reads the story-gate record.** It re-runs a story whose record is missing, unreadable, dirty, or older than the story's last code commit. ([Story 5](.writ/specs/archive/2026-11-06-lean-story-pipeline/user-stories/story-5-supervisor-reads-record.md))
+- **`/implement-spec` drops Step 2.3** and no longer regenerates `context.md` after every story.
+- **`/implement-phase` no longer emits a Goal Card.** `/create-goal` is the only emitter. ([Story 2](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-2-health-and-goal-emit.md))
+- **Phase health counts only the sources a run produced.** `phase-state.py health` reads an omitted `--eval`, `--verification` or `--drift` as `not_requested`, not as a missing source. ([Story 2](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-2-health-and-goal-emit.md))
+- **`commands/implement-phase.md` is 236 lines, down from 366.** Step 3.3 is an event → subcommand → effect table, and the rationale moved to `.writ/docs/phase-execution-state-format.md`. Most of the line cut is blank lines: 48 non-blank lines and about 25% of the bytes went. ([Story 4](.writ/specs/archive/2026-11-06-lean-implement-phase/user-stories/story-4-prose-compression.md))
+
+### Known Issues
+- A standalone `/implement-story` followed by plain `/ship` never runs the full suite. Use `/ship --test`.
+- `story-gate.py tally` can double count when post-review and Gate 3.5 run out of order (lean-story-pipeline DEV-012).
+- The authenticity check records `skip` where `unverifiable` fits (lean-story-pipeline DEV-016).
+
+### Internal
+- `test-integrity.py` credits Python tests that read an existing project file and stops crediting temp-dir path chains.
+- `gen-platform-trees.py` treats every underscore command file as a partial. `eval-leanness.py` counts only invocable commands toward `MAX_COMMANDS`.
+- ADR-029 records why `story-gate.py` is one command's fixed step, not a dispatcher.
+- `lean-implement-phase` is archived.
+
+## [0.45.0] - 2026-11-06
+
+**Generated story tasks stop prescribing implementation.** This release carries the lean story tasks spec. ([spec](.writ/specs/archive/2026-11-06-lean-story-tasks/spec.md))
+
+### Added
+- **`oversized_task` finding.** `ac-trace.py check` reports each task over 50 words in a `Not Started` story. It is informational and never changes the exit code. ([Story 1](.writ/specs/archive/2026-11-06-lean-story-tasks/user-stories/story-1-oversized-task-finding.md))
+- **Lean-tasks trial report.** One archived spec was implemented twice, from its original stories and from regenerated ones. The regenerated stories used 28% fewer words, needed one fewer review iteration, and did not carry the prescription that led to a data-loss bug. Sample of one; verdict `lean-tasks: keep`. ([report](.writ/specs/archive/2026-11-06-lean-story-tasks/trial-report.md))
+
+### Changed
+- **Story tasks name files and contracts, not internals.** The story generator tells tasks to name every file they create or change and any external contract they fix, to leave function names, signatures, and step order to the coding agent, to stay at or under 50 words, and to put gotchas in Notes. `/create-spec` Step 2.6a regenerates a story that has an `oversized_task`. ([Story 2](.writ/specs/archive/2026-11-06-lean-story-tasks/user-stories/story-2-lean-task-rules.md))
+- **No generic Definition of Done.** New stories no longer carry the five boilerplate checkboxes. `/verify-spec` Check 1d no longer requires the section, and Check 3b checks it only when a story has one, so existing stories are checked as before. ([Story 3](.writ/specs/archive/2026-11-06-lean-story-tasks/user-stories/story-3-drop-generic-dod.md))
+- **Business rules are stated once.** The contract template numbers its Business Rules. The expanded section, technical spec, and story hints cite `Business Rule N` instead of restating the rule. ([Story 4](.writ/specs/archive/2026-11-06-lean-story-tasks/user-stories/story-4-rules-stated-once.md))
+- `commands/create-spec.md` is 48 bytes smaller; `commands/verify-spec.md` is unchanged.
+
+### Known Issues
+- `story-context.py` does not resolve `Business Rule N` hints yet. Specs whose stories cite rules by bold name lose that context if `/edit-spec` regenerates their stories.
+
+### Internal
+- Byte-ledger tests no longer pin a later file size; a later change to `create-spec.md` or `verify-spec.md` needs only a new dated ledger entry.
+- Phase 16 specs (`pr-ready-and-ledger`, `ship-watch-and-merge`), the `archived-dependencies-resolve` spec, and two issues are recorded. None is implemented in this release.
+
 ## [0.44.0] - 2026-11-06
 
 **One front door, plugin installs, review that blocks only on evidence, and commands that ask only on doubt.** This release carries Phase 14 (Front Door and Distribution), Phase 15 (Code-Level Rigor), Phase 17 (Doubt-Gated Autonomy), and a Phase 13 follow-up fix.
 
 ### Breaking Changes
-- **The review panel is removed** ([ADR-032](.writ/decision-records/adr-032-evidence-gated-review.md)). `--panel` stops with a pointer to ADR-032, and a leftover `Review Panel` line in `.writ/config.md` prints `review-panel: removed (ADR-032)`. Delete that line. ([spec](.writ/specs/2026-11-04-evidence-gated-review/spec.md))
+- **The review panel is removed** ([ADR-032](.writ/decision-records/adr-032-evidence-gated-review.md)). `--panel` stops with a pointer to ADR-032, and a leftover `Review Panel` line in `.writ/config.md` prints `review-panel: removed (ADR-032)`. Delete that line. ([spec](.writ/specs/archive/2026-11-04-evidence-gated-review/spec.md))
 
 ### Added
-- **`/writ`, the front door.** It restates a request as Goal, Problem, and Done check, routes it to the one command whose ceremony fits, and mirrors that command's phases on the todo list. ([spec](.writ/specs/2026-10-22-front-door/spec.md))
-- **Plugin installs** for Claude Code and Cursor. `install.sh` still works. ([spec](.writ/specs/2026-10-22-plugin-distribution/spec.md))
-- **`/why`** answers why something in the project is the way it is. It reads Writ's ledger first (ADRs, drift logs, specs, What Was Built records, git notes), then git history, then connected MCP servers, and gives every claim a confidence tier. `/writ` routes why-questions to it. ([spec](.writ/specs/2026-10-25-why-command/spec.md))
+- **`/writ`, the front door.** It restates a request as Goal, Problem, and Done check, routes it to the one command whose ceremony fits, and mirrors that command's phases on the todo list. ([spec](.writ/specs/archive/2026-10-22-front-door/spec.md))
+- **Plugin installs** for Claude Code and Cursor. `install.sh` still works. ([spec](.writ/specs/archive/2026-10-22-plugin-distribution/spec.md))
+- **`/why`** answers why something in the project is the way it is. It reads Writ's ledger first (ADRs, drift logs, specs, What Was Built records, git notes), then git history, then connected MCP servers, and gives every claim a confidence tier. `/writ` routes why-questions to it. ([spec](.writ/specs/archive/2026-10-25-why-command/spec.md))
 - **Gate 2.5 safety fact.** On the review route, `/implement-story` names the one fact the change is safe because of and the evidence rung that fact reached, at least `tested`. ([spec](.writ/specs/2026-10-25-review-route-rigor/spec.md))
 - **Repro-first bug fixing.** `tdd-cycle` gains a bug path that commits a failing repro before the fix, and `repro-order.py` checks that order, again after integration. ([spec](.writ/specs/2026-10-25-repro-first-bug-fixing/spec.md))
-- **Evidence-gated findings.** `skills/evidence-gated-findings` defines four evidence kinds, and `review-override.py evidence` runs a reviewer's repro in the working tree and blocks only on a confirmed failure. A confirmed `test` repro is committed as a regression test. ([spec](.writ/specs/2026-11-04-evidence-gated-review/spec.md))
+- **Evidence-gated findings.** `skills/evidence-gated-findings` defines four evidence kinds, and `review-override.py evidence` runs a reviewer's repro in the working tree and blocks only on a confirmed failure. A confirmed `test` repro is committed as a regression test. ([spec](.writ/specs/archive/2026-11-04-evidence-gated-review/spec.md))
 - **Doubt-gated decisions** ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)). `jev-judge.py doubt` decides whether a question needs a person: rules first (merge and release always ask; so does an act that is not git-revertable, has no recommendation, or has conflicting or no evidence), then Jev's confidence that the recommendation is right, then the decision's kind (`direction` and `design` ask, others act). Every call is logged to `.writ/state/doubt-log.jsonl`. `doubt-label` and `doubt-calibrate` turn answered questions into a threshold; until one is calibrated, Jev only shadows. On Writ's own 98 answers none is written yet.
 - **Supervisor agent.** `/implement-spec` and `/implement-phase` accept a story or lane report only after `supervisor-agent` re-derives its claims and returns `ACCEPT`, `RERUN`, or `ESCALATE`.
-- **`/retro` fix ladder.** Fixes are ordered architecture, types, lint, test, docs, and a new check must fail on a real past mistake. `retro-check` validates the findings and the rule-to-enforcer table. ([spec](.writ/specs/2026-10-25-retro-fix-ladder/spec.md))
-- A prompting guide, `.writ/docs/prompting-guide.md`. ([spec](.writ/specs/2026-10-22-prompting-guide/spec.md))
+- **`/retro` fix ladder.** Fixes are ordered architecture, types, lint, test, docs, and a new check must fail on a real past mistake. `retro-check` validates the findings and the rule-to-enforcer table. ([spec](.writ/specs/archive/2026-10-25-retro-fix-ladder/spec.md))
+- A prompting guide, `.writ/docs/prompting-guide.md`. ([spec](.writ/specs/archive/2026-10-22-prompting-guide/spec.md))
 
 ### Changed
 - **Commands ask on doubt, not on principle** ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)). One rule in `_preamble.md` and `system-instructions.md` replaces the gate-class table: decide, act, record, and ask a person only on doubt. `/writ` confirms its route only on doubt. `--recommend` on `/create-spec` and `/implement-phase` is accepted and does nothing.
@@ -42,8 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Internal
 - **ADR-032** (evidence-gated review) and **ADR-033** (doubt-gated autonomy). ADR-033 supersedes ADR-022's gate-class table and ADR-013's flag-scoped autonomy.
-- `scripts/gen-platform-trees.py` renders the Cursor rule, the Claude Code block, the Codex `AGENTS.md` template, and both plugin trees from one source; `--check` fails on stale trees and on platform terms an adapter does not map. ([spec](.writ/specs/2026-10-22-generated-platform-trees/spec.md))
-- Adapter rows for how each platform renders `/prototype` drafts. ([spec](.writ/specs/2026-10-22-rendering-delegation-rows/spec.md))
+- `scripts/gen-platform-trees.py` renders the Cursor rule, the Claude Code block, the Codex `AGENTS.md` template, and both plugin trees from one source; `--check` fails on stale trees and on platform terms an adapter does not map. ([spec](.writ/specs/archive/2026-10-22-generated-platform-trees/spec.md))
+- Adapter rows for how each platform renders `/prototype` drafts. ([spec](.writ/specs/archive/2026-10-22-rendering-delegation-rows/spec.md))
 - New checks: `exit-criteria` `implement-spec.c4` (one Gate 3 verdict per story), the eval `size-pins` check, and a dev-only `zsh-guard` hook.
 - Trials and measurements:
   - The `design-divergence` skill lost its blind trial (2 of 6 briefs; 4 needed) and was removed before release.
@@ -62,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - An unmodified `design.md` is removed (`🗑  Removed: commands/design.md`).
   - A modified copy is kept, with a warning on every run, until you delete it. Move your edits into `writ-design.md` first.
   - Two cases leave an old `design.md` in place without a message, so delete it by hand: the manifest never tracked it, or the install predates this release and its recorded version is not in upstream history.
-  - Notes or custom commands of your own that say `/design` need the new name. ([spec](.writ/specs/2026-10-20-platform-neutral-names/spec.md))
+  - Notes or custom commands of your own that say `/design` need the new name. ([spec](.writ/specs/archive/2026-10-20-platform-neutral-names/spec.md))
 
 ### Fixed
 - **Updates no longer delete files you wrote.** Install and update now record baselines only for files Writ ships. Before this, the first update could delete a project's own files, such as `.writ/docs/tech-stack.md` from `/initialize`, a script under `scripts/`, or a command you added.
@@ -70,20 +122,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **A modified file Writ no longer ships is kept**, with a warning on every update. It used to be deleted on the second run.
 - **Older installs are repaired on their first update.** A manifest written by an older version has its baselines re-derived from the version it records.
 - The Codex `.codex/config.toml` baseline survives update. Stale Codex skills are removed from `.agents/skills/`, where they actually live.
-- **Claude Code installs carry the Prime Directive.** `system-instructions.md` installs to `.claude/`, and the Writ block in `CLAUDE.md` imports it. ([spec](.writ/specs/2026-10-20-claude-code-parity/spec.md))
+- **Claude Code installs carry the Prime Directive.** `system-instructions.md` installs to `.claude/`, and the Writ block in `CLAUDE.md` imports it. ([spec](.writ/specs/archive/2026-10-20-claude-code-parity/spec.md))
 - **Your `CLAUDE.md` stays yours.** `uninstall.sh --platform claude` removes only the Writ block and keeps every other byte; it used to delete the whole file. `/reinstall-writ` and the adapter's manual install step merge between markers instead of overwriting.
 - `adapters/claude-code.md` no longer documents `/implement-story --all`, agent teams, or a nonexistent `SubagentCompleted` hook.
 - `/prototype` no longer names a Cursor-only tool. It names a `canvas-preview` capability, and each adapter maps it and says what happens when the platform has no renderer.
 
 ### Changed
 - The Claude Code `CLAUDE.md` block is generated from the command registry, so it always lists every command.
-- Claude Code agents are generated from the canonical `agents/`, so they carry the same scope rules, iteration caps, and verdicts as the other platforms. ([spec](.writ/specs/2026-10-20-claude-agent-generator/spec.md))
+- Claude Code agents are generated from the canonical `agents/`, so they carry the same scope rules, iteration caps, and verdicts as the other platforms. ([spec](.writ/specs/archive/2026-10-20-claude-agent-generator/spec.md))
 - `/create-spec` is shorter: 54,264 bytes down to 38,562. Coaching was removed and every rule was kept; the spec's cut log maps each cut.
 - Shipped commands no longer link Writ's own ADRs, archived specs, or research, which do not exist in your project.
 - `/ship`'s description says what it does: it opens a PR.
 
 ### Removed
-- The five `*.lean.md` command variants and the `WRIT_HARNESS_LEAN` flag. They came from an experiment with a null result. Update removes unmodified copies. ([spec](.writ/specs/2026-10-20-harness-cuts/spec.md))
+- The five `*.lean.md` command variants and the `WRIT_HARNESS_LEAN` flag. They came from an experiment with a null result. Update removes unmodified copies. ([spec](.writ/specs/archive/2026-10-20-harness-cuts/spec.md))
 - `recommend-state.py` and `recommended-delivery-state-format.md` no longer ship. The dormant staging design stays in the Writ repository. Update removes unmodified copies.
 - The `(no-op until ADR-025 Story 1)` lines. ADR-030 retires friction signals; `/retro`'s transcript review covers their purpose.
 
@@ -91,10 +143,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **ADR-030** sets the new posture: Writ owns the contract, the verifier, and the boundary, reached through one front door.
   - Mission and roadmap are refreshed, Phases 13–16 committed, Phase 13 implemented pending UAT.
   - Research: the pstack comparison and the `/prototype` exploration study.
-- CI runs `pytest` on Python 3.9 and the bash tests beside `eval.sh`. ([spec](.writ/specs/2026-10-20-ci-and-update-integrity/spec.md))
+- CI runs `pytest` on Python 3.9 and the bash tests beside `eval.sh`. ([spec](.writ/specs/archive/2026-10-20-ci-and-update-integrity/spec.md))
 - New eval checks:
   - `shipped-refs`
-  - `command-structure`, which converts prose pins. Command-file literal pins in `eval.sh` fell from 207 to 144. ([spec](.writ/specs/2026-10-20-shipped-command-hygiene/spec.md))
+  - `command-structure`, which converts prose pins. Command-file literal pins in `eval.sh` fell from 207 to 144. ([spec](.writ/specs/archive/2026-10-20-shipped-command-hygiene/spec.md))
   - `claude-md`
   - the generated-agents check
 - Five UAT plans (176 scenarios), the Phase 13 leanness audit, two knowledge lessons, and issues for findings outside Phase 13's scope.

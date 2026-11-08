@@ -1,7 +1,7 @@
 version: 1
 metadata:
   name: writ
-  version: 0.44.0
+  version: 0.46.0
   description: "AI-powered development workflow framework - contract-first specs, multi-agent SDLC, automated quality gates."
   runtime_contract: ".writ/docs/recommended-delivery-state-format.md"
 
@@ -66,7 +66,7 @@ commands:
   - name: implement-phase
     file: commands/implement-phase.md
     category: implementation
-    purpose: "Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs."
+    purpose: "Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec per spec (adding /create-uat-plan per spec with --uat), and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs."
     tags: [implementation, phase, orchestration, roadmap, recommend]
   - name: implement-spec
     file: commands/implement-spec.md

@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Small
 > **Created:** 2026-10-19
-> **spec_ref:** .writ/specs/2026-10-20-platform-neutral-names/
+> **spec_ref:** .writ/specs/archive/2026-10-20-platform-neutral-names/
 
 ## TL;DR
 
@@ -60,7 +60,7 @@ Not done: no eval check catches the general case, a command naming a tool that n
 2026-10-22, spec `2026-10-22-rendering-delegation-rows` (Phase 14, lane `writ/phase/14/2026-10-22-rendering-delegation-rows`). Each adapter's tool-table section now carries a `#### Verification record — 2026-10-22` whose rows cite a first-party page and a dated status; `test_verification_records` pins the record shape. Status at spec close:
 
 - `adapters/claude-code.md`: verified 2026-10-22 (Claude Code 2.1.308, desktop app). The `Artifact` tool published and rendered a self-contained HTML draft; the Browser pane rendered it when served over `http://127.0.0.1`; the Claude Design type is listable from inside a command run. Headless `claude -p`: unverified 2026-10-22, docs only. Row unchanged.
-- `adapters/cursor.md`: unverified 2026-10-22 (pending UAT). The Browser and Canvas pages document no canvas that renders a local HTML file, so the row now names the HTML-file floor and the Browser tool's allowlisted origins instead of `cursor-ide-browser`. Protocol: `.writ/specs/2026-10-22-rendering-delegation-rows/sub-specs/technical-spec.md` § UAT Protocols → Cursor.
+- `adapters/cursor.md`: unverified 2026-10-22 (pending UAT). The Browser and Canvas pages document no canvas that renders a local HTML file, so the row now names the HTML-file floor and the Browser tool's allowlisted origins instead of `cursor-ide-browser`. Protocol: `.writ/specs/archive/2026-10-22-rendering-delegation-rows/sub-specs/technical-spec.md` § UAT Protocols → Cursor.
 - `adapters/codex.md`: CLI clause verified 2026-10-24 (codex-cli 0.163.0: three self-contained drafts written, paths listed, nothing rendered); Desktop clause unverified 2026-10-22 (pending UAT). Row rewritten as a CLI clause (the HTML-file floor) and a Desktop clause (the app's docs do not document rendering an HTML draft). Protocol: the same file, § UAT Protocols → Codex Desktop.
 - `adapters/openclaw.md`: unverified 2026-10-22 (no deployment). Row unchanged; the Tools page documents file write and sending a local HTML file to the conversation, not rendering inside the agent.
 

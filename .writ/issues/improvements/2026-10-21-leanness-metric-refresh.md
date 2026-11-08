@@ -23,7 +23,7 @@ The Tier A leanness check raises 17 standing warnings that nobody acts on. The `
 
 - `eval-leanness.py` reports shipped scripts, dev-only scripts, and tests as separate surfaces.
 - The baseline ratchets down after Phase 13, so the next growth warning means something.
-- A coaching-only reduction pass on `implement-phase.md`, with a cut log, following `.writ/specs/2026-10-20-shipped-command-hygiene/cut-log.md`.
+- A coaching-only reduction pass on `implement-phase.md`, with a cut log, following `.writ/specs/archive/2026-10-20-shipped-command-hygiene/cut-log.md`.
 
 ## Relevant Files
 

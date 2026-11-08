@@ -4,7 +4,7 @@
 > **Priority:** High
 > **Effort:** Medium
 > **Created:** 2026-10-21
-> **spec_ref:** .writ/specs/2026-10-22-generated-platform-trees/spec.md
+> **spec_ref:** .writ/specs/archive/2026-10-22-generated-platform-trees/spec.md
 
 ## TL;DR
 

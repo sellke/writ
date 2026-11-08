@@ -99,7 +99,7 @@ These steps apply in the Writ source repo.
 | `docs-check.py` | check |  | commands/implement-story.md |
 | `drift-format.py` | check |  | commands/implement-story.md, commands/implement-spec.md |
 | `exit-criteria.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, adapters/claude-code.md |
-| `goal-emit.py` | check |  | commands/create-goal.md, commands/implement-phase.md, adapters/claude-code.md |
+| `goal-emit.py` | check |  | commands/create-goal.md, adapters/claude-code.md |
 | `jev-judge.py` | check | network: opt-in, bounded-wait | commands/_preamble.md, commands/create-spec.md, commands/implement-story.md, commands/retro.md, commands/verify-spec.md |
 | `knowledge-consolidate.py` | data |  | commands/knowledge.md, commands/retro.md |
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |
@@ -118,6 +118,7 @@ These steps apply in the Writ source repo.
 | `spec-deps.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/verify-spec.md |
 | `spec-status.py` | data |  | commands/create-spec.md, commands/status.md |
 | `story-context.py` | data |  | commands/implement-story.md, skills/story-context-assembly/SKILL.md |
+| `story-gate.py` | check | bounded-wait | commands/implement-story.md |
 | `story-deps.py` | data |  | commands/implement-spec.md |
 | `supersession-writeback.py` | data |  | commands/create-spec.md, commands/edit-spec.md |
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
@@ -136,4 +137,5 @@ The Callers column names the main callers and is not complete. Before you change
 - `repro-order.py` — check. On `pass` the `reason:` lines are informational, one per repro and fix commit (`reason: repro <sha> <subject> (<n> test file(s))`, `reason: fix <sha> <subject> (<n> source file(s))`); on `fail` each `reason:` line is a finding. `reason: repro-first value <v> read as on` can precede either. `- **Repro First:** off` in `.writ/config.md` prints `unverifiable` before any git call.
 - `review-override.py` — check. `switch` prints a state word, `on` or `off`, on line 1 instead of a verdict, then one `reason:` line, then the summary `review-override switch: <name> <state> (.writ/config.md)`. It always exits 0, except 2 for a usage error. This is a documented exception to the Check shape: the state word is the answer, as the `2026-10-25-review-route-rigor` spec defines it. `evidence` keeps the Check shape. With `--surface review`, line 2 is `evidence-gate: on|off|unverifiable (<reason>)`, each `finding FM-NNN:` line ends `; severity <mapped>`, and a tree mutation prints `unverifiable` with `reason: repro_mutated_tree <paths>` and exits 0. With the default `--surface gate3`, a tree mutation prints `fail` and exits 1. With `--prior` on a PASS or PAUSE verdict, only the manifest checks run: line 1 is `pass` with `reason: prior_ok`, or `fail` with `repro_removed`, `repro_modified`, or `repro_still_failing` reasons, and the summary is `review-override evidence: <verdict> (<first reason>)`. A failed `--manifest-out` write adds `reason: manifest_write_failed` and leaves line 1 unchanged.
 - `review-panel.py` — check. Only `trial-init`, `trial-prepare`, `trial-record`, `trial-label`, and `trial-report` remain (ADR-032). A trial word that is not a verdict is the first `reason:` line: `trial-report` prints `pass` then `reason: keep` or `reason: remove`. With `--json`, the object's `verdict` holds that word.
+- `story-gate.py` — check. `run` prints one `check: <id> <verdict> (<reason>)` line per check, `restart:` on a fail with a target, and, by phase, the `route:` / `change_surface:` / `blast_radius:` / switch lines (pre-review) or the `gate3:` / `safety-fact:` / `evidence-gate:` lines (post-review), then the summary, then the `story-gate-v1` JSON record as the last line, with no flag. A check reads `skip` when it does not apply. The bounded wait is each checker it runs, under that checker's own timeout plus a margin, else 600 s. It runs one command's fixed check table and routes nothing across commands (ADR-029 note of 2026-11-06).
 - `spec-analyze.py` — check. Each structural `reason:` line is a bare code, printed once: `under_min_criteria`, `empty_criterion`, `unmeasurable_criterion`, or `planned_red_window` (a story's plan says a check fails or goes stale until a later story). `malformed_findings` covers the `--findings` file.

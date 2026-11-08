@@ -750,6 +750,8 @@ def test_gate_git_error(isolated_git):
 
 SPEC_SLUG = "2026-10-20-platform-neutral-names"
 SPEC_DIR = ".writ/specs/%s/" % SPEC_SLUG
+# The spec may be archived, so spec_ref may name either location.
+SPEC_DIRS = (SPEC_DIR, ".writ/specs/archive/%s/" % SPEC_SLUG)
 LANE_BRANCH = "writ/phase/13/%s" % SPEC_SLUG
 # (issue, phrases its Resolution must contain besides the spec and branch)
 ISSUE_RESOLUTIONS = [
@@ -793,7 +795,7 @@ def test_issue_resolution(rel, phrases):
         assert phrase in text, "%s: Resolution lacks %r" % (rel, phrase)
 
     refs = [line for line in lines if line.startswith("> **spec_ref:**")]
-    assert refs == ["> **spec_ref:** %s" % SPEC_DIR], "%s: %s" % (rel, refs)
+    assert len(refs) == 1 and refs[0] in ["> **spec_ref:** %s" % d for d in SPEC_DIRS], "%s: %s" % (rel, refs)
 
 
 # ---------------------------------------------------------------------------
@@ -912,7 +914,10 @@ def test_claude_code_canvas_row_states_facts():
     assert "verified" not in row[0], row[0]
 
 
-RENDERING_SPEC = ".writ/specs/2026-10-22-rendering-delegation-rows"
+# An archived spec moves under specs/archive/; follow it.
+RENDERING_SPEC = next((p for p in (".writ/specs/2026-10-22-rendering-delegation-rows",
+                                   ".writ/specs/archive/2026-10-22-rendering-delegation-rows")
+                       if (REPO_ROOT / p).is_dir()), ".writ/specs/2026-10-22-rendering-delegation-rows")
 UAT_HEADING = "## UAT Protocols (maintainer, Story 2 writes; `/create-uat-plan` derives scenarios)"
 UAT_FIELDS = ("- **Precondition:**", "- **Run:**", "- **Look for:**", "- **On pass", "- **On fail")
 SAMPLE_IDEA = '"a settings page with a dark-mode toggle"'

@@ -130,8 +130,10 @@ For each **phase** execution state file (`phase-execution-*.json`, schema `phase
 ```bash
 python3 scripts/phase-state.py progress --state <phase-execution-*.json>
 python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo . \
-  --eval <latest-eval-summary> --verification <latest-verification-report> --drift <drift-log>
+  [--eval <latest-eval-summary>] [--verification <latest-verification-report>] [--drift <drift-log> ...]
 ```
+
+Pass only the sources you have: each flag for a file that exists, and `--drift` once per spec drift log. An omitted source reads `not_requested` and adds no Warning.
 
 - **Phase progress** — phase and current spec / active lane, per-status spec counts
   (`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`,
@@ -143,8 +145,8 @@ python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo 
   means "upstream reached a terminal status without delivering", so a reader told only
   "blocked" may go hunting for a quarantine branch that was never created.
 - **Production health** — the reducer's **categorical** disposition (`Healthy` /
-  `Warning` / `Attention`) computed from locally available evidence. Missing or stale
-  evidence is reported as a Warning (never a silent pass); `Attention` means an
+  `Warning` / `Attention`) computed from the sources passed. A passed source that is missing or
+  stale is a Warning (never a silent pass); `Attention` means an
   affirmative current failure. Surface the `unavailable` and `failures` lists verbatim
   so the maintainer sees why.
 

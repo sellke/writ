@@ -24,4 +24,4 @@
 
 - `scripts/install.sh` - `merge_claude_md`, `merge_agents_md`
 - `scripts/update.sh` - the same functions
-- `.writ/specs/2026-10-20-claude-code-parity/sub-specs/technical-spec.md` - the write-back pattern Story 4 uses
+- `.writ/specs/archive/2026-10-20-claude-code-parity/sub-specs/technical-spec.md` - the write-back pattern Story 4 uses

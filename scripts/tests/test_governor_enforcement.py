@@ -650,7 +650,34 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-05 (ADR-033, Phase 17): 9921 -> 8957; the Recommended Mode section and
     # its three auto-accept clauses become the Doubt Rule; the lane gains the
     # supervisor step.
-    "commands/implement-phase.md": 8957,
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 1): 8957 -> 10297 (file
+    # 33917 -> 35257); UAT plans on request: the `--uat` Invocation row, Step 1.3
+    # resume order by phase state and story status, the Step 2.3 `UAT:` plan line,
+    # the Step 4.2 `/create-uat-plan {spec}` handoff lines, and the new c2 text.
+    # Story 4 of the same spec cuts the file to at most 240 lines.
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 2): 10297 -> 9825 (file
+    # 35257 -> 34785); Step 1.4 Goal emit removed (only /create-goal emits), and
+    # Step 4.1c passes only the health sources the phase produced.
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 3): 9825 -> 10119 (file
+    # 34785 -> 35079); Step 3.2 fills the shipped brief commands/_lane-brief.md,
+    # validates the lane's result file, hands the supervisor its contents, and
+    # resumes the lane once, then classifies `transient`, when the file is
+    # missing; the truncated-result paragraph is gone. The template itself is
+    # an underscore partial, outside the command budget.
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 4): 10119 -> 1331 (file
+    # 35079 -> 26291, 358 -> 236 lines); a shrink. Text moved and cut only:
+    # Step 3.3 and mid-run closure become an event -> subcommand -> effect table,
+    # the Step 3.1 branch note and Step 3.2 iteration bound one line each,
+    # Initiative, the inherited-answer rule and Step 4.3's partial-completion
+    # rule merge into one Question Policy section (Step 4.3 now holds the
+    # checker branches), Step 1.2b keeps the proposal shape, and the rationale moves
+    # to .writ/docs/phase-execution-state-format.md -> Why. Re-pinned down
+    # because total_overage is asserted exactly.
+    # 2026-11-07 (same story, Gate 3 recode): 1331 -> 1465 (file 26291 -> 26425);
+    # the Step 3.3 reconcile row regains "continue only when they agree", the
+    # Question Policy says an unanswered lane question returns as
+    # `challenge_required`, and the `--all` boundary regains "as an interactive run".
+    "commands/implement-phase.md": 1465,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
@@ -695,7 +722,38 @@ KNOWN_OVER_BUDGET = {
     # in the Overview, the reviewer-filters paragraph, the safety-fact sentence, and
     # Gate 3.5, less the leftover-config line and the `--panel` rejection. Stories
     # 3 + 4 + 7: net 0 (file 39929 -> 38551 bytes, at most 40759).
-    "commands/implement-story.md": 13591,
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): 13591 -> 16566 (file
+    # 38551 -> 41526); every gates: entry gains path, catches, evidence, and
+    # kill_when (spec Business Rule 1). Frontmatter only; no body change. The
+    # Gate 3 recode replaced the gate3_5_drift citation (+50). The spec's
+    # Stories 2-3 shrink the file below 38551 (Success Criteria).
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 2): 16566 -> 16168 (file
+    # 41526 -> 41128); Gates 0, 4.5 and 5 move under the --full-pipeline heading
+    # and lose their default-path text. Still temporary: 2577 bytes above 38551,
+    # which Story 3 closes when the runner replaces the per-script blocks.
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 3): 16168 -> 13585 (file
+    # 41128 -> 38545, under the spec-start 38551); two `story-gate.py` runs
+    # replace the per-script blocks of Gates 1 (repro-order), 2 (arch-lint, build
+    # smoke), 2.5 (classify, crossings, switch, blast radius), 3 (two switches,
+    # check, safety-fact, evidence and its nine-row table, Jev shadow), 3.5
+    # (drift-format), and 4 (test-integrity), less a restart table and a
+    # Step 3 pointer to Gate 0. The temporary raise is closed.
+    # 2026-11-06 (lean-story-pipeline Story 3, Gate 3 recode): 13585 -> 13582
+    # (file 38545 -> 38542); Gate 3.5 § A states its order against post-review
+    # and Quick Mode keeps post-review, offset by tightening the § A text.
+    # 2026-11-06 (lean-story-pipeline Story 4): 13582 -> 13578
+    # (file 38542 -> 38538); Gate 4's default line states that Gate 3's
+    # recorded run is targeted and the full suite runs once, at implement-spec
+    # Step 4.1 or in /ship (spec Business Rule 6), offset by shortening the
+    # --full-pipeline context routing and the unverifiable bullet, and by
+    # dropping a sentence the Completed-status rule already covers.
+    # 2026-11-06 (lean-story-pipeline Story 4, Gate 3 recode): 13578 -> 13577
+    # (file 38538 -> 38537); plain /ship runs no tests, so Gate 4 names
+    # /ship --test, and Gate 3's recorded run adds test files that import a
+    # changed source file, offset by dropping Gate 4's restatement of it.
+    # 2026-11-07 (lean-story-pipeline spec-end cleanup, DEV-022): Step 4 item 3
+    # no longer says implement-spec regenerates context.md. 38537 -> 38517.
+    "commands/implement-story.md": 13557,
 }
 
 

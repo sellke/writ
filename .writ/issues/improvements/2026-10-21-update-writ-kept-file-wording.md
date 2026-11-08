@@ -25,4 +25,4 @@
 
 - `commands/update-writ.md`: Step 7, Completion
 - `scripts/update.sh`: the preserve path
-- `.writ/specs/2026-10-20-ci-and-update-integrity/uat-plan.md`: Scenario 28 notes
+- `.writ/specs/archive/2026-10-20-ci-and-update-integrity/uat-plan.md`: Scenario 28 notes

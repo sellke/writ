@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T18:55:00Z
+> Last Updated: 2026-11-08T12:00:00Z
 
 ## Product Mission
 
@@ -8,25 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-lean-story-tasks — Lean Story Tasks (branch `spec/lean-story-tasks`)
-- **Status:** Complete — all 5 stories done; integration suite green (4261 passed on Python 3.9 and 3.14, eval.sh exit 0); not yet shipped
-- **Story:** 5 of 5 — Trial lean tasks on one archived spec (Completed ✅; verdict `lean-tasks: keep`)
-- **Progress:** 32/32 tasks complete
+- **Spec:** none on `main`. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is implemented on the unmerged branch `phase/16-verified-landing`; on `main` both read Not Started.
+- **Also unmerged:** `claude/suspicious-nobel-c8a76d` — `story-context.py` resolves `Business Rule N` hints.
+- **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (Phases 14, 15, and 17 released in v0.44.0, 2026-11-06; ADR-033)
-- **Active spec:** .writ/specs/2026-11-06-lean-story-tasks/ — spec.md + spec-lite.md, user-stories/, sub-specs/, recommendation-log.md, drift-log.md, trial-report.md
-- **Knowledge:** .writ/knowledge/ (29 entries)
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.46.0 latest release, 2026-11-07)
+- **Specs:** 6 under .writ/specs/; completed specs under .writ/specs/archive/
+- **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-010 Reduced, hand-run pipeline instead of `/implement-story` in the trial — lean-story-tasks (Medium)
-- DEV-009 arm-original seeded from the pre-implementation commit — lean-story-tasks (Small)
-- DEV-008 context-hint-format.md drops the "after the Definition of Done" placement — lean-story-tasks (Small)
+- DEV-010 ⚠️ A resume stop condition cut in round 1, restored in round 2 — lean-implement-phase (Medium)
+- DEV-009 ⚠️ The 240-line target met mostly by removing blank lines — lean-implement-phase (Medium)
+- DEV-008 Adapters describe the lane result file — lean-implement-phase (Small)
 
 ## Open Issues
 
-26 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`, 1 Goal Card)
+25 open issue files in .writ/issues/ (46 total; 21 closed with `## Resolution`, 1 Goal Card)
