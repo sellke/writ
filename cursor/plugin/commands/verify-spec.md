@@ -316,7 +316,7 @@ For the reachable cross-spec graph (this spec + every spec it references):
     header is treated as `[]`; a header that is not the bracket form is malformed)
   Flag as blocking:
     - malformed header                 → malformed_dependencies
-    - missing reference (no such folder under .writ/specs/) → missing_reference (name it)
+    - missing reference (no such folder under .writ/specs/ or .writ/specs/archive/) → missing_reference (name it)
     - self-reference (spec lists itself) → self_reference
     - duplicate entry in one list       → duplicate_reference (dedupe preserves order)
     - cross-spec cycle                  → dependency_cycle (print the exact path)
