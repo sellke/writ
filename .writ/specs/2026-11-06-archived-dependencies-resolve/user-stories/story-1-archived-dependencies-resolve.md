@@ -1,6 +1,7 @@
 # Story 1: Archived dependencies resolve
 
 > **Status:** Completed ✅ (2026-11-08)
+> **Commit:** 61bedd05305b3c17011af3f0f4a604484904b503
 > **Priority:** Medium
 > **Dependencies:** None
 
