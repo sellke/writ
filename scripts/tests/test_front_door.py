@@ -487,6 +487,8 @@ def test_surfaces():
 ISSUE_REL = ".writ/issues/features/2026-10-13-in-your-own-words.md"
 SPEC_REF_PREFIX = "> **spec_ref:**"
 SPEC_DIR = ".writ/specs/2026-10-22-front-door/"
+# The spec may be archived, so spec_ref may name either location.
+SPEC_DIRS = (SPEC_DIR, ".writ/specs/archive/2026-10-22-front-door/")
 RESOLUTION_HEADING = "## Resolution"
 RESOLUTION_NAMES = ("2026-10-22-front-door", "/writ", "Restate", "does not end the turn", "2026-10-22")
 STRUCTURE_ARGV = [sys.executable, "scripts/eval-command-structure.py", "--root", "."]
@@ -505,7 +507,7 @@ def test_issue_resolution():
     assert h2s, "%s has no H2" % ISSUE_REL
     assert h2s[-1] == RESOLUTION_HEADING, "last H2 is %r" % h2s[-1]
     spec_ref = body[first_prefixed(body, SPEC_REF_PREFIX)]
-    assert SPEC_DIR in spec_ref, spec_ref
+    assert any(d in spec_ref for d in SPEC_DIRS), spec_ref
     resolution = "\n".join(section(body, RESOLUTION_HEADING))
     for name in RESOLUTION_NAMES:
         assert name in resolution, "Resolution does not name %r" % name

@@ -4,7 +4,7 @@
 > **Status:** Accepted
 > **Category:** Framework Architecture
 > **Deciders:** @AdamSellke
-> **Origin:** [`2026-11-03-minimize-adversarial-review-surface`](../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md), promoted to spec [`2026-11-04-evidence-gated-review`](../specs/2026-11-04-evidence-gated-review/spec.md)
+> **Origin:** [`2026-11-03-minimize-adversarial-review-surface`](../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md), promoted to spec [`2026-11-04-evidence-gated-review`](../specs/archive/2026-11-04-evidence-gated-review/spec.md)
 > **Amends:** [ADR-028](adr-028-behavioral-verification-and-cross-family-panels.md) Decision 3, the cross-family review panel, which this record removes, and the panel cases in Decision 4. Decisions 1 and 2 stand.
 > **Keeps:** the reviewer filters of [`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md), which the removal trial kept (spec.md § Amendment, 2026-11-04).
 > **Evidence base:** the inventory below, measured 2026-11-04 at commit `ef0c418`; the removal trial's [`trial-report.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md).
@@ -25,7 +25,7 @@
 - **One removal, one change.** The review panel is removed. The Safety Fact floor rises from `traced` to `tested`. The reviewer filters stay.
 - **One switch.** `- **Evidence Gate:** off` in `.writ/config.md` restores agent-verdict blocking for the whole story. An absent line means on.
 
-Large-drift PAUSE at Gate 3.5 stays a human gate. `review-override.py check` and the `safety-fact` routing keep their current semantics. The Gate 3 decision table is in [`spec.md`](../specs/2026-11-04-evidence-gated-review/spec.md) § Gate 3 decision.
+Large-drift PAUSE at Gate 3.5 stays a human gate. `review-override.py check` and the `safety-fact` routing keep their current semantics. The Gate 3 decision table is in [`spec.md`](../specs/archive/2026-11-04-evidence-gated-review/spec.md) § Gate 3 decision.
 
 ## Context and Problem Statement
 
@@ -116,7 +116,7 @@ Spawns are counted from the command and agent text. Bytes are `wc -c` on the nam
 
 ## Removals
 
-This record lists what the spec removes and the one thing it changes. The reviewer filters stay (spec.md § Amendment). The pruned-instructions ledger records none of this: it covers only lines removed from `system-instructions.md` and `commands/_preamble.md` (`scripts/prune-ledger.py` `BASE_FILES`), and this spec removes nothing from either. The tables follow [`technical-spec.md`](../specs/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals.
+This record lists what the spec removes and the one thing it changes. The reviewer filters stay (spec.md § Amendment). The pruned-instructions ledger records none of this: it covers only lines removed from `system-instructions.md` and `commands/_preamble.md` (`scripts/prune-ledger.py` `BASE_FILES`), and this spec removes nothing from either. The tables follow [`technical-spec.md`](../specs/archive/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals.
 
 ### Safety Fact floor (Story 6)
 
@@ -183,7 +183,7 @@ Stories 6 and 7 also update the tests that assert on the changed or removed text
 - [ADR-028](adr-028-behavioral-verification-and-cross-family-panels.md): the review panel this record removes
 - [ADR-030](adr-030-contract-verifier-boundary-front-door.md): Phase 15 and its removal-measurement rule
 - [`2026-11-03-minimize-adversarial-review-surface`](../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md): the origin issue
-- [`2026-11-04-evidence-gated-review`](../specs/2026-11-04-evidence-gated-review/spec.md): the spec and its § Amendment; [`technical-spec.md`](../specs/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals, § Error & Rescue Map
+- [`2026-11-04-evidence-gated-review`](../specs/archive/2026-11-04-evidence-gated-review/spec.md): the spec and its § Amendment; [`technical-spec.md`](../specs/archive/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals, § Error & Rescue Map
 - [`2026-10-25-gate-upgrade-removal-measurement`](../specs/2026-10-25-gate-upgrade-removal-measurement/spec.md) and its [`trial-report.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md): the removal trial that kept the filters, Safety Fact, and Gate 0 divergence
 - [`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md): the spec that added the filters and the `traced` floor
 - [`2026-10-25-design-divergence`](../specs/archive/2026-10-25-design-divergence/spec.md) and its [`trial-report.md`](../specs/archive/2026-10-25-design-divergence/trial-report.md): the blind trial that decides Gate 0 divergence

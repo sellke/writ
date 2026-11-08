@@ -80,6 +80,8 @@ Adjudicate every criterion. The number of verdicts must equal the number supplie
 Use these as evidence for or against each criterion. Do not invent a quality tour from them.
 {recorded_test_results}
 
+Read `recorded_test_results` for test evidence and never run the full suite. Write an `**Evidence:**` field for each finding you want to block; the evidence script runs them. You may run one repro yourself to check it, outside the repo, or re-run a test file the recorded run names; neither is a suite run.
+
 ## File Ownership Boundaries (optional)
 {boundary_map}
 

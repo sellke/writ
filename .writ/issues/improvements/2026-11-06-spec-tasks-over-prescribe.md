@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-11-06
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/archive/2026-11-06-lean-story-tasks/spec.md
 
 ## TL;DR
 
@@ -37,3 +37,7 @@
 
 - Keep naming files in tasks: the file-creation rule in `coding-agent.md` and `implement-story.md` depends on it.
 - Measure before rolling the change out: fewer words with more drift or more review findings would be a regression.
+
+## Resolution
+
+2026-11-06, PR #67 (merge `550b2ac`), released in v0.45.0. Spec [`2026-11-06-lean-story-tasks`](../../specs/archive/2026-11-06-lean-story-tasks/spec.md). Story tasks name files and external contracts, stay at or under 50 words, and leave internals to the coding agent; `ac-trace.py` reports `oversized_task`; the generic Definition of Done is gone; Business Rules are stated once. The trial in `trial-report.md` measured 28% fewer words and one fewer review iteration on one spec (verdict `lean-tasks: keep`). Open: `story-context.py` does not yet resolve `Business Rule N` hints (fix on branch `claude/suspicious-nobel-c8a76d`, unmerged).

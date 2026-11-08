@@ -150,7 +150,6 @@ Every story file must have:
   - User Story (As a / I want to / So that)
   - Acceptance Criteria
   - Implementation Tasks
-  - Definition of Done
 If any section missing → flag
 ```
 
@@ -197,9 +196,9 @@ If story status is "Completed ✅":
 
 **3b. Definition of Done verification (for "Completed" stories):**
 ```
-If story status is "Completed ✅":
-  Is the entire Definition of Done section checked?
-  Any unchecked items → flag as incomplete DoD
+If story status is "Completed ✅" and the story has a Definition of Done:
+  Any unchecked item → flag as incomplete DoD
+No Definition of Done → no finding
 ```
 
 **3c. Task completion (for "Completed" stories):**
@@ -588,7 +587,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 | # | Title | Status | Tasks | Criteria | DoD |
 |---|-------|--------|-------|----------|-----|
 | 1 | Auth | ✅ | 5/5 | 4/4 | 5/5 |
-| 2 | API | ✅ | 6/6 | 3/3 | 5/5 |
+| 2 | API | ✅ | 6/6 | 3/3 | — |
 
 ## Issues Found & Resolved
 - [FIX-1] README status sync (auto-fixed)

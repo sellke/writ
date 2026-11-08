@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T21:26:03Z
+> Last Updated: 2026-11-08T14:00:00Z
 
 ## Product Mission
 
@@ -8,16 +8,14 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-ship-watch-and-merge — Ship Watch and Merge
-- **Status:** Complete — Phase 16 lane `writ/phase/16/2026-11-06-ship-watch-and-merge`
-- **Story:** 4 of 4 complete (last: The watch merges on a green ledger)
-- **Progress:** 27/27 tasks complete (100%)
+- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete and merges with this branch; unreleased (v0.46.0 is the latest release). One real-PR `/ship --watch` run is outstanding.
+- **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-11-06-ship-watch-and-merge/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
-- **Knowledge:** .writ/knowledge/ (29 entries)
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.46.0 latest release, 2026-11-07)
+- **Specs:** 6 under .writ/specs/; completed specs under .writ/specs/archive/
+- **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
@@ -29,4 +27,4 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Open Issues
 
-27 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`)
+26 open issue files in .writ/issues/ (47 total; 21 closed with `## Resolution`, 1 Goal Card)

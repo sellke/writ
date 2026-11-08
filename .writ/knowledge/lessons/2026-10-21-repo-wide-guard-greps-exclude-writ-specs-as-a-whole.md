@@ -17,8 +17,8 @@ Recorded at phase close from evidence-bound knowledge writeback.
 
 **Cited evidence:**
 
-- .writ/specs/2026-10-20-harness-cuts/drift-log.md DEV-005 and DEV-009
-- .writ/specs/2026-10-20-platform-neutral-names/drift-log.md DEV-004 (same pattern for the command-rename reference gate)
+- .writ/specs/archive/2026-10-20-harness-cuts/drift-log.md DEV-005 and DEV-009
+- .writ/specs/archive/2026-10-20-platform-neutral-names/drift-log.md DEV-004 (same pattern for the command-rename reference gate)
 
 ## Related
 

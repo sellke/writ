@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-10-12
-> **spec_ref:** .writ/specs/2026-10-22-plugin-distribution/spec.md
+> **spec_ref:** .writ/specs/archive/2026-10-22-plugin-distribution/spec.md
 
 ## TL;DR
 
@@ -41,6 +41,6 @@ Decide whether Writ's shipped scripts should move out of the project-root `scrip
 
 ## Resolution
 
-2026-10-23, branch `writ/phase/14/2026-10-22-plugin-distribution` (spec [`2026-10-22-plugin-distribution`](../../specs/2026-10-22-plugin-distribution/spec.md), Story 4). Decided in [ADR-031](../../decision-records/adr-031-script-location.md), which supersedes the ADR-029 consequence this issue came from. Shipped scripts stay in the project's `scripts/` for `install.sh` installs. The Claude Code plugin runs them from its own copy through `${CLAUDE_PLUGIN_ROOT}/scripts/<name>`, rendered from the same command source by `scripts/gen-platform-trees.py` and kept current by its `--check`. Nothing moves, so install, update, and uninstall keep their paths and no installed project needs a migration.
+2026-10-23, branch `writ/phase/14/2026-10-22-plugin-distribution` (spec [`2026-10-22-plugin-distribution`](../../specs/archive/2026-10-22-plugin-distribution/spec.md), Story 4). Decided in [ADR-031](../../decision-records/adr-031-script-location.md), which supersedes the ADR-029 consequence this issue came from. Shipped scripts stay in the project's `scripts/` for `install.sh` installs. The Claude Code plugin runs them from its own copy through `${CLAUDE_PLUGIN_ROOT}/scripts/<name>`, rendered from the same command source by `scripts/gen-platform-trees.py` and kept current by its `--check`. Nothing moves, so install, update, and uninstall keep their paths and no installed project needs a migration.
 
 A project file that shares a shipped script's name keeps today's behavior under `install.sh`: no baseline, treated as modified and kept, overwritten by `--force`. A plugin command names the plugin's copy, so it never runs the project's file. Options `.writ/scripts/` and tools beside their skill were rejected in ADR-031 § Considered Options.

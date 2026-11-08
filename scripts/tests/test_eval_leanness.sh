@@ -251,9 +251,10 @@ if json_contains "$OUT1" structural "beta"; then
 fi
 ok "directional: command absent from curated allowlist is not an orphan"
 
-# Metrics count ALL command files including _preamble (matches baseline convention).
-[ "$(metric "$OUT1" commands)" -eq 10 ] || fail "commands metric should count all 10 files (alpha, beta, status, _preamble, and the six loop-bearing commands)"
-ok "metrics: commands counts all files (incl. _preamble)"
+# The commands metric counts invocable commands only: underscore files
+# (_preamble here) are shared partials, excluded by is_infra() (2026-11-07).
+[ "$(metric "$OUT1" commands)" -eq 9 ] || fail "commands metric should count the 9 invocable files (alpha, beta, status, and the six loop-bearing commands), not _preamble"
+ok "metrics: commands counts invocable files only (underscore partials excluded)"
 
 # ---------------------------------------------------------------------------
 # Scenario 1b (Story 1): full-surface measurement — per_surface covers all six

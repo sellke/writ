@@ -27,4 +27,4 @@ Allowing it looks right, because two platforms chose it on their own. Update the
 
 - `commands/prototype.md`: Step 2.5
 - `adapters/codex.md`, `adapters/openclaw.md`, `adapters/claude-code.md`: `canvas-preview` rows
-- `.writ/specs/2026-10-20-platform-neutral-names/uat-plan.md`: Scenarios 8 and 10 notes
+- `.writ/specs/archive/2026-10-20-platform-neutral-names/uat-plan.md`: Scenarios 8 and 10 notes

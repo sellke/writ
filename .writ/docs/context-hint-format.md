@@ -15,7 +15,7 @@ Context hints are **indexes** that reference specific content in `spec.md` and `
 
 ## File Location & Lifecycle
 
-**Location:** Each user story file includes a `## Context for Agents` section near the end, after the Definition of Done.
+**Location:** Each user story file includes a `## Context for Agents` section at the end of the story file.
 
 | Event | Action |
 |-------|--------|
@@ -84,24 +84,24 @@ Points to specific user journey scenarios in shadow path tables.
 
 #### 3. Business Rules
 
-Points to specific business rules from the specification contract.
+Cites business rules by their number in the specification contract, as `Business Rule N`. A rule's text lives once, in the contract's numbered list; a hint never restates it.
 
 **Format:**
 ```markdown
-- **Business rules:** [Rule summary 1, Rule summary 2]
+- **Business rules:** [Business Rule N, Business Rule M]
 ```
 
 **References:**
-- `spec.md` → `## 📋 Business Rules` → Specific rule items
+- `spec.md` → Specification Contract → `📋 Business Rules` numbered list. `spec.md`'s expanded business-rules section adds detail per rule number.
 
 **Example:**
 ```markdown
-- **Business rules:** [Free tier limits (3 projects max), Admin-only workspace deletion, Session expiry (7 days standard, 30 days remember-me)]
+- **Business rules:** [Business Rule 2, Business Rule 5]
 ```
 
 **Orchestrator behavior:**
-- Parse rule summaries
-- Fetch full rule text from spec.md
+- Parse rule numbers
+- `scripts/story-context.py` does not yet fetch a rule by number: it warns per citation, and the agent reads the rule in `spec.md`
 - Deliver to agents with context
 
 #### 4. Experience Elements
@@ -133,7 +133,7 @@ Points to specific experience design elements that affect implementation.
 
 - **Error map rows:** [Create session, Validate input, Handle Redis failure]
 - **Shadow paths:** [User registration flow, Password reset flow]
-- **Business rules:** [Free tier limits (3 projects max), Admin-only workspace deletion]
+- **Business rules:** [Business Rule 2, Business Rule 4]
 - **Experience:** [Error feedback model (inline + toast), Empty state (onboarding prompt)]
 ```
 
@@ -167,7 +167,7 @@ When generating context hints for a story:
 - **Be specific** — "Session creation error handling" not "Error handling"
 - **Be concise** — Include only what's relevant, not everything
 - **Be accurate** — Reference content that actually exists in spec files
-- **Use existing terminology** — Match operation names, path names, rule summaries from the spec exactly
+- **Use existing terminology** — Match operation and path names from the spec exactly; cite rules by number
 
 ### Graceful Degradation
 
@@ -208,7 +208,7 @@ Consumers (currently `/implement-story` Step 2 and `eval-leanness.py`'s `story_c
 ```markdown
 ## Context for Agents
 
-- **Business rules:** [Admin-only workspace deletion, Workspace member limit (5 for free tier)]
+- **Business rules:** [Business Rule 1, Business Rule 3]
 ```
 
 ### Rich Example (All Categories)
@@ -218,7 +218,7 @@ Consumers (currently `/implement-story` Step 2 and `eval-leanness.py`'s `story_c
 
 - **Error map rows:** [Create workspace, Invite member, Delete workspace]
 - **Shadow paths:** [Workspace creation flow, Member invitation flow]
-- **Business rules:** [Admin-only workspace deletion, Workspace member limit (5 for free tier), Workspace name validation (3-50 chars)]
+- **Business rules:** [Business Rule 1, Business Rule 3, Business Rule 4]
 - **Experience:** [Error feedback model (toast notifications), Empty state (workspace creation CTA), Confirmation prompts (delete workspace)]
 ```
 
@@ -243,7 +243,7 @@ This extended format allows direct file → section references when content isn'
 ## Context for Agents
 
 - **Error map rows:** []
-- **Business rules:** [Session expiry (7 days standard)]
+- **Business rules:** [Business Rule 6]
 ```
 
 Empty brackets are valid — they signal "this category was considered but has no relevant content for this story."
@@ -259,7 +259,7 @@ Agents generating context hints MUST verify before writing:
 | **Bracketed format** | Each category uses `[item 1, item 2, ...]` format |
 | **Accurate references** | Referenced content exists in spec files |
 | **No content duplication** | Hints reference content, never duplicate it |
-| **Concise summaries** | Rule summaries and experience elements are brief (1-2 sentences max each) |
+| **Rules by number** | Business rules are cited as `Business Rule N`; experience elements are brief (1-2 sentences max each) |
 
 ## Integration with Pipeline
 
@@ -271,7 +271,7 @@ The `user-story-generator` agent:
 1. Receives full `spec.md` and `technical-spec.md` content as parameters
 2. Analyzes which spec content is relevant to this story
 3. Generates context hints section following this format
-4. Includes section at end of story file (after Definition of Done)
+4. Includes section at end of story file
 
 **Required parameters for generator:**
 - `spec_content` — full text of `spec.md`
@@ -333,7 +333,7 @@ Generation (authoring hints for a new story) and parsing (resolving hints agains
    - [ ] Referenced content exists in spec files
    - [ ] Error map row names match table exactly (when using bracketed format)
    - [ ] Shadow path names match table exactly (when using bracketed format)
-   - [ ] Business rules are concise summaries, not full duplication
+   - [ ] Business rules are cited as `Business Rule N`, never restated
    - [ ] Experience elements reference specific subsections
 5. **Document:** Record results in story implementation summary
 
@@ -367,6 +367,7 @@ Generation (authoring hints for a new story) and parsing (resolving hints agains
 | 1.0 | 2026-03-27 | Initial format specification |
 | 1.1 | 2026-03-27 | Added validation strategy section (Tasks 1.4-1.5) |
 | 2.0 | 2026-08-03 | Story 4 of `2026-08-03-deterministic-story-substrate`: retired the "Parsing Guide" algorithm restatement and "Parsing Validation (Task 1.5)" subsection now that `scripts/story-context.py` is the single tested implementation; fixed stale `context_hints_parsed`/`context_content_fetched` output names in "Integration with Pipeline" to match the command file's actual `fetched_context`/`context_warnings`; removed the stale "no automated test suite" premise from "Validation Strategy." Authoring guidance (Generation Guidelines, Format Structure, Examples, Validation Rules, Manual Usage) is unchanged — this doc's role narrows to authoring; the script now owns parsing. |
+| 2.1 | 2026-11-06 | Story 4 of `2026-11-06-lean-story-tasks`: business-rule hints cite `Business Rule N` and no longer summarize the rule; the section is placed at the end of the story file. |
 
 ## See Also
 

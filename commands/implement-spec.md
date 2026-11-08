@@ -7,7 +7,7 @@ entry_level: high
 exit_criteria:
   - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
   - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"
-  - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts"
+  - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story runs, and .writ/context.md was rewritten to the post-run story counts"
   - "each completed story carries its own Gate 3 Review Outcome, and no commit changed that story's code after its verdict without a second verdict"
 loop:
   unit: "story"
@@ -102,16 +102,9 @@ Batch 3 (sequential): batches[2] → Story 5             — depends on batch 2
 
 If `--from story-N` is specified, prune the **already-validated** `batches` array to story N and everything at or after its batch. Validation in Step 2.1 already ran against the full graph, so pruning here never re-opens a graph question — it only narrows which validated batches execute.
 
-#### Step 2.3: Estimate Scope
-
-For each story, count:
-- Implementation tasks
-- Acceptance criteria
-- Estimated complexity (task count × avg)
-
 #### Step 2.3b: Pre-Flight Assessment
 
-Run lightweight sizing checks against remaining stories. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
+Count each remaining story's tasks and acceptance criteria. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
 
 **If no flags:** Proceed silently. **If flags found:** Show concerns above the execution plan and point to `/assess-spec` for a full analysis. Pre-flight is advisory — never blocks execution.
 
@@ -123,7 +116,6 @@ Present the plan for visibility, then proceed directly to Phase 3 — there is n
 ## Execution Plan: 2026-02-22-feature-name
 
 Stories to implement: 5 (2 already complete, 3 remaining)
-Estimated phases per story: arch-check → code → lint → review → test → docs
 
   Batch 1 (parallel):
     ├── Story 3: API Endpoints (5 tasks, 4 AC) — no dependencies
@@ -166,17 +158,9 @@ Skipping (already complete): Story 1, Story 2
 For each batch in order:
 
 **If parallel batch:**
-- Spawn `/implement-story {story-id}` for each story in the batch concurrently
-- Wait for all to complete before proceeding to next batch
+- Run `/implement-story {story-id}` for each story one after another: the stories share this working tree, and each story's `story-gate` record must name its own final code commit on a clean tree. Stories run concurrently only in separate worktrees (`/implement-phase` lanes).
+- The batch's stories are independent, so their order does not matter.
 - If any story fails, decide: continue with independent stories or halt
-
-**Platform note:** on a harness where invoking `/implement-story` loads its
-instructions into the current context rather than running it as a
-backgrounded subagent, "spawn ... concurrently" means the orchestrator issues
-one parallel tool-call per story (each running that story's own Gate
-0/1/3/4/4.5 sequence) — not a nested command call the harness
-auto-parallelizes. Confirm which behavior your platform's invocation gives
-before assuming concurrency.
 
 **If sequential batch:**
 - Run `/implement-story {story-id}` one at a time
@@ -187,7 +171,7 @@ before assuming concurrency.
 #### Step 3.3: Update State After Each Story
 
 After each `/implement-story` completes:
-- **Supervise the result first.** Spawn `supervisor-agent` (fresh context, read-only) with the story's report verbatim, the story file, and the commit range the story produced. It re-derives each claim from git, the story file, the drift log, and Writ's checkers, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → record the story as reported. `RERUN` → run `/implement-story {id}` once more; a second `RERUN` is a story failure. `ESCALATE` → a story failure, with the claims table as its reason. A missing result line is a mid-task stop: resume the supervisor once and ask for its result. In Phase-Orchestrated Lane Mode, skip this step: `/implement-phase` supervises the lane's result.
+- **Supervise the result first.** Spawn `supervisor-agent` (fresh context, read-only) with the story's report verbatim, the story file, the commit range the story produced, and `story_gate_record`: `.writ/state/story-gate-<story-stem>-post-review.json`. It reads check verdicts from that record, re-derives the other claims from git and the story file, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → record the story as reported. `RERUN` → run `/implement-story {id}` once more; a second `RERUN` is a story failure. `ESCALATE` → a story failure, with the claims table as its reason. A missing result line is a mid-task stop: resume the supervisor once and ask for its result. In Phase-Orchestrated Lane Mode, skip this step: `/implement-phase` supervises the lane's result.
 - **Update execution state file with result** — this is a required disk
   write: update the story's `stories.{id}` entry in
   `.writ/state/execution-{timestamp}.json` immediately, before dispatching
@@ -195,7 +179,6 @@ After each `/implement-story` completes:
   progress solely in conversation state does not substitute for it and will
   not survive a restart.
 - Log: pass/fail, review iterations, test count, coverage
-- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2 (including the `## Artifact Map` + Integrity line), reflecting the updated story progress. Each write replaces the entire file.
 
 **On story failure:** run the Doubt Rule (`site: plan`; recommend skipping only the failed story's dependents when `story-deps.py` shows independent stories remain, otherwise retry once). When it asks, present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
@@ -207,18 +190,18 @@ After each `/implement-story` completes:
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work together.
+After all stories complete, run a single integration check to catch cross-story breakage. Each story's tests ran once, as Gate 3's targeted recorded run, which `story-gate.py` post-review checks — this step only verifies that the stories work together.
 
 Detect the runners the way `/ship` Step 1 does — never hard-code a stack:
 
 1. **Typecheck** (catches cross-story type conflicts; skip when the stack has none): `tsconfig.json` → `npx tsc --noEmit`; `pyproject.toml`/`mypy.ini` with mypy configured → `mypy`; `Cargo.toml` → `cargo check`; `go.mod` → `go vet ./...`.
 2. **Full test suite** (catches integration breakage between stories), in `/ship`'s detection order: `package.json` `scripts.test` → `npm test`; `Makefile` `test:` target → `make test`; `pytest.ini`/`setup.cfg`/`pyproject.toml` → `pytest`; `mix.exs` → `mix test`; `Cargo.toml` → `cargo test`; `go.mod` → `go test ./...`; none found → ask the user which command runs the tests.
 
-If integration fails: run `git log --oneline` over the stories' completion commits, name the story whose commit most plausibly introduced the failure, and present three options via AskQuestion — **Fix in place** (spawn `/implement-story {id} --review-only` against the failing suite so the same story owns the repair), **Revert** (`/revert` that story's completion commit, mark the story `Not Started`, and stop so the user decides whether to re-run it), or **Abort** (leave the tree as is, record `postRun.testSuite: fail`, and report). Never mark the spec `Complete` while the integration suite fails.
+If integration fails and each failure names its own cause (a stale pin, a literal, one test), fix it directly. Then re-run only the failing tests, the failing eval checks, and a `git grep` for anything else that pins the changed text; re-run the full suite only when the fix changes code other tests import (a shared helper, a widely used module, generated trees). Record what you re-ran in `postRun.testSuiteDetail`. Otherwise, run `git log --oneline` over the stories' completion commits, name the story whose commit most plausibly introduced the failure, and present three options via AskQuestion — **Fix in place** (spawn `/implement-story {id} --review-only` against the failing suite so the same story owns the repair), **Revert** (`/revert` that story's completion commit, mark the story `Not Started`, and stop so the user decides whether to re-run it), or **Abort** (leave the tree as is, record `postRun.testSuite: fail`, and report). Never mark the spec `Complete` while the integration suite fails.
 
-> **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
+> **Why one full run, then proportional?** Each story already ran its targeted tests. Once several stories have landed, cross-story breakage justifies one full-suite run; after that, a fix is re-checked by what it can break (ADR-023).
 
-Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`; a stack with no typechecker records `typecheck: "skipped"` plus a non-empty `typecheckReason`, never a stand-in `pass`. `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
+Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`; a stack with no typechecker records `typecheck: "skipped"` plus a non-empty `typecheckReason`, never a stand-in `pass`. `contextRewritten` is a boolean: `true` when `implement-story` Step 4's last regeneration of `.writ/context.md` (with its `## Artifact Map`) ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
 **Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would report `unknown` instead of the true verdict:
 
@@ -283,9 +266,9 @@ Check 5b is otherwise the first thing to notice.
 
 When `/implement-phase` invokes this command inside an isolated per-spec lane, `/implement-spec` is a **nested worker, not an orchestrator**. In this mode:
 
-- It executes **only inside the supplied lane** worktree and branch that the orchestrator created (`writ/phase/{phase-id}/{spec-id}`). It **must not mutate the parent checkout**, create its own lanes, or make merge/quarantine decisions — those belong to `/implement-phase`.
-- It receives a fresh, artifact-seeded context (spec path, phase-state path, lane branch/worktree, mode) with **no prior conversational transcript**, and loads what it needs from repository artifacts by path.
-- On completion it returns a single structured `phase-spec-result-v1` result (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md)) reporting status, story counts, verification evidence, changed files, the lane commit, and any failure or challenge — and then exits. The orchestrator validates that result (`scripts/phase-state.py validate-result`) and decides whether to merge, retry, or quarantine.
+- It executes **only inside the supplied lane** worktree and branch that the orchestrator created (`writ/phase/{phase-id}/{spec-id}`). It **must not mutate the parent checkout** (writing `{result_path}` is the one exception), create its own lanes, or make merge/quarantine decisions — those belong to `/implement-phase`.
+- It receives a fresh, artifact-seeded context from the brief template [`_lane-brief.md`](_lane-brief.md) (spec path, phase-state path, lane branch/worktree, mode, result path, answer sources) with **no prior conversational transcript**, and loads what it needs from repository artifacts by path.
+- On completion it writes a single structured `phase-spec-result-v1` result (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md)) to `{result_path}`, reporting status, story counts, verification evidence, changed files, the lane commit, and any failure or challenge. Writing the file is its last action, before it replies with the path and exits. The orchestrator validates that file (`scripts/phase-state.py validate-result --input {result_path}`) and decides whether to merge, retry, or quarantine.
 - On failure it sets `failure.classification` to **`transient`** (e.g. a flaky check that a single retry may clear) or **`terminal`** (a non-recoverable failure). It never renames branches, quarantines, or blocks dependents itself — the orchestrator owns retry and quarantine decisions based on this classification.
 
 **Scope-degradation escalation (User Challenge).** If, inside a lane, a choice would weaken roadmap scope, the locked spec contract, or exit criteria, apply the evidence-based **select-or-pause** boundary (see [`_preamble.md`](_preamble.md) → User Challenge). A defensible low-risk reversible choice may be selected locally **only** when returned with the structured four-part challenge and durable audit evidence; missing evidence, critical ambiguity, or material irreversible risk returns `status: challenge_required` with the four-part challenge and selectable options for the orchestrator to present. Ordinary progress, transient failures, and decisions already answered by artifacts are **not** challenges and use normal handling.

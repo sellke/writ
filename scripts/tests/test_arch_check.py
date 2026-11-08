@@ -391,7 +391,9 @@ class Gate0WiringTests(unittest.TestCase):
     def test_gate_0_has_verify_block_and_leaves_abort_untouched(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
         start = text.index("#### Gate 0: Architecture Check")
-        end = text.index("#### Gate 0.5:", start)
+        # 2026-11-06-lean-story-pipeline Story 2: Gate 0 runs only under
+        # --full-pipeline; its section now precedes Gate 4.5 there.
+        end = text.index("#### Gate 4.5:", start)
         gate0 = text[start:end]
         self.assertIn("Verify the claim, don't trust it.", gate0)
         self.assertIn("scripts/arch-check.py check", gate0)

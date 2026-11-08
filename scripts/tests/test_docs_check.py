@@ -278,7 +278,15 @@ class Gate5WiringTests(unittest.TestCase):
     def test_gate_5_has_verify_block(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
         start = text.index("#### Gate 5: Documentation Agent")
-        gate5 = text[start:]
+        # 2026-11-06-lean-story-pipeline Story 2: Gate 5 runs only under
+        # --full-pipeline (agent, then script) and ends before Step 4.
+        gate5 = text[start:text.index("### Step 4:", start)]
+        heading = text.rindex("\n### ", 0, start)
+        self.assertTrue(text[heading:].startswith(
+            "\n### Full-Pipeline Gates (`--full-pipeline` only)"))
+        self.assertLess(gate5.index("documentation-agent"),
+                        gate5.index("scripts/docs-check.py check"))
+        self.assertNotIn("on default", gate5)
         self.assertIn("Verify the claim, don't trust it.", gate5)
         self.assertIn("scripts/docs-check.py check", gate5)
         self.assertIn("documentation-agent", gate5)

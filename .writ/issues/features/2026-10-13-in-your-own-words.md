@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Small
 > **Created:** 2026-10-13
-> **spec_ref:** .writ/specs/2026-10-22-front-door/
+> **spec_ref:** .writ/specs/archive/2026-10-22-front-door/
 
 ## TL;DR
 

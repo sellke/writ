@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-11-03
-> **spec_ref:** .writ/specs/2026-11-04-evidence-gated-review/spec.md
+> **spec_ref:** .writ/specs/archive/2026-11-04-evidence-gated-review/spec.md
 
 ## TL;DR
 

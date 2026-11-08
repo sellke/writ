@@ -282,8 +282,10 @@ agent threads and git worktrees:
   **no prior conversational transcript** is forwarded. Load context from
   repository artifacts by path rather than replaying history.
 - **Run identifier.** Record the Codex thread/agent ID as `agentRunId`.
-- **Structured result.** The thread returns a single `phase-spec-result-v1`
-  object; the parent validates it with `scripts/phase-state.py validate-result`
+- **Structured result.** The thread writes a single `phase-spec-result-v1`
+  object to the result file named in its brief (`commands/_lane-brief.md`) and
+  replies with the path; the parent validates that file with
+  `scripts/phase-state.py validate-result --input`
   and merges only a verified success into the phase branch.
 
 ### Quarantine and Resume
@@ -303,7 +305,7 @@ neutral reducer:
 
 ### `/implement-spec` batches
 
-`/implement-spec` computes story dependency batches. Parallel batches map to concurrent Codex subagent threads when safe; sequential batches stay ordered. The orchestrator session owns dependency bookkeeping; subagents must not mutate story files outside their assigned scope.
+`/implement-spec` computes story dependency batches. A parallel batch's stories run one after another in the shared working tree, because each story's `story-gate` record must name its own final code commit (Step 3.2); sequential batches stay ordered. The orchestrator session owns dependency bookkeeping; subagents must not mutate story files outside their assigned scope.
 
 ### Autonomous multi-spec execution (retired CLI loop)
 

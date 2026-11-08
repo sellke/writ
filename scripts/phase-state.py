@@ -20,7 +20,7 @@ data. Nothing outside the phase branch, lane branches, and the named state file
 is ever mutated.
 
 Subcommands:
-  init           --state --repo --phase --phase-branch --spec-order
+  init           --state --repo --phase --phase-branch --spec-order [--uat]
   create-lane    --state --repo --spec [--worktree-root]
   validate-result --input
   integrate      --state --repo --spec --result
@@ -180,6 +180,9 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
         "updatedAt": _now(),
         "status": "executing",
         "specOrder": order,
+        # Always written, false without --uat: exit-criteria.py reads a
+        # missing key as true so pre-change state files keep their c2 verdict.
+        "uatRequested": bool(args.uat),
         "specs": specs,
         "challenges": [],
         "knowledgeWritten": [],
@@ -212,7 +215,8 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
         # ambiguous and we must stop rather than clobber someone's branch.
         if record.get("laneBranch") == lane_branch and record.get("status") == "implementing":
             return {"status": "resume_candidate", "laneBranch": lane_branch,
-                    "worktreePath": record.get("worktreePath")}
+                    "worktreePath": record.get("worktreePath"),
+                    "resultPath": record.get("resultPath")}
         raise ContractError(
             "lane_collision",
             f"branch {lane_branch} already exists without matching live state",
@@ -223,6 +227,11 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
     )
     worktree_root.mkdir(parents=True, exist_ok=True)
     worktree_path = worktree_root / args.spec
+    # The lane writes its phase-spec-result-v1 here. It sits in the main
+    # checkout, outside the worktree, so it survives worktree removal after a
+    # merge or a quarantine.
+    result_path = repo.resolve() / ".writ" / "state" / \
+        f"lane-result-{state['phase']}-{args.spec}.json"
 
     _git(repo, "worktree", "add", "-b", lane_branch, str(worktree_path), phase_branch)
 
@@ -231,11 +240,13 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
         "attempts": record.get("attempts", 0) + 1,
         "laneBranch": lane_branch,
         "worktreePath": str(worktree_path),
+        "resultPath": str(result_path),
     })
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": "lane_created", "laneBranch": lane_branch,
-            "worktreePath": str(worktree_path), "base": phase_branch}
+            "worktreePath": str(worktree_path), "resultPath": str(result_path),
+            "base": phase_branch}
 
 
 def validate_result(payload: dict[str, Any]) -> dict[str, Any]:
@@ -273,7 +284,17 @@ def validate_result(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def cmd_validate_result(args: argparse.Namespace) -> dict[str, Any]:
-    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    # A missing or unparseable lane result file is a named blocker, not a
+    # traceback: the orchestrator resumes the lane once to write it.
+    path = Path(args.input)
+    if not path.is_file():
+        raise ContractError("result_missing", f"no lane result file at {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ContractError("invalid_result", f"lane result is not valid JSON: {exc}")
+    if not isinstance(payload, dict):
+        raise ContractError("invalid_result", "result must be a JSON object")
     if payload.get("status") == "challenge_required":
         validate_challenge(payload.get("challenge"))
     return validate_result(payload)
@@ -938,12 +959,14 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _artifact_status(path: str | None) -> str:
-    """Classify a summary artifact as pass / fail / missing.
+    """Classify a summary artifact as pass / fail / missing / not_requested.
 
-    An eval or verification report is 'pass' only when it records zero findings;
-    a missing file is 'missing' (a Warning input, never a failure)."""
-    if not path:
-        return "missing"
+    An omitted flag (None) is 'not_requested': the caller did not produce that
+    source, so it adds no Warning. A passed path that is not a file is 'missing'
+    (a Warning input, never a failure). An eval or verification report is
+    'pass' only when it records zero findings."""
+    if path is None:
+        return "not_requested"
     p = Path(path)
     if not p.is_file():
         return "missing"
@@ -958,22 +981,31 @@ def _artifact_status(path: str | None) -> str:
 
 
 def cmd_health(args: argparse.Namespace) -> dict[str, Any]:
-    """Categorical health (D7). Missing/stale evidence is a Warning, never a
-    failure; Attention requires an affirmative current failure, unresolved
+    """Categorical health (D7). Only the sources the caller passes are judged:
+    an omitted flag is not_requested and adds nothing. A passed source that is
+    missing or stale is a Warning, never a failure; Attention requires an affirmative current failure, unresolved
     material drift, or a state/git mismatch. No score, no deep or external checks."""
-    eval_status = _artifact_status(args.eval or None)
-    verify_status = _artifact_status(args.verification or None)
+    eval_status = _artifact_status(args.eval)
+    verify_status = _artifact_status(args.verification)
 
-    drift_status = "none"
-    if args.drift:
-        dp = Path(args.drift)
-        if not dp.is_file():
-            drift_status = "missing"
-        else:
+    # --drift repeats, one per merged spec's drift log. Omitted → not_requested;
+    # any passed path that is not a file → missing; any unresolved/material log
+    # → material (material outranks missing for the source value, but a missing
+    # log still lands in `unavailable`).
+    drift_missing = False
+    drift_status = "not_requested"
+    if args.drift is not None:
+        drift_status = "none"
+        for raw in args.drift:
+            dp = Path(raw)
+            if not dp.is_file():
+                drift_missing = True
+                continue
             text = dp.read_text(encoding="utf-8").lower()
-            drift_status = "material" if ("unresolved" in text or "material" in text) else "none"
-    else:
-        drift_status = "missing"
+            if "unresolved" in text or "material" in text:
+                drift_status = "material"
+        if drift_missing and drift_status != "material":
+            drift_status = "missing"
 
     state_status = "n/a"
     if args.state and args.repo:
@@ -985,7 +1017,7 @@ def cmd_health(args: argparse.Namespace) -> dict[str, Any]:
         unavailable.append("eval summary")
     if verify_status == "missing":
         unavailable.append("verification report")
-    if drift_status == "missing":
+    if drift_missing:
         unavailable.append("drift log")
 
     failures = []
@@ -1028,6 +1060,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--phase", required=True)
     p.add_argument("--phase-branch", required=True)
     p.add_argument("--spec-order", default="")
+    p.add_argument("--uat", action="store_true")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("create-lane")
@@ -1135,9 +1168,11 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("health")
     p.add_argument("--state", default="")
     p.add_argument("--repo", default="")
-    p.add_argument("--eval", default="")
-    p.add_argument("--verification", default="")
-    p.add_argument("--drift", default="")
+    # An omitted source flag stays None → not_requested; a given path is judged.
+    p.add_argument("--eval", default=None)
+    p.add_argument("--verification", default=None)
+    p.add_argument("--drift", action="append", default=None,
+                   help="drift log; repeat once per merged spec")
     p.set_defaults(func=cmd_health)
 
     p = sub.add_parser("show")
