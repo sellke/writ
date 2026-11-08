@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-08T12:00:00Z
+> Last Updated: 2026-11-08T14:00:00Z
 
 ## Product Mission
 
@@ -8,8 +8,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none on `main`. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is implemented on the unmerged branch `phase/16-verified-landing`; on `main` both read Not Started.
-- **Also unmerged:** `claude/suspicious-nobel-c8a76d` — `story-context.py` resolves `Business Rule N` hints.
+- **Spec:** none active. Phase 16 (`2026-11-06-pr-ready-and-ledger`, `2026-11-06-ship-watch-and-merge`) is Complete and merges with this branch; unreleased (v0.46.0 is the latest release). One real-PR `/ship --watch` run is outstanding.
 - **Not started:** `2026-11-06-archived-dependencies-resolve`. **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested).
 
 ## Artifact Map
@@ -22,10 +21,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-010 ⚠️ A resume stop condition cut in round 1, restored in round 2 — lean-implement-phase (Medium)
-- DEV-009 ⚠️ The 240-line target met mostly by removing blank lines — lean-implement-phase (Medium)
-- DEV-008 Adapters describe the lane result file — lean-implement-phase (Small)
+- DEV-011 The first spec's contract tests follow the Callers cells — ship-watch-and-merge (Small)
+- DEV-010 Step 6 names the landed SHA for a `--watch` merge, and the Gate 3 repro ships as its own test file — ship-watch-and-merge (Small)
+- DEV-009 `test_harness_cuts.py`'s AC-3.3 frontmatter test is renamed and joined by a `--watch` merge-claim test — ship-watch-and-merge (Small)
 
 ## Open Issues
 
-25 open issue files in .writ/issues/ (46 total; 21 closed with `## Resolution`, 1 Goal Card)
+26 open issue files in .writ/issues/ (47 total; 21 closed with `## Resolution`, 1 Goal Card)

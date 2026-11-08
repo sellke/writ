@@ -4,7 +4,7 @@
 > Last Updated: 2026-11-08
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-11-06):** Phases 1–11 and 13 are closed; Phases 14, 15, and 17 are merged and released in **v0.44.0** (2026-11-06), the latest release, which also carries Phase 13's two follow-up PRs ([PR #61](https://github.com/sellke/writ/pull/61) and [PR #62](https://github.com/sellke/writ/pull/62), merged 2026-11-01), **Phase 14 (Front Door and Distribution)** ([PR #63](https://github.com/sellke/writ/pull/63), merged 2026-11-04), **Phase 15 (Code-Level Rigor)** ([PR #64](https://github.com/sellke/writ/pull/64), merged 2026-11-05), and **Phase 17 (Doubt-Gated Autonomy)** ([PR #65](https://github.com/sellke/writ/pull/65), merged 2026-11-05 after #64). **Phase 12 (Behavioral Verification)**, released in v0.40.0, had its UAT run by an agent on 2026-10-31: 82 of 89 scenarios pass, 1 fails (tracked as an issue), 6 were not run, and the review panel's 54 scenarios are moot since [ADR-032](../decision-records/adr-032-evidence-gated-review.md) removed the panel; one real-project `app-verify.py` run is still unrecorded. In Phase 15 the design-divergence blind trial said remove and the skill is gone, the removal trial kept three upgrades and held Repro First, and ADR-032 made Gate 3 and `/review` block only on executed evidence. Phase 17, committed by [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md), was built ahead of the Principle 8 queue at the maintainer's direction; its doubt calibration has not passed, so Jev shadows. **Phase 16 (Verified Landing)** stays committed and waits on Phase 12's close: see [Current focus](#current-focus-close-then-open-16-2026-11-06). Inter-phase releases: v0.41.0 (2026-10-12) rewrote `/retro` as a transcript review and removed `gbrain-interop`; v0.42.0 (2026-10-20) shipped the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59). Candidates live in [Beyond Phase 17 (Parking Lot)](#beyond-phase-17-parking-lot).
+**Current status (2026-11-06):** Phases 1–11 and 13 are closed; Phases 14, 15, and 17 are merged and released in **v0.44.0** (2026-11-06), the latest release, which also carries Phase 13's two follow-up PRs ([PR #61](https://github.com/sellke/writ/pull/61) and [PR #62](https://github.com/sellke/writ/pull/62), merged 2026-11-01), **Phase 14 (Front Door and Distribution)** ([PR #63](https://github.com/sellke/writ/pull/63), merged 2026-11-04), **Phase 15 (Code-Level Rigor)** ([PR #64](https://github.com/sellke/writ/pull/64), merged 2026-11-05), and **Phase 17 (Doubt-Gated Autonomy)** ([PR #65](https://github.com/sellke/writ/pull/65), merged 2026-11-05 after #64). **Phase 12 (Behavioral Verification)**, released in v0.40.0, had its UAT run by an agent on 2026-10-31: 82 of 89 scenarios pass, 1 fails (tracked as an issue), 6 were not run, and the review panel's 54 scenarios are moot since [ADR-032](../decision-records/adr-032-evidence-gated-review.md) removed the panel; one real-project `app-verify.py` run is still unrecorded. In Phase 15 the design-divergence blind trial said remove and the skill is gone, the removal trial kept three upgrades and held Repro First, and ADR-032 made Gate 3 and `/review` block only on executed evidence. Phase 17, committed by [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md), was built ahead of the Principle 8 queue at the maintainer's direction; its doubt calibration has not passed, so Jev shadows. **Phase 16 (Verified Landing)** was built on 2026-11-06, ahead of its gate (Phase 12's close), at the maintainer's direction. It sits unmerged on `phase/16-verified-landing` with one real-PR run outstanding: see [Current focus](#current-focus-close-then-open-16-2026-11-06). Inter-phase releases: v0.41.0 (2026-10-12) rewrote `/retro` as a transcript review and removed `gbrain-interop`; v0.42.0 (2026-10-20) shipped the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59). Candidates live in [Beyond Phase 17 (Parking Lot)](#beyond-phase-17-parking-lot).
 
 **Strategic frame (2026-11-05 refresh):** The human gates were placed by category ([ADR-022](../decision-records/adr-022-autonomy-gate-classes.md)) and autonomy behind a flag ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md)). In practice the queue of built work waiting on a person became the bottleneck (Principle 8 exists because of it), and when the queue was worked, the gated steps were handed back to agents at the maintainer's request: Phase 12's UAT, the removal-trial labels, the divergence ratings. The posture is now: **Writ decides, acts, and records; it asks a person only on reasonable doubt, which it derives from evidence, reversibility, and a calibrated judgment; and it re-derives its own subagents' reports before trusting them** ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)).
 
@@ -20,6 +20,7 @@
 |---|---|
 | 2026-11-08 | Recorded `2026-11-06-lean-implement-phase` as inter-phase infrastructure (v0.46.0). |
 | 2026-11-08 | Recorded `2026-11-06-lean-story-pipeline` as inter-phase infrastructure (v0.46.0). |
+| 2026-11-06 | **Phase 16 built** on `phase/16-verified-landing`, ahead of its gate (Phase 12's close) at the maintainer's direction, in two specs: `pr-ready.py` and the verification ledger, then `/ship --watch` and the merge rule. Gate 1 waived for both lanes (this repo registers no coding-agent type; issue filed). Unmerged; the real-PR run is open. Current status, Current focus, the Phase 16 heading, status, and criteria, mission, and mission-lite updated. No direction change. |
 | 2026-11-06 | Recorded `2026-11-06-lean-story-tasks` as inter-phase infrastructure (v0.45.0). |
 | 2026-11-06 | **v0.44.0 released:** Phases 14, 15, and 17 and Phase 13's follow-up fix. Current status, Current focus, the Phase 14, 15, and 17 headings and status lines, mission, mission-lite, context, and the README record the release. |
 | 2026-11-06 | **Phases 15 and 17 merged.** [PR #64](https://github.com/sellke/writ/pull/64) (Phase 15) and [PR #65](https://github.com/sellke/writ/pull/65) (Phase 17) merged into `main` on 2026-11-05, in that order; neither is released. Current status, Current focus, the Phase 15 and 17 headings and status lines, mission, mission-lite, context, and the README updated to match. No direction change. |
@@ -65,7 +66,7 @@
 3. **Phase 15 and 17 loose ends:** `2026-10-25-gate-upgrade-removal-measurement` holds Repro First until a substitute baseline of bug-fix stories exists. Phase 17 leaves three criteria open: a Jev threshold that bounds false acts under 10% on labels it was not designed on, a script that finds decisions made without a `doubt` call, and the ask count on the next phase run.
 4. **ADR-023 review**, due 2026-11-11: has any decision been visibly over- or under-diligenced, and did the triage catch it? [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) answers that record's own "strongest case against": the unenforceable rule now has an oracle and a log.
 
-Then Phase 16, once Phase 12 closes (its gate).
+Then Phase 16, built ahead of its gate on 2026-11-06: one recorded `/ship --watch` run on a real Writ PR, then its own PR from `phase/16-verified-landing`. Until it merges, Principle 8 counts it among the finished phases waiting on a person.
 
 ## Shipped Phases (condensed history)
 
@@ -786,11 +787,13 @@ Always-on multi-model panels, cross-vendor routing (ADR-024 stands), and formal 
 
 ---
 
-## Phase 16: Verified Landing (2 weeks) — 📋 Committed (2026-10-20), next after Phase 12 closes
+## Phase 16: Verified Landing (2 weeks) — ◐ Implemented on `phase/16-verified-landing` (2026-11-06), unmerged; real-PR run outstanding
 
 **Goal:** A PR Writ opened can be driven to merge-ready, with every verdict bound to the head it judged, and landed without a question when the ledger is green and doubt is low. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md) and [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md), the ceiling ADR this phase waited for: merge is autonomous under the rule; release, tag, and publish stay asks.
 
-**Gate:** starts after Phase 17 (merged 2026-11-05), and after Phase 12 closes on the 2026-10-31 agent UAT run (its one failure resolved) and one recorded real-project `app-verify.py` run. Until then the phase stays committed and unstarted.
+**Gate:** starts after Phase 17 (merged 2026-11-05), and after Phase 12 closes on the 2026-10-31 agent UAT run (its one failure resolved) and one recorded real-project `app-verify.py` run. Until then the phase stays committed and unstarted. *Overridden 2026-11-06 at the maintainer's direction: the phase was built on `phase/16-verified-landing`, branched from `main` (e73ff2d), before Phase 12 closed.*
+
+**Status (2026-11-06):** Built by `/implement-phase` in two specs, each in its own lane and merged into the phase branch: [`2026-11-06-pr-ready-and-ledger`](../specs/2026-11-06-pr-ready-and-ledger/spec.md) (3 stories) and [`2026-11-06-ship-watch-and-merge`](../specs/2026-11-06-ship-watch-and-merge/spec.md) (4 stories). Not pushed; no PR. **Gate 1 waived** at the maintainer's direction: this repo's `.claude/agents` registers no `writ-*` types, so neither lane could spawn a coding agent and each wrote the code itself ([issue](../issues/bugs/2026-11-06-no-coder-agent-type-in-writ-repo.md)). Every story still passed an independent Gate 3 review, which failed two stories once on real defects before they were fixed. `commands/ship.md` grew from 28,907 to 34,070 bytes against a net-zero aim. The first spec has a UAT plan (7 scenarios, one needing a live PR); the second has none, skipped at the maintainer's direction. Jev is uncalibrated, so every merge still asks (`fallback_merge`).
 
 **Why:**
 - `/ship` stops when the PR opens. Nothing triages CI, works review threads, or records which head was verified (research F2).
@@ -799,20 +802,20 @@ Always-on multi-model panels, cross-vendor routing (ADR-024 stands), and formal 
 
 ### Success Criteria
 
-- `pr-ready.py` is read-only and uses the ADR-029 check shape. It reports typed blockers with distinct exit codes: conflicts, unresolved threads, failing checks, and merge gates. The harness loop calls it, and the script never polls.
-- A verification ledger is keyed by PR, head SHA, and patch-id. A new head reads `NOT VERIFIED` unless its patch-id matches a verified one. A mutation test proves this.
-- `/ship --watch` works in a fixed order to merge-ready. With the ledger green for the exact head and the doubt judgment below its floor, it merges and reports; otherwise it stops at merge-ready and asks.
+- `pr-ready.py` is read-only and uses the ADR-029 check shape. It reports typed blockers with distinct exit codes: conflicts, unresolved threads, failing checks, and merge gates. The harness loop calls it, and the script never polls. — ✅ met: `scripts/pr-ready.py` exits 0 (pass or unverifiable), 2, or 3–6 by blocker class and never 1 on purpose; it reads a snapshot file and makes no network call; `/ship` Step 7.4 calls it once per pass (`test_pr_ready.py`, `test_pr_ready_head_repro.py`).
+- A verification ledger is keyed by PR, head SHA, and patch-id. A new head reads `NOT VERIFIED` unless its patch-id matches a verified one. A mutation test proves this. — ✅ met: `scripts/verify-ledger.py` keys rows by PR, head, and `git patch-id --verbatim`; `test_single_property_mutations_read_not_verified` (`test_verify_ledger.py`) is the mutation test.
+- `/ship --watch` works in a fixed order to merge-ready. With the ledger green for the exact head and the doubt judgment below its floor, it merges and reports; otherwise it stops at merge-ready and asks. — ◐ built, not run live: `commands/ship.md` Step 7 takes one action per pass in this order, bounded at 24 passes, and the merge step uses `gh pr merge --match-head-commit`. With Jev uncalibrated the doubt check never passes a merge, so the autonomous path is unexercised. Open: one recorded `/ship --watch` run on a real Writ PR (human).
   1. Conflicts.
   2. Review threads, with comments treated as untrusted data.
   3. CI: a suspected flake gets one fresh build, an identical second failure is real, and a failure in untouched code triggers a stale-base check.
-- [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) is applied to the open and the merge: `/ship` opens the PR without asking, and the merge rule above is enforced by `pr-ready.py` and the ledger, not by prose. Release, tag, and publish keep their asks.
+- [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) is applied to the open and the merge: `/ship` opens the PR without asking, and the merge rule above is enforced by `pr-ready.py` and the ledger, not by prose. Release, tag, and publish keep their asks. — ✅ met: every question before the PR opens goes through the Doubt Rule; `jev-judge.py doubt` with `site: merge` re-runs `pr-ready.py check --json` and asks unless it passes for the same PR and head, and `pass` needs a VERIFIED ledger row; `release` stays always-ask. ADR-033 amended 2026-11-06.
 
 ### Features
 
-- [ ] **`pr-ready.py`** `Effort: S`
-- [ ] **Verification ledger** `Effort: S`
-- [ ] **`/ship --watch`** `Effort: M`
-- [ ] **ADR-033 applied to open and merge** `Effort: XS`
+- [x] **`pr-ready.py`** `Effort: S` — [`2026-11-06-pr-ready-and-ledger`](../specs/2026-11-06-pr-ready-and-ledger/spec.md)
+- [x] **Verification ledger** `Effort: S` — [`2026-11-06-pr-ready-and-ledger`](../specs/2026-11-06-pr-ready-and-ledger/spec.md)
+- [x] **`/ship --watch`** `Effort: M` — [`2026-11-06-ship-watch-and-merge`](../specs/2026-11-06-ship-watch-and-merge/spec.md)
+- [x] **ADR-033 applied to open and merge** `Effort: XS` — [`2026-11-06-ship-watch-and-merge`](../specs/2026-11-06-ship-watch-and-merge/spec.md)
 
 ### Dependencies
 
@@ -922,7 +925,7 @@ Phase 10 is 3-5 weeks, and its long pole (progressive disclosure) decomposes int
 
 Phases 13–16 total about 8–10 weeks at the estimates above. Phase 11's six specs shipped in five days and Phase 12 in about two weeks, so the real pace may be faster. Each phase ships on its own, and each phase's features decompose into one spec per feature. Phase 16 waits on Phase 12's human UAT, not on Phase 15. If the UAT lands early, Phase 16 can run beside Phase 15.
 
-Phase 17 was sized at 3–4 weeks (seven features, XS to M) and Phase 16 at about two. Phase 17 ran first because Phase 16's merge step is defined by its rule; it was built in one session and merged on 2026-11-05. Phase 16 waits on Phase 12's close.
+Phase 17 was sized at 3–4 weeks (seven features, XS to M) and Phase 16 at about two. Phase 17 ran first because Phase 16's merge step is defined by its rule; it was built in one session and merged on 2026-11-05. Phase 16 was built in one session on 2026-11-06, ahead of Phase 12's close.
 
 ---
 

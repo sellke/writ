@@ -2,7 +2,7 @@
 
 > **Date:** 2026-11-05
 > **Status:** Accepted
-> **Amended:** 2026-11-05 — what the Phase 17 build changed (see § Amendments)
+> **Amended:** 2026-11-05 — what the Phase 17 build changed; 2026-11-06 — merge acts under the ledger (see § Amendments)
 > **Category:** Autonomy & Governance
 > **Deciders:** @AdamSellke
 > **Origin:** `/plan-product --reconcile` (2026-11-05). The maintainer's direction: a person's time and judgment are called on only when there is reasonable doubt about the right answer; the harness takes initiative and keeps itself honest; a supervisor checks subagent work; Jev makes the first-pass call on whether a person is needed.
@@ -151,6 +151,15 @@ The held-out rule was a coin flip by construction: with 10 overrides split 6 and
 - **The false-act share is bounded.** Overrides × slip rate, against accepted decisions × the share of their draws above the threshold, estimates the share of Jev's acts the person would have overridden. A threshold is written only when that share is at most 10% with the slip rate at its one-sided 95% upper bound. The maintainer set the 10% cap.
 
 On the 98 answers, two runs agree on the estimate (1 of 10 overrides slips; 2 to 3% of acts would be overrides) and split on the verdict: one passed with a 7.8% bound, one refused at 10.4%, and all six draws pooled refuse at 10.4% ([report](../eval/doubt-calibration/report.md)). One override's occasional high draw (0.57 against a mean of 0.48) decides whether the threshold sits at 0.49 or 0.57. No threshold is written, and Jev still shadows. With these data no rule can show the share under 10%; more overrides can. A threshold from each override's mean plus a margin from noise pooled over all decisions is steadier on these scores, but it was found after seeing them, so it waits for new labels.
+
+### 2026-11-06 — Merge acts under the ledger (Phase 16)
+
+Point 5 needed a verification ledger before `/ship` could merge. Phase 16 built it (`scripts/verify-ledger.py`) and a readiness check over a saved `gh` snapshot (`scripts/pr-ready.py`), whose `pass` requires the ledger to read VERIFIED for the snapshot's exact head. The merge site changes:
+
+- **`merge` leaves always-ask.** A `site: merge` record must name `pr`, `head_sha`, and `snapshot`. `jev-judge.py doubt` re-runs `pr-ready.py check --json` on that snapshot, locally, with no network, and asks unless it passes for that PR and head. A missing field asks (`no_verification_ledger`); a missing, crashed, timed-out, or unreadable pr-ready asks (`merge_unverifiable`); a different PR or head asks (`merge_head_mismatch`); a `not_verified` gate asks (`merge_not_verified`); any other verdict asks (`merge_not_ready`). The record's claims are not trusted: the rule re-derives them from the files.
+- **`merge` joins the fallback-ask sites.** After the rules pass, Jev scores the decision as on every site. Without a provider or a calibrated threshold the merge asks (`fallback_merge`), so no merge acts until `doubt-calibrate --write` succeeds with merge labels in the log. Today every merge still asks.
+- **The remote binding is `--match-head-commit`.** `/ship --watch` takes the snapshot in the same pass as the decision, and `gh pr merge --match-head-commit <head_sha>` makes GitHub refuse the merge if the head moved.
+- **Release, tag, and publish stay always-ask** (`outward`). Opening a PR asks nothing.
 
 ## References
 

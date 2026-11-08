@@ -51,9 +51,10 @@ FIXTURES = REPO_ROOT / "scripts" / "tests" / "fixtures" / "platform-trees"
 
 ADAPTERS = ("cursor", "claude-code", "codex", "openclaw")
 # technical-spec.md -> ## Vocabulary Rule: the neutral set after the repairs.
+# `re-enter` joined it with `/ship --watch` (2026-11-06-ship-watch-and-merge Story 3).
 GOLDEN = {
     "Task", "AskQuestion", "codebase_search", "file_search", "todo_write",
-    "read_file", "run_terminal_cmd", "list_dir", "canvas-preview", "Plan Mode",
+    "read_file", "run_terminal_cmd", "list_dir", "canvas-preview", "re-enter", "Plan Mode",
 }
 ALLOWLIST = {"Read", "Write", "Bash"}
 

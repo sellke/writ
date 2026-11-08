@@ -46,7 +46,8 @@ Mode discovery is not a bounded choice and is not gated.
 
 | `site` | Asks when |
 |---|---|
-| `merge`, `release` (tag, publish, deploy) | Always |
+| `release` (tag, publish, deploy) | Always |
+| `merge` | `pr-ready.py` does not pass for the record's PR and head; Jev is uncalibrated, or its confidence is not above the threshold |
 | Any | Not git-revertable; no recommendation, no evidence, or conflicting evidence |
 | `direction` (scope, priorities, contract lock), `design` (taste) | Jev is uncalibrated, or its confidence is not above the threshold |
 | `choice`, `route`, `plan`, `destructive` | Jev is calibrated and its confidence is not above the threshold |

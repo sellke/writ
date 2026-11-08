@@ -47,7 +47,7 @@ because its input is absent is exactly the failure mode ADR-020 diagnosed.
 Malformed or unrecognised state-file shapes are also SKIPped, never turned into
 findings: a false-failing check trains a maintainer to ignore it.
 
-THE COMMAND LIST IS FIXED AT FIVE and is the enforcement point when a sixth
+THE COMMAND LIST IS FIXED AT SIX and is the enforcement point when a seventh
 command acquires a loop - update LOOP_BEARING_COMMANDS with it. Inferring "does
 this command loop?" from prose across 32 markdown files would produce false
 positives, which is the heading-variant grammar problem ADR-020 rejects.
@@ -67,13 +67,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# The five commands the roadmap verifies as loop-bearing. Fixed list by design -
-# a sixth looping command is caught here or not at all (see module docstring).
+# The six loop-bearing commands: the five the roadmap verified, plus `ship`
+# (`/ship --watch`, 2026-11-06-ship-watch-and-merge). Fixed list by design -
+# a seventh looping command is caught here or not at all (see module docstring).
 LOOP_BEARING_COMMANDS = [
     "implement-phase",
     "implement-spec",
     "implement-story",
     "refactor",
+    "ship",
     "verify-spec",
 ]
 
@@ -417,7 +419,7 @@ def load_command(name: str) -> tuple[object, str | None, bool]:
 
 
 def scenario_shipped_commands() -> None:
-    """Assertions 1-6 against the five shipped command files."""
+    """Assertions 1-6 against the six shipped command files."""
     for name in LOOP_BEARING_COMMANDS:
         loop, err, integrated = load_command(name)
         if err:

@@ -745,20 +745,20 @@ def check_completion_sections(root: str) -> list[dict]:
 # maintainer who sees the same missing field reported twice learns to skim.
 LOOP_BOUND_FIELDS = ("max_iterations", "on_exhaustion")
 
-# The five loop-bearing commands, measured in Phase 10 discovery (roadmap
-# Phase 10 -> Problem table: "Loop-bearing commands declaring an iteration
-# bound: 0 of 5"). Deliberately a fixed list, never inferred from file
+# The six loop-bearing commands: the five measured in Phase 10 discovery
+# (roadmap Phase 10 -> Problem table: "Loop-bearing commands declaring an
+# iteration bound: 0 of 5"), plus `ship` for `/ship --watch` (Phase 16). Deliberately a fixed list, never inferred from file
 # contents: inferring "does this command loop?" from prose needs a
 # heading/keyword grammar per variant, the exact fragility ADR-020 rejects.
 #
 # The list is CROSS-READ from scripts/eval-loop-bounds.py, which declares
-# itself the enforcement point when a sixth command acquires a loop. Presence
+# itself the enforcement point when a seventh command acquires a loop. Presence
 # and correctness split one population; two hand-maintained copies of it would
 # drift, and a drifted split reports a file twice or not at all. The literal
 # below is the fallback for a tree where the sibling is absent or unparseable
 # — never a second source of truth.
 LOOP_BEARING_COMMANDS_FALLBACK = (
-    "implement-phase", "implement-spec", "implement-story", "refactor", "verify-spec",
+    "implement-phase", "implement-spec", "implement-story", "refactor", "ship", "verify-spec",
 )
 
 

@@ -141,13 +141,13 @@ build_repo() {
   write_command "$root/commands/beta.md" beta "an extra beta line"
   printf '# Preamble\n\ninfra only\n'  > "$root/commands/_preamble.md"
 
-  # The five loop-bearing commands the presence check measures. They are a
+  # The six loop-bearing commands the presence check measures. They are a
   # PRODUCT population (cross-read from scripts/eval-loop-bounds.py, which owns
   # the list), so a fixture standing in for the product surface must carry them
-  # — otherwise every scenario below inherits five "missing" findings and the
+  # — otherwise every scenario below inherits six "missing" findings and the
   # zero-warning assertions stop meaning anything.
   local loop_name
-  for loop_name in implement-phase implement-spec implement-story refactor verify-spec; do
+  for loop_name in implement-phase implement-spec implement-story refactor ship verify-spec; do
     write_command "$root/commands/$loop_name.md" "$loop_name" "" with-loop
   done
 
@@ -191,6 +191,7 @@ EOF
 | `/implement-spec` | loop-bearing command |
 | `/implement-story` | loop-bearing command |
 | `/refactor` | loop-bearing command |
+| `/ship` | loop-bearing command |
 | `/verify-spec` | loop-bearing command |
 EOF
 
@@ -252,7 +253,7 @@ ok "directional: command absent from curated allowlist is not an orphan"
 
 # The commands metric counts invocable commands only: underscore files
 # (_preamble here) are shared partials, excluded by is_infra() (2026-11-07).
-[ "$(metric "$OUT1" commands)" -eq 8 ] || fail "commands metric should count the 8 invocable files (alpha, beta, status, and the five loop-bearing commands), not _preamble"
+[ "$(metric "$OUT1" commands)" -eq 9 ] || fail "commands metric should count the 9 invocable files (alpha, beta, status, and the six loop-bearing commands), not _preamble"
 ok "metrics: commands counts invocable files only (underscore partials excluded)"
 
 # ---------------------------------------------------------------------------
