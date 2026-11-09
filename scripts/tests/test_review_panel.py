@@ -4,8 +4,7 @@
 Story 7 of `2026-11-04-evidence-gated-review` removed the panel's `status`
 and `tally` path, the `Review Panel` config key, its docs, and its Gate 3
 wiring (ADR-032). What stays, and is tested here: the vendor table that
-`trial-record` uses, the Gate 3 output parser that
-`.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` loads by path, the
+`trial-record` uses, the Gate 3 output parser, the
 ADR-028 records, and the retrospective trial subcommands. The trimmed script
 and the cleaned docs are checked too. [AC-7.1, AC-7.3]
 """
@@ -120,8 +119,9 @@ def _read(rel: str) -> str:
 
 KEPT_SUBCOMMANDS = ("trial-init", "trial-prepare", "trial-record", "trial-label",
                     "trial-report")
-GATE_UPGRADE_TRIAL = REPO_ROOT / ".writ" / "eval" / "gate-upgrade-trial" / "gate-upgrade-trial.py"
-# The names gate-upgrade-trial.py reuses, plus the two helpers parse_output calls.
+# The names the gate-upgrade trial harness reused, plus the two helpers parse_output
+# calls. The harness was deleted in 2026-10-25-gate-upgrade-removal-measurement
+# Story 6; the trial subcommands still use these names.
 REUSED_NAMES = ("_prepare_run", "parse_output", "trial_key", "_key_order", "PrepareError",
                 "normalize_location", "_issue_entries")
 PANEL_ADAPTERS = ("adapters/openclaw.md", "adapters/codex.md", "adapters/claude-code.md",
@@ -135,22 +135,16 @@ def _subcommands(module) -> List[str]:
 
 
 class TrimmedScriptTests(unittest.TestCase):
-    """AC-7.1 — gate-upgrade-trial.py still loads the script by path, the parser
+    """AC-7.1 — the script keeps the names the trial harness reused, the parser
     has no `status` or `tally`, and every `trial-*` subcommand parses."""
 
     @classmethod
     def setUpClass(cls):
         cls.rp = _load_module()
 
-    def test_gate_upgrade_trial_loads_the_script_with_its_reused_names(self):
-        spec = importlib.util.spec_from_file_location("gate_upgrade_trial_s7", GATE_UPGRADE_TRIAL)
-        harness = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(harness)
-        self.assertEqual(Path(harness.REVIEW_PANEL).resolve(), SCRIPT.resolve())
-        module = harness.load_review_panel()
+    def test_script_keeps_the_reused_names(self):
         for name in REUSED_NAMES:
-            self.assertTrue(hasattr(module, name), name)
+            self.assertTrue(hasattr(self.rp, name), name)
 
     def test_parser_has_no_status_or_tally(self):
         names = _subcommands(self.rp)
@@ -254,8 +248,8 @@ class ProductAmendmentTests(unittest.TestCase):
 
 # --------------------------------------------------------------------------
 # Story 2 of `2026-10-01-cross-family-review-panel`: the Gate 3 output parser.
-# Its `tally` consumer is gone (ADR-032); gate-upgrade-trial.py and the trial
-# subcommands still read finding keys through it.
+# Its `tally` consumer is gone (ADR-032); the trial subcommands still read
+# finding keys through it.
 # --------------------------------------------------------------------------
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "review-panel"

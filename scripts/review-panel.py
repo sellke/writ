@@ -3,9 +3,7 @@
 `2026-10-01-cross-family-review-panel`, Story 4).
 
 ADR-032 removed the panel from Gate 3; only the trial subcommands and the
-Gate 3 output parser stay. `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py`
-loads this file by path for `_prepare_run`, `PrepareError`, `parse_output`,
-`trial_key`, and `_key_order`. This script never spawns a model and never
+Gate 3 output parser stay. This script never spawns a model and never
 touches the network.
 
 Subcommands (the trial file holds keys, vendors, severities, and labels,
