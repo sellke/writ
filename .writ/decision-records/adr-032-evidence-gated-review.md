@@ -6,7 +6,7 @@
 > **Deciders:** @AdamSellke
 > **Origin:** [`2026-11-03-minimize-adversarial-review-surface`](../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md), promoted to spec [`2026-11-04-evidence-gated-review`](../specs/archive/2026-11-04-evidence-gated-review/spec.md)
 > **Amends:** [ADR-028](adr-028-behavioral-verification-and-cross-family-panels.md) Decision 3, the cross-family review panel, which this record removes, and the panel cases in Decision 4. Decisions 1 and 2 stand.
-> **Keeps:** the reviewer filters of [`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md), which the removal trial kept (spec.md § Amendment, 2026-11-04).
+> **Keeps:** the reviewer filters of [`2026-10-25-review-route-rigor`](../specs/archive/2026-10-25-review-route-rigor/spec.md), which the removal trial kept (spec.md § Amendment, 2026-11-04).
 > **Evidence base:** the inventory below, measured 2026-11-04 at commit `ef0c418`; the removal trial's [`trial-report.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md).
 
 ## Decision
@@ -32,7 +32,7 @@ Large-drift PAUSE at Gate 3.5 stays a human gate. `review-override.py check` and
 What holds on 2026-11-04:
 
 - Gate 3 spawns `evaluator-agent`, or `review-agent` on the risk route. An agent FAIL sends the story back to Gate 1. `review-override.py check` can add a FAIL but never removes one. A FAIL needs no run: a finding the agent read and believed blocks the same way as one a test showed.
-- Phase 15 added the reviewer filters ([`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md)). They tell a model how to weigh findings. It also added the Safety Fact, whose floor on the review-agent route is `traced`, a reading rung.
+- Phase 15 added the reviewer filters ([`2026-10-25-review-route-rigor`](../specs/archive/2026-10-25-review-route-rigor/spec.md)). They tell a model how to weigh findings. It also added the Safety Fact, whose floor on the review-agent route is `traced`, a reading rung.
 - Phase 12 added the cross-family review panel (ADR-028 Decision 3). A panel block needs two vendors to raise the same finding. The panel is available only on Cursor; OpenClaw is unverified.
 - The origin issue asks for an inventory of every surface where a model argues with a change, with a keep, replace, demote, or remove verdict for each.
 - The removal trial reported over the four Phase 11 baseline stories: Gate 0 Divergence keep (2 valid upgrade-only catches), Safety Fact keep (2), Reviewer Filters keep (1), Repro First unverifiable (never exercised). The labels are the assistant's, made at the maintainer's request (that spec's [`drift-log.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/drift-log.md) DEV-012). One valid catch keeps an upgrade, which the report calls a low bar. Those verdicts stand.
@@ -185,6 +185,6 @@ Stories 6 and 7 also update the tests that assert on the changed or removed text
 - [`2026-11-03-minimize-adversarial-review-surface`](../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md): the origin issue
 - [`2026-11-04-evidence-gated-review`](../specs/archive/2026-11-04-evidence-gated-review/spec.md): the spec and its § Amendment; [`technical-spec.md`](../specs/archive/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals, § Error & Rescue Map
 - [`2026-10-25-gate-upgrade-removal-measurement`](../specs/2026-10-25-gate-upgrade-removal-measurement/spec.md) and its [`trial-report.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md): the removal trial that kept the filters, Safety Fact, and Gate 0 divergence
-- [`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md): the spec that added the filters and the `traced` floor
+- [`2026-10-25-review-route-rigor`](../specs/archive/2026-10-25-review-route-rigor/spec.md): the spec that added the filters and the `traced` floor
 - [`2026-10-25-design-divergence`](../specs/archive/2026-10-25-design-divergence/spec.md) and its [`trial-report.md`](../specs/archive/2026-10-25-design-divergence/trial-report.md): the blind trial that decides Gate 0 divergence
 - [Phase 12 panel `trial-report.md`](../specs/archive/2026-10-01-cross-family-review-panel/trial-report.md): the panel trial
