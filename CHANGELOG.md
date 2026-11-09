@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.47.2] - 2026-11-09
+
+**Every Writ spawn on Claude Code now has a stated fallback, and the orchestrator never codes a story itself.** ([writ-agents-registered](.writ/specs/archive/2026-11-08-writ-agents-registered/spec.md), [PR #74](https://github.com/sellke/writ/pull/74))
+
+### Fixed
+- **Spawn fallback on Claude Code.** When a session lists no `writ-*` agent type, `adapters/claude-code.md` § Agent Paths now says to spawn a general-purpose agent whose prompt begins "Read and follow `agents/<file>.md`", with the same inputs, and to name the agent type that ran in the report.
+- **No inline coding at Gate 1.** `/implement-story` Gate 1 routes a missing coding-agent type to that fallback, and to the BLOCKED escalation when nothing can be spawned. The orchestrator never codes a story itself.
+- **Supervisor escalates code with no coding spawn.** `supervisor-agent` returns ESCALATE when the commit range holds code but the report shows no coding-agent spawn.
+
+### Internal
+- In the Writ source repo, `.claude/agents` now points at `../claude-code/agents`, so Claude Code registers the nine `writ-*` agents here. It pointed at `agents/`, whose files have no frontmatter, so no agent registered. Installs were not affected. `.writ/docs/self-dogfooding.md` records the new target.
+- `eval.sh --check=claude-agents` now fails when `.claude/agents` is dangling or exposes a file without a frontmatter `name:`. The check runs only in the Writ source repo.
+- `commands/implement-story.md` was trimmed to keep its pinned byte overage; `KNOWN_OVER_BUDGET` moved down (13557 → 13553).
+- Archived `repro-first-bug-fixing`, `review-route-rigor` ([PR #73](https://github.com/sellke/writ/pull/73)), and `writ-agents-registered`.
+
 ## [0.47.1] - 2026-11-08
 
 **Archiving a finished spec no longer breaks the specs that depend on it.** ([archived-dependencies-resolve](.writ/specs/archive/2026-11-06-archived-dependencies-resolve/spec.md), [PR #72](https://github.com/sellke/writ/pull/72))
