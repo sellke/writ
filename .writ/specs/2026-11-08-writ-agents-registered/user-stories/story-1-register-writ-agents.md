@@ -1,6 +1,7 @@
 # Story 1: Register the writ-* agents in this repo
 
 > **Status:** Completed ✅ (2026-11-08)
+> **Commit:** b13110ffe50c101f0f7ef5abd2af004700d09fbf
 > **Priority:** Medium
 > **Dependencies:** None
 
