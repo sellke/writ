@@ -4,7 +4,7 @@
 > **Priority:** Medium
 > **Effort:** Small
 > **Created:** 2026-11-06
-> **spec_ref:** .writ/specs/2026-11-08-writ-agents-registered/spec.md
+> **spec_ref:** .writ/specs/archive/2026-11-08-writ-agents-registered/spec.md
 
 ## TL;DR
 
