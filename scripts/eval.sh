@@ -4495,6 +4495,48 @@ check_claude_agents() {
     add_finding "scripts/gen-claude-agents.py" "--check failed without a reason line." \
       "Run python3 scripts/gen-claude-agents.py --check and inspect its output."
   fi
+
+  # Story 1 of 2026-11-08-writ-agents-registered: Claude Code registers an
+  # agent only from a file whose leading --- block has `name:`, so every name
+  # in claude-code/agents/ must be exposed through .claude/agents. Runs only
+  # in the Writ source repo (installs have no claude-code/agents/), and only
+  # when .claude/agents exists. Bash 3.2: names are a newline-separated list.
+  local linked="$PROJECT_ROOT/.claude/agents" source_dir="$PROJECT_ROOT/claude-code/agents"
+  local link_remedy="ln -sfn ../claude-code/agents .claude/agents"
+  local file name registered=""
+  if [ -d "$source_dir" ] && { [ -e "$linked" ] || [ -L "$linked" ]; }; then
+    if [ ! -e "$linked" ]; then
+      add_finding ".claude/agents" ".claude/agents does not resolve." "$link_remedy"
+      return
+    fi
+    for file in "$linked"/*.md; do
+      [ -f "$file" ] || continue
+      name="$(claude_agent_frontmatter_name "$file")"
+      if [ -n "$name" ]; then
+        registered="$registered$name"$'\n'
+      else
+        add_finding ".claude/agents" ".claude/agents/${file##*/} has no frontmatter name:" "$link_remedy"
+      fi
+    done
+    for file in "$source_dir"/*.md; do
+      [ -f "$file" ] || continue
+      name="$(claude_agent_frontmatter_name "$file")"
+      [ -n "$name" ] || continue
+      if ! printf '%s' "$registered" | grep -Fxq -- "$name"; then
+        add_finding ".claude/agents" ".claude/agents exposes no registered agent $name" "$link_remedy"
+      fi
+    done
+  fi
+}
+
+# Prints the `name:` value from a file's leading --- frontmatter block, or
+# nothing when the file has no frontmatter or no name: in it.
+claude_agent_frontmatter_name() {
+  awk '
+    NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
+    /^---[[:space:]]*$/ { exit }
+    /^name:/ { sub(/^name:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+  ' "$1"
 }
 
 check_claude_md() {
