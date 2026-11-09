@@ -20,6 +20,8 @@
 - [x] Given the ESCALATE rule in `agents/supervisor-agent.md`, when read, then it lists "code in the commit range with no coding-agent spawn in the report", and `claude-code/agents/writ-supervisor.md` and the generated `implement-story.md` copies carry the same sentences, with both generator `--check` runs clean `[AC-2.3]`
 - [x] Given the Gate 1 and adapter edits, when `scripts/tests/test_gate_upgrade_trial_outcome.py`, `scripts/tests/test_governor_enforcement.py`, and `scripts/tests/test_harness_cuts.py` run, then all pass, the presence probes in `implement-story.md` still match, and `commands/implement-story.md` is within its byte budget or its pinned overage is re-pinned with a dated comment `[AC-2.4]`
 
+> **Verified by:** AC-2.4 — recorded runs of `scripts/tests/test_gate_upgrade_trial_outcome.py`, `test_governor_enforcement.py` and `test_harness_cuts.py` on Python 3.9 and 3.14 (305 passed each, `.writ/state/gate3-tests-story-2-spawn-fallback.txt`), summarized in What Was Built → Test Results; `commands/implement-story.md` 38517 -> 38513 bytes, `KNOWN_OVER_BUDGET` 13557 -> 13553 with a dated comment
+
 ## Implementation Tasks
 
 - [x] 2.1 Write `scripts/tests/test_agent_spawn_fallback.py` pinning the adapter fallback sentence, the Gate 1 sentence, and the supervisor ESCALATE clause in source and generated copies. Run it and confirm it fails before any edit `[AC-2.1, AC-2.2, AC-2.3]`

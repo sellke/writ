@@ -20,7 +20,8 @@
 - [x] Given a temp copy whose `.claude/agents` links to a folder of frontmatter-less copies of `agents/*.md`, when the `claude-agents` check runs, then it reports nine missing-name findings and nine no-frontmatter findings and exits non-zero `[AC-1.3]`
 - [x] Given a temp copy with no `.claude/agents`, when the `claude-agents` check runs, then it reports Findings: 0 `[AC-1.4]`
 - [x] Given a fresh Claude Code session started in this repo after the repoint, when its agent-type list is read, then it lists the nine `writ-*` types, recorded in a `Verified by:` line under this marker `[AC-1.5]`
-  - Verified by: `claude -p "List every subagent type name available to your Agent/Task tool, one per line, names only, no other text." < /dev/null` (Claude Code 2.1.310), run 2026-11-08 in a fresh headless session in the lane worktree after commit `98bed64` -> listed `writ-architect`, `writ-coder`, `writ-documenter`, `writ-evaluator`, `writ-reviewer`, `writ-story-gen`, `writ-supervisor`, `writ-tester`, `writ-visual-qa` (plus the built-in types).
+
+> **Verified by:** AC-1.5 — fresh-session run: `claude -p "List every subagent type name available to your Agent/Task tool, one per line, names only, no other text." < /dev/null` (Claude Code 2.1.310), run 2026-11-08 in a fresh headless session in the lane worktree after commit `98bed64` -> listed `writ-architect`, `writ-coder`, `writ-documenter`, `writ-evaluator`, `writ-reviewer`, `writ-story-gen`, `writ-supervisor`, `writ-tester`, `writ-visual-qa` (plus the built-in types).
 
 ## Implementation Tasks
 
