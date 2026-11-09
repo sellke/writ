@@ -1,0 +1,30 @@
+Writ Audit Digest (spec)
+========================
+Spec:     2026-11-09-delete-merged-branches — Delete Merged Branches
+Landed:   main @ 9eca43d2a3352dbd58447d3e5c3d69d0f53c0f68 (PR #76, merge commit)
+Source:   c027577..fe4a0b8 (12 commits)
+Shipped:  2026-11-09 by Adam Sellke
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-integrate-deletes-lane | PASS (1 iteration) | None | na |
+| story-2-ship-deletes-local-branch | PASS (3 iterations) | Medium (resolved) | na |
+
+Aggregate
+---------
+Verdict:   PASS
+Drift:     highest = Medium (DEV-005, decided by the person); DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-005
+Coverage:  na (no coverage report)
+Files:     4 created, 16 modified (outside .writ/specs)
+Review:    4 iterations across stories
+
+Verification
+------------
+Ledger:    VERIFIED PR 76 head fe4a0b8 (targeted pytest 3.9: 355 passed); 15eb2a8 full pytest 3.9: 4724 passed
+CI:        Eval Tier 1 pass on fe4a0b8 (pull_request, attempt 2; attempt 1 failed at startup with 0 jobs)
+Spec:      /implement-spec exit criteria met; supervisor ACCEPT for both stories
+Merge:     doubt id fd3424f211e2 fallback_merge, person approved
+Agents:    Gate 1 writ-coder; Gate 3 writ-reviewer; supervisor writ-supervisor
+Post-PR:   fe4a0b8 fixed a test fixture that dropped git from PATH on CI runners
