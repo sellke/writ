@@ -1,6 +1,7 @@
 # Story 5: Run the Repro First Substitute Trial
 
 > **Status:** Completed ✅ (2026-11-09)
+> **Commit:** f37baad20ebfc01ea526f9edaa12bc41bc568174
 > **Priority:** Medium
 > **Dependencies:** Story 3 (harness exists); Story 4's report commit `ef0c418`
 
