@@ -7,7 +7,8 @@ scripts/phase-state.py to prove the locked R2/D2/D3 contract:
 
   - a lane branch + worktree are created from the phase-branch head BEFORE work
   - the primary checkout is never mutated while the lane runs
-  - only a verified `succeeded` phase-spec-result-v1 merges into the phase branch
+  - only a verified `succeeded` phase-spec-result-v1 merges into the phase branch,
+    and the merged lane branch is then deleted with `git branch -d`
   - a malformed or non-successful result never touches the phase branch and its
     lane is preserved for Story 4
   - a dirty base or a lane-branch collision stops before launch
@@ -57,6 +58,11 @@ def git(repo: Path, *args: str) -> str:
         capture_output=True, text=True, check=True,
     )
     return proc.stdout.strip()
+
+
+def lane_branch_exists(repo: Path, name: str) -> bool:
+    return subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", name],
+                          capture_output=True).returncode == 0
 
 
 def new_repo(tmp: Path) -> Path:
@@ -124,6 +130,9 @@ def scenario_success_merge(tmp: Path) -> None:
     emit("verified-success-merges", code == 0 and out.get("merged") is True, out)
     emit("phase-branch-has-lane-file", (repo / "lane.txt").exists())
     emit("worktree-removed-after-merge", not wt.exists())
+    emit("lane-branch-deleted-after-merge",
+         not lane_branch_exists(repo, "writ/phase/6/spec-a")
+         and out.get("laneBranchDeleted") is True, out)
     _, shown = helper("show", "--state", str(state))
     emit("state-records-integrated",
          shown["specs"]["spec-a"]["status"] == "integrated"
@@ -150,9 +159,7 @@ def scenario_unverified_preserved(tmp: Path) -> None:
          code == 0 and out.get("merged") is False and out.get("status") == "preserved_lane", out)
     emit("phase-branch-unchanged-on-failure",
          git(repo, "rev-parse", "phase/6") == phase_head_before)
-    emit("lane-branch-preserved",
-         subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify",
-                         "writ/phase/6/spec-b"], capture_output=True).returncode == 0)
+    emit("lane-branch-preserved", lane_branch_exists(repo, "writ/phase/6/spec-b"))
 
 
 def scenario_malformed_result(tmp: Path) -> None:
@@ -169,6 +176,7 @@ def scenario_malformed_result(tmp: Path) -> None:
          code == 0 and out.get("merged") is False, out)
     emit("phase-branch-unchanged-on-malformed",
          git(repo, "rev-parse", "phase/6") == phase_head_before)
+    emit("lane-branch-preserved-on-malformed", lane_branch_exists(repo, "writ/phase/6/spec-c"))
 
 
 def scenario_dirty_and_collision(tmp: Path) -> None:

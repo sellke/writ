@@ -838,5 +838,156 @@ class LaneBriefTemplateTests(unittest.TestCase):
         self.assertIn("before", self.lane_mode[self.lane_mode.index("{result_path}"):])
 
 
+class IntegrateDeletesLaneBranchTests(unittest.TestCase):
+    """2026-11-09-delete-merged-branches Story 1: after a verified merge,
+    `integrate` removes the worktree, then deletes the lane branch with
+    `git branch -d` (never `-D`) and records `laneBranchDeleted` (AC-1.1,
+    AC-1.2). A result that does not merge leaves the branch and records no
+    key (AC-1.3); reconcile accepts an integrated spec whose lane branch is
+    gone (AC-1.4)."""
+
+    LANE = "writ/phase/6/a"
+
+    def setUp(self) -> None:
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
+        for args in (("init", "-q"), ("config", "user.email", "t@writ.test"),
+                     ("config", "user.name", "Writ Test"),
+                     ("checkout", "-q", "-b", "phase/6")):
+            self._git(*args)
+        (self.repo / "b.txt").write_text("b\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
+        self.state = self.tmp / "state.json"
+        code, _ = run_cli("init", "--state", str(self.state), "--repo", str(self.repo),
+                          "--phase", "6", "--phase-branch", "phase/6", "--spec-order", "a")
+        self.assertEqual(code, 0)
+        code, lane = run_cli("create-lane", "--state", str(self.state), "--repo",
+                             str(self.repo), "--spec", "a",
+                             "--worktree-root", str(self.tmp / "lanes"))
+        self.assertEqual(code, 0, lane)
+        self.worktree = Path(lane["worktreePath"])
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _git(self, *args: str, cwd: Path | None = None) -> str:
+        import subprocess
+        proc = subprocess.run(["git", "-C", str(cwd or self.repo), *args],
+                              capture_output=True, text=True, check=True)
+        return proc.stdout.strip()
+
+    def _branch_exists(self, name: str) -> bool:
+        return bool(self._git("branch", "--list", name))
+
+    def _lane_commit(self, name: str = "lane.txt", text: str = "lane\n") -> str:
+        (self.worktree / name).write_text(text, encoding="utf-8")
+        self._git("add", "-A", cwd=self.worktree)
+        self._git("commit", "-q", "-m", "lane work", cwd=self.worktree)
+        return self._git("rev-parse", "HEAD", cwd=self.worktree)
+
+    def _integrate(self, payload: dict) -> tuple[int, dict]:
+        result = self.tmp / "result.json"
+        result.write_text(json.dumps(payload), encoding="utf-8")
+        return run_cli("integrate", "--state", str(self.state), "--repo", str(self.repo),
+                       "--spec", "a", "--result", str(result))
+
+    def _record(self) -> dict:
+        return json.loads(self.state.read_text(encoding="utf-8"))["specs"]["a"]
+
+    def _succeeded(self, commit: str) -> dict:
+        return dict(VALID_RESULT, commit=commit)
+
+    def test_merged_lane_branch_is_deleted_and_recorded(self) -> None:
+        """AC-1.1: branch gone, laneBranchDeleted true in the JSON and the
+        record, status integrated, laneBranch kept as the historical name."""
+        code, out = self._integrate(self._succeeded(self._lane_commit()))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["status"], "integrated")
+        self.assertIs(out["laneBranchDeleted"], True)
+        self.assertFalse(self._branch_exists(self.LANE))
+        record = self._record()
+        self.assertEqual(record["status"], "integrated")
+        self.assertIs(record["laneBranchDeleted"], True)
+        self.assertNotIn("laneBranchKeptReason", record)
+        self.assertEqual(record["laneBranch"], self.LANE)
+
+    def test_refused_delete_keeps_the_branch_and_records_the_reason(self) -> None:
+        """AC-1.2: a locked worktree survives `remove --force`, so the lane is
+        still checked out and `git branch -d` refuses. Integrate stays
+        `integrated`, records git's message, and does not force-delete."""
+        commit = self._lane_commit()
+        self._git("worktree", "lock", str(self.worktree))
+        code, out = self._integrate(self._succeeded(commit))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["status"], "integrated")
+        self.assertIs(out["merged"], True)
+        self.assertIs(out["laneBranchDeleted"], False)
+        self.assertTrue(self._branch_exists(self.LANE))
+        record = self._record()
+        self.assertEqual(record["status"], "integrated")
+        self.assertIs(record["laneBranchDeleted"], False)
+        self.assertIn(self.LANE, record["laneBranchKeptReason"])
+        self.assertEqual(out["laneBranchKeptReason"], record["laneBranchKeptReason"])
+
+    def test_failed_result_keeps_the_branch_and_records_no_key(self) -> None:
+        """AC-1.3: a failed result never merges, so nothing is deleted."""
+        self._lane_commit()
+        failed = dict(VALID_RESULT, status="failed", commit=None,
+                      failure={"classification": "terminal", "summary": "boom"})
+        code, out = self._integrate(failed)
+        self.assertEqual(out["status"], "preserved_lane", out)
+        self.assertTrue(self._branch_exists(self.LANE))
+        self.assertNotIn("laneBranchDeleted", self._record())
+
+    def test_malformed_result_keeps_the_branch_and_records_no_key(self) -> None:
+        """AC-1.3: a malformed result never merges, so nothing is deleted."""
+        code, out = self._integrate({"spec_id": "a", "status": "succeeded"})
+        self.assertEqual(out["status"], "preserved_lane", out)
+        self.assertTrue(self._branch_exists(self.LANE))
+        self.assertNotIn("laneBranchDeleted", self._record())
+
+    def test_merge_conflict_keeps_the_branch_and_records_no_key(self) -> None:
+        """AC-1.3: the conflict path aborts and returns before any deletion."""
+        commit = self._lane_commit("b.txt", "lane side\n")
+        (self.repo / "b.txt").write_text("phase side\n", encoding="utf-8")
+        self._git("commit", "-q", "-am", "phase side")
+        code, out = self._integrate(self._succeeded(commit))
+        self.assertEqual(out["reason"], "merge_conflict", out)
+        self.assertTrue(self._branch_exists(self.LANE))
+        self.assertNotIn("laneBranchDeleted", self._record())
+
+    def test_reconcile_accepts_integrated_spec_without_lane_branch(self) -> None:
+        """AC-1.4: an integrated spec is checked by mergeCommit only, so a
+        deleted lane branch reconciles consistent."""
+        code, out = self._integrate(self._succeeded(self._lane_commit()))
+        self.assertEqual(code, 0, out)
+        self.assertFalse(self._branch_exists(self.LANE))
+        code, out = run_cli("reconcile", "--state", str(self.state), "--repo", str(self.repo))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out["status"], "consistent", out)
+
+
+class LaneBranchDeletionTextTests(unittest.TestCase):
+    """2026-11-09-delete-merged-branches Story 1 (AC-1.5): the command and the
+    state-format doc say integrate removes the lane branch. The byte pin is
+    KNOWN_OVER_BUDGET in test_governor_enforcement.py."""
+
+    def test_step_3_2_item_4_removes_worktree_and_lane_branch(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        item = _section(_section(text, "#### Step 3.2:", "#### Step 3.2b:"),
+                        "4. **Merge only verified success**", "\n")
+        self.assertIn("the worktree and lane branch are then removed", item)
+
+    def test_state_format_documents_lane_branch_deletion_fields(self) -> None:
+        text = (REPO_ROOT / ".writ" / "docs" / "phase-execution-state-format.md").read_text(
+            encoding="utf-8")
+        self.assertIn("deleted after a successful merge", text)
+        self.assertIn("| `specs.{id}.laneBranchDeleted` |", text)
+        self.assertIn("| `specs.{id}.laneBranchKeptReason` |", text)
+
+
 if __name__ == "__main__":
     unittest.main()
