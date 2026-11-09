@@ -1,6 +1,7 @@
 # Story 2: Spawn fallback and no inline coding
 
 > **Status:** Completed ✅ (2026-11-08)
+> **Commit:** daa6d3010b5b6365bf192c60bc07196c880b13a0
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
