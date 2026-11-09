@@ -10,6 +10,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 LINK = REPO / ".claude" / "agents"
+# The agent Gate 1 spawns by name, read through the link.
+CODER = REPO / ".claude" / "agents" / "writ-coder.md"
 
 WRIT_AGENTS = (
     "writ-architect",
@@ -44,3 +46,5 @@ def test_claude_agents_link_registers_the_nine_writ_agents():
     registered = {frontmatter_name(p) for p in sorted(LINK.glob("*.md"))}
     missing = [name for name in WRIT_AGENTS if name not in registered]
     assert missing == []
+    assert CODER.resolve() == (REPO / "claude-code" / "agents" / "writ-coder.md").resolve()
+    assert frontmatter_name(CODER) == "writ-coder"
