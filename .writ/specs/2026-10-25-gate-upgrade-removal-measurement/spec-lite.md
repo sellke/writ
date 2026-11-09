@@ -5,7 +5,7 @@
 
 ## For Coding Agents
 
-**Deliverable:** A retrospective trial over the four Phase 11 baseline stories that runs each Phase 15 gate upgrade on against all switches off, gets human labels for upgrade-only findings, and keeps or removes each upgrade. Amended 2026-11-09: Repro First, never exercised, gets a substitute trial on four yuss bug-fix stories (spec.md Business Rule 14; Stories 5–6).
+**Deliverable:** A retrospective trial over the four Phase 11 baseline stories that runs each Phase 15 gate upgrade on against all switches off, gets human labels for upgrade-only findings, and keeps or removes each upgrade. Amended 2026-11-09: Repro First, never exercised, gets a substitute trial on three yuss bug-fix stories (DEV-014) (spec.md Business Rule 14; Stories 5–6).
 
 **Implementation Approach:**
 - Dev-only harness `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` (3.9 stdlib, check shape): `init`, `prepare`, `record`, `sheet`, `label`, `report`. Loads `scripts/review-panel.py` by path for `_prepare_run`, `parse_output`, `trial_key`, `_key_order`.
@@ -53,6 +53,7 @@
 - `keep` on ≥1 valid; `remove` when exercised and none valid; not exercised + ack `remove` → `remove`; ack `amend` or missing → `unverifiable`
 - Only a human labels; `valid` = real unmet AC or Critical/Major security/architecture defect at that commit. Exception: the substitute trial's labels are delegated to the assistant (2026-11-09), marked in `labeled_by` and every note
 - Substitute trial: arms `off-1`, `off-2`, `repro-first` only; a catch still needs a repro that fails at parent and at the story commit, so it leans toward `remove`
+- Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`) (DEV-015)
 - Gate 0 removed + blind trial `keep` → skill stays with `/prototype` only
 
 **Experience Design:**

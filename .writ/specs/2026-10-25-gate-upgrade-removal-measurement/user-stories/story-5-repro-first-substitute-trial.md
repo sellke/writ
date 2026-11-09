@@ -7,7 +7,7 @@
 ## User Story
 
 **As a** Writ maintainer
-**I want to** run the Repro First arm on a substitute baseline of four bug-fix stories and hand its findings to labeling
+**I want to** run the Repro First arm on a substitute baseline of three bug-fix stories (DEV-014) and hand its findings to labeling
 **So that** Repro First gets a measured keep or remove verdict, since the Phase 11 baseline has no bug-fix story to exercise it (drift-log DEV-013)
 
 ## Acceptance Criteria
@@ -23,7 +23,7 @@
 ## Implementation Tasks
 
 - [ ] 5.1 Write unit tests in `scripts/tests/test_gate_upgrade_trial.py` first: scoped `init`, the `arm_not_applicable` refusal, scoped `report` lines, and unscoped output unchanged `[AC-5.1, AC-5.2]`
-- [ ] 5.2 Add `--upgrades` (comma list, default all four) to `init` in `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py`. Scope `record` and `report` to the trial's scoped upgrades. Keep the trial at four stories `[AC-5.1, AC-5.2]`
+- [ ] 5.2 Add `--upgrades` (comma list, default all four) to `init` in `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py`. Scope `record` and `report` to the trial's scoped upgrades. A scoped trial takes 1 to 4 stories; an unscoped one still takes exactly 4 (DEV-014) `[AC-5.1, AC-5.2]`
 - [ ] 5.3 Write `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`: three identity-only `selection` entries (DEV-014), a `selection_rule` block, and one `fix_commit_note` per story. Field list in AC-5.3 `[AC-5.3]`
 - [ ] 5.4 Run `init --baseline` on that file with `--upgrades repro-first`, `--yuss`, and `--out .writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-trial.json`. Then run `prepare` for each story `[AC-5.4, AC-5.5]`
 - [ ] 5.5 Spawn and `record` per story: `off-1`, `off-2`, and `repro-first` recognition. Run a full repro arm on each bug-fix story, recording `--kind`, `--repro-ac`, `--at-parent`, and `--at-commit`. Report any arm that cannot run `[AC-5.4]`
@@ -39,7 +39,7 @@
 - **Missing arm.** If a repro arm cannot run at `parent/` (dependency install or test command fails), record nothing for it. `report` then returns `missing_arm`, not `unlabeled`. Keep the contract's status wording and name the missing arm and reason in the handoff. The contract's two status lines do not cover this case; Story 6 should decide the wording.
 - **Repro procedure.** The repro arm spawns in `parent/`, never in `checkout/`. The story-commit run applies the repro commit's test files to `checkout/`. Follow technical-spec.md → Arms (repro-first row). `Targets:` and `Repro: none: <reason>` come from `prompts/repro-stop.md` (drift-log.md DEV-009).
 - **Probe first.** `init` probes repro-first (`scripts/repro-order.py` present). If it reads `present: false`, stop before `prepare`. The switch and its files must be in the primary checkout.
-- **Substitute scope.** Rule 2 of the selection rule is a hand match, so the four stories are a sample, not a random draw. The small-sample and proxy caveats from spec.md still apply.
+- **Substitute scope.** Rule 2 of the selection rule is a hand match, so the three stories are a sample, not a random draw. The small-sample and proxy caveats from spec.md still apply.
 - **Resolving identity fields.** Resolve full SHAs with read-only `git -C /Users/asellke/Projects/yuss rev-parse --verify <sha>^{commit}`. `parent_sha` is `<commit>^1`. `story_path` may sit under `.writ/specs/archive/`, so check with `ls`. Do not write any yuss ref or object.
 - **Yuss.** Use only `rev-parse`, `show-ref`, `status --porcelain`, and the fetch into a fresh repo under `$TMPDIR` that `prepare` performs. Make no write to `/Users/asellke/Projects/yuss`.
 - **Raw outputs.** Raw outputs go to `.writ/state/gate-upgrade-trial/` (gitignored), resolved through `git rev-parse --git-common-dir`. They hold yuss text. Never copy them into committed files.

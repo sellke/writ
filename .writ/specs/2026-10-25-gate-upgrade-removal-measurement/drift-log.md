@@ -168,4 +168,4 @@
 - **Implementation did:** Two substitute stories predate AC IDs. `d0f5f1a`'s story names its criteria `AC1` to `AC4`; `403a9cc`'s story has five unnumbered criteria. For both, `AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`). The repro arm brief for those two stories states the mapping. `ed15bba`'s story already uses `AC-1.1` to `AC-1.5`.
 - **Reason:** The key grammar needs an ID, and reading order is the only order the story text fixes.
 - **Resolution:** Auto-amended
-- **Spec amendment:** None needed in spec-lite.md; the mapping is stated here and in `rating-handoff-repro-first.md`.
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order".
