@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.48.0] - 2026-11-09
+
+**Writ now deletes a merged branch at the step that merged it.** ([delete-merged-branches](.writ/specs/archive/2026-11-09-delete-merged-branches/spec.md), [PR #76](https://github.com/sellke/writ/pull/76))
+
+### Added
+- **`/ship` deletes the landed local branch (Step 6b).** After the audit-note step, `/ship` deletes the local feature branch only when that loses no commit. It uses `git branch -d` when `git branch --merged origin/<default>` lists the branch. It uses `git branch -D` only when the PR is `MERGED` and the local tip equals the PR's `headRefOid`, which covers squash and rebase merges. Otherwise it keeps the branch and prints why: `🧹 kept <branch> — <reason>`. It runs even when `writ.auditNotes=false`, never under `--dry-run`, and never deletes a remote head. Opt out with `git config writ.deleteMergedBranches false`.
+- **`scripts/ship-branch-cleanup.py`.** The helper behind Step 6b runs ten ordered checks: opt-out, default branch, branch checked out elsewhere, fetch, merge proof, PR proof, dirty tree, switch with `pull --ff-only --no-rebase`, then delete. It prints one `ship-branch-cleanup-v1` line, exits 0 on every outcome, and never calls `gh`.
+- **`/implement-phase` deletes merged lane branches.** `phase-state.py integrate` runs `git branch -d` on the lane after a verified `--no-ff` merge. It records `laneBranchDeleted`, plus `laneBranchKeptReason` when git refuses. Failed, malformed, and conflicting lanes, quarantine branches, and closed specs keep their branches.
+
+### Changed
+- **A plain `/ship` re-run on a merged PR finishes the land instead of re-shipping.** Before Step 2's merge, `/ship` reads `gh pr view --json state,headRefOid,mergeCommit`. On `MERGED` it runs Steps 6 and 6b, with `mergeCommit.oid` as the landed SHA, and stops. Every other result continues as before. `--watch` 7.1 reads the same fields.
+
+### Fixed
+- **Plugin manifests track `VERSION` again.** The v0.47.2 release bumped `VERSION` without regenerating `plugins/writ/.claude-plugin/plugin.json` and `cursor/plugin/.cursor-plugin/plugin.json`. `gen-platform-trees.py --check` failed, and CI on `main` was red until PR #76.
+
+### Internal
+- `commands/ship.md` and `commands/implement-phase.md` stay byte-neutral, offset in-file; `KNOWN_OVER_BUDGET` is unchanged.
+- `.writ/docs/phase-execution-state-format.md` documents the lane fields; `.writ/docs/agent-cli-contract.md` registers the helper.
+- New eval check `lane-branch-deleted-after-merge`. `scripts/tests/test_ship_step6b_head_repro.py` pins the Gate 3 finding that `--watch` 7.1 read no `headRefOid`.
+- The first `/implement-spec` run in this repo with registered `writ-*` agents: `writ-coder`, `writ-reviewer`, and `writ-supervisor` ran by name. Story 2 took three review iterations.
+- `delete-merged-branches` is archived.
+
 ## [0.47.2] - 2026-11-09
 
 **Every Writ spawn on Claude Code now has a stated fallback, and the orchestrator never codes a story itself.** ([writ-agents-registered](.writ/specs/archive/2026-11-08-writ-agents-registered/spec.md), [PR #74](https://github.com/sellke/writ/pull/74))

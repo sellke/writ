@@ -18,6 +18,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | Recorded `2026-11-09-delete-merged-branches` as inter-phase infrastructure (v0.48.0). |
 | 2026-11-09 | Recorded `2026-11-08-writ-agents-registered` as inter-phase infrastructure (v0.47.2). |
 | 2026-11-08 | Recorded `2026-11-06-archived-dependencies-resolve` as inter-phase infrastructure (v0.47.1). |
 | 2026-11-08 | **v0.47.1 released:** [PR #72](https://github.com/sellke/writ/pull/72), archived dependencies resolve in `spec-deps.py validate`. PR #72 was Phase 16's first real-PR `/ship --watch` run; the Phase 16 heading, criterion, Current status, Current focus, mission, mission-lite, and context record it. Autonomous merge still unexercised. |
@@ -110,6 +111,7 @@ Then Phase 16, built ahead of its gate on 2026-11-06 and merged on 2026-11-08 ([
 | **— Lean Implement Phase** <!-- 2026-11-06-lean-implement-phase --> | /implement-phase generates UAT plans only with --uat, judges health on produced sources, reads lane results from a file, and drops Goal emit; command file cut to 236 lines | v0.46.0 |
 | **— Archived Dependencies Resolve** <!-- 2026-11-06-archived-dependencies-resolve --> | spec-deps.py validate treats a dependency under .writ/specs/archive/ as satisfied instead of a missing_reference blocker. | v0.47.1 |
 | **— Writ Agents Registered** <!-- 2026-11-08-writ-agents-registered --> | Claude Code registers the nine writ-* agents in this repo; every spawn has a stated fallback; a check fails when .claude/agents exposes no frontmatter agents. | v0.47.2 |
+| **— Delete Merged Branches** <!-- 2026-11-09-delete-merged-branches --> | phase-state.py integrate deletes the lane branch after a successful merge; /ship deletes the local feature branch after its PR lands. | v0.48.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 

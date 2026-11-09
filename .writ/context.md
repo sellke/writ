@@ -12,11 +12,11 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 - **Status:** Complete (integration suite green; not yet shipped)
 - **Story:** 2 of 2 — /ship deletes the landed local branch (Completed ✅); Story 1 (integrate deletes the merged lane branch) Completed ✅
 - **Progress:** 14/14 tasks complete (100%)
-- **Also open:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.2 (2026-11-09) is the latest release.
+- **Also open:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.48.0 (2026-11-09) is the latest release.
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (v0.47.2 latest release, 2026-11-09)
+- **Product:** roadmap.md, mission.md, mission-lite.md (v0.48.0 latest release, 2026-11-09)
 - **Last spec:** .writ/specs/archive/2026-11-09-delete-merged-branches/ (archived after PR #76)
 - **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
