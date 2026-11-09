@@ -99,3 +99,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-11-09T01:23:53Z — `2026-10-25-repro-first-bug-fixing` archived (evidence: `lessons/2026-10-30-check-the-spec-lite-diff-before-trusting-an-auto-amended-drift-entry.md`)
 - 2026-11-09T01:23:53Z — `2026-10-25-review-route-rigor` archived (evidence: no knowledge evidence yet)
 - 2026-11-09T12:55:46Z — `2026-11-08-writ-agents-registered` archived (evidence: no knowledge evidence yet, via PR #74)
+- 2026-11-09T19:02:04Z — `2026-11-09-delete-merged-branches` archived (evidence: no knowledge evidence yet, via PR #76)

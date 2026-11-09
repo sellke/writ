@@ -17,7 +17,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md (v0.47.2 latest release, 2026-11-09)
-- **Active spec:** .writ/specs/2026-11-09-delete-merged-branches/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Last spec:** .writ/specs/archive/2026-11-09-delete-merged-branches/ (archived after PR #76)
 - **Knowledge:** .writ/knowledge/ (30 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
