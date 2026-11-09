@@ -149,3 +149,23 @@
 - **Reason:** The Repro First ack is `amend` (Business Rule 7). The spec stays open until `/edit-spec` adds a substitute baseline, which needs bug-fix stories, and measuring that baseline needs this harness. Deleting it now would mean restoring it from history to finish the spec.
 - **Resolution:** Flagged for review
 - **Spec amendment:** N/A — flagged for post-implementation review. Task 4.6 runs once Repro First has a `keep` or `remove` verdict.
+
+## Story 5: Run the Repro First Substitute Trial — Drift Report
+
+> Run: 2026-11-09
+
+#### [DEV-014] Three substitute stories, not four ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 14 and AC-5.3: four admitted stories, including `2026-05-13-event-settlement-role-invariants/story-1-enforce-settlement-role-invariants` @ `73f34d4`.
+- **Implementation did:** The baseline holds three stories: `ed15bba`, `d0f5f1a`, `403a9cc`. `scripts/review-panel.py` `_prepare_run` needs the story file and the spec's `## Specification Contract` (or `## Contract Summary`) at `story_commit`. The role-invariants spec was first committed in `e33ac3d`, 10 seconds after the fix, so `prepare` cannot run on `73f34d4`. A re-screen of every yuss bug spec found no fourth story that meets all rules. The harness now lets a scoped trial (`init --upgrades`) take 1 to 4 stories; an unscoped trial still needs exactly 4. The selection rule gains a fifth clause: the story file and spec contract exist at the fix commit.
+- **Reason:** The 2026-11-09 screen checked test files and imports but not what `prepare` reads. The maintainer chose to run three stories over reading a story written after the fix or re-specifying.
+- **Resolution:** Accepted by user (2026-11-09)
+- **Spec amendment:** spec.md Business Rule 14 (three stories, fifth clause); AC-5.3 and task 5.3 in Story 5.
+
+#### [DEV-015] Legacy stories get `AC-1.k` by reading order
+- **Severity:** Small
+- **Spec said:** `record --repro-ac` takes `AC-N.M`, and `prompts/repro-stop.md` asks for the targeted criterion "by its ID in the story".
+- **Implementation did:** Two substitute stories predate AC IDs. `d0f5f1a`'s story names its criteria `AC1` to `AC4`; `403a9cc`'s story has five unnumbered criteria. For both, `AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`). The repro arm brief for those two stories states the mapping. `ed15bba`'s story already uses `AC-1.1` to `AC-1.5`.
+- **Reason:** The key grammar needs an ID, and reading order is the only order the story text fixes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed in spec-lite.md; the mapping is stated here and in `rating-handoff-repro-first.md`.

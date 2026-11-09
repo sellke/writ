@@ -7,12 +7,18 @@ four Phase 11 baseline stories. It never spawns an agent and makes no network
 call. The committed trial file holds IDs, SHAs, routes, keys, and labels only,
 never yuss text.
 
-Subcommands (Story 1):
+Subcommands (Story 1; --upgrades added in Story 5):
   init    --baseline FILE --out FILE [--repo .] [--force] [--yuss PATH]
+          [--upgrades LIST]
               Copy the five identity fields of each of the four selected
               stories, probe the four upgrades against --repo, and write a
               `gate-upgrade-trial-v1` skeleton. --yuss records a read-only
               before-snapshot of yuss (HEAD plus hashes of refs and status).
+              --upgrades is a comma list of upgrade names (default all four).
+              A narrower list is stored as `scope`: only off-1, off-2, and the
+              scoped upgrades' arms then apply, and prepare, record, sheet,
+              label, and report cover the scoped upgrades only. Naming all
+              four writes the same file as leaving it out.
   prepare --trial FILE --story ID --yuss PATH [--tmp-root DIR]
               Fetch the story commit at depth 2 into
               <tmp-root>/writ-gate-trial-<slug>/ (yuss is only read), add a
@@ -152,7 +158,44 @@ def load_trial(path: Path) -> dict:
     stories = doc.get("stories")
     if doc.get("schema") != SCHEMA or not isinstance(stories, list):
         raise Refusal("trial_invalid", "not a %s file: %s" % (SCHEMA, path))
+    trial_scope(doc)
     return doc
+
+
+def parse_upgrades(value: Optional[str]) -> Tuple[str, ...]:
+    """`init --upgrades`: known names, each once, in UPGRADES order."""
+    if value is None:
+        return UPGRADES
+    names = [name.strip() for name in value.split(",")]
+    if not names or any(not name for name in names):
+        raise Refusal("upgrades_invalid", "--upgrades must be a comma list with no empty "
+                      "entry: %r" % value)
+    unknown = [name for name in names if name not in UPGRADES]
+    if unknown:
+        raise Refusal("upgrades_invalid", "unknown upgrade %s; known: %s"
+                      % (", ".join(unknown), ", ".join(UPGRADES)))
+    if len(set(names)) != len(names):
+        raise Refusal("upgrades_invalid", "--upgrades names an upgrade twice: %r" % value)
+    return tuple(name for name in UPGRADES if name in names)
+
+
+def trial_scope(doc: dict) -> Tuple[str, ...]:
+    """The trial's upgrades: all four unless `init --upgrades` stored a
+    narrower `scope` (a non-empty list of distinct names, in UPGRADES order)."""
+    if "scope" not in doc:
+        return UPGRADES
+    scope = doc["scope"]
+    if (not isinstance(scope, list) or not scope or len(scope) >= len(UPGRADES)
+            or list(scope) != [name for name in UPGRADES if name in scope]):
+        raise Refusal("trial_invalid", "scope must list some, not all, of %s once each, in "
+                      "that order: %r" % (", ".join(UPGRADES), scope))
+    return tuple(scope)
+
+
+def scoped_arms(doc: dict) -> Tuple[str, ...]:
+    """off-1, off-2, and the scoped upgrades' arms, in ARMS order."""
+    scope = trial_scope(doc)
+    return tuple(arm for arm in ARMS if arm in OFF_ARMS or arm in scope)
 
 
 def trial_story(doc: dict, story_id: str) -> dict:
@@ -282,11 +325,16 @@ def probe_upgrades(repo: Path) -> Dict[str, Dict[str, bool]]:
 
 
 def trial_skeleton(baseline: dict, baseline_path: str,
-                   upgrades: Dict[str, Dict[str, bool]]) -> dict:
+                   upgrades: Dict[str, Dict[str, bool]], scoped: bool = False) -> dict:
+    """An unscoped trial needs exactly TRIAL_STORIES stories; a scoped one
+    (Story 5) accepts 1 to TRIAL_STORIES."""
     selection = baseline.get("selection")
     if not isinstance(selection, list) or len(selection) != TRIAL_STORIES:
-        raise Refusal("selection_invalid", "baseline selection must list exactly %d stories"
-                      % TRIAL_STORIES)
+        if not (scoped and isinstance(selection, list)
+                and 1 <= len(selection) <= TRIAL_STORIES):
+            raise Refusal("selection_invalid", "baseline selection must list %s stories"
+                          % ("1 to %d" % TRIAL_STORIES if scoped
+                             else "exactly %d" % TRIAL_STORIES))
     stories = []
     for entry in selection:
         story: Dict[str, object] = dict(check_identity(entry))
@@ -308,6 +356,7 @@ def trial_skeleton(baseline: dict, baseline_path: str,
 
 
 def cmd_init(args: argparse.Namespace) -> int:
+    scope = parse_upgrades(args.upgrades)
     out = Path(args.out)
     if out.exists() and not args.force:
         raise Refusal("out_exists", "refusing to overwrite %s without --force" % out)
@@ -315,20 +364,24 @@ def cmd_init(args: argparse.Namespace) -> int:
     if not repo.is_dir():
         raise Refusal("repo_missing", "--repo is not a directory: %s" % repo)
     baseline = load_json(Path(args.baseline), "baseline_unreadable", "baseline")
-    doc = trial_skeleton(baseline, args.baseline, probe_upgrades(repo))
+    doc = trial_skeleton(baseline, args.baseline, probe_upgrades(repo), scope != UPGRADES)
+    if scope != UPGRADES:
+        doc["scope"] = list(scope)  # only when narrower, so unscoped bytes never change
     if args.yuss:
         doc["yuss_snapshot"]["before"] = yuss_snapshot(Path(args.yuss))
     write_json_atomic(out, doc)
     print("pass")
     for story in doc["stories"]:
         print("story: %s %s" % (story["story_id"], story["story_commit"][:12]))
-    for name in UPGRADES:
+    for name in scope:
         print("upgrade: %s present=%s" % (name, "true" if doc["upgrades"][name]["present"]
                                           else "false"))
+    if scope != UPGRADES:
+        print("scope: %s" % ",".join(scope))
     before = doc["yuss_snapshot"]["before"]
     if before is not None:
         print("yuss: before recorded (head %s)" % before["head"][:12])
-    present = sum(1 for name in UPGRADES if doc["upgrades"][name]["present"])
+    present = sum(1 for name in scope if doc["upgrades"][name]["present"])
     print("gate-upgrade-trial: initialized — %s, %s present, no arms recorded"
           % (_plural(len(doc["stories"]), "story"), _plural(present, "upgrade")))
     return 0
@@ -485,7 +538,9 @@ def _prepare(args: argparse.Namespace, rp: ModuleType) -> int:
         if _git_text(yuss, "rev-parse", "--verify", "--quiet", "%s^{commit}" % sha) is None:
             raise Refusal("sha_unreachable", "%s %s unreachable in %s" % (field, sha[:12], yuss))
     upgrades = doc.get("upgrades") if isinstance(doc.get("upgrades"), dict) else {}
-    safety_fact = bool((upgrades.get("safety-fact") or {}).get("present"))
+    safety_fact = (bool((upgrades.get("safety-fact") or {}).get("present"))
+                   and "safety-fact" in trial_scope(doc))
+    arms = scoped_arms(doc)
 
     tmp_root = Path(args.tmp_root or os.environ.get("TMPDIR") or "/tmp")
     run = tmp_root / ("writ-gate-trial-%s" % story["story_id"].replace("/", "--"))
@@ -528,7 +583,7 @@ def _prepare(args: argparse.Namespace, rp: ModuleType) -> int:
             paths["blast-radius"].write_text(proc.stdout, encoding="utf-8")
 
         configs = {}
-        for arm in ARMS:
+        for arm in arms:
             config = run / "arms" / arm / ".writ" / "config.md"
             config.parent.mkdir(parents=True)
             config.write_text(arm_config(arm), encoding="utf-8")
@@ -552,7 +607,7 @@ def _prepare(args: argparse.Namespace, rp: ModuleType) -> int:
         print("gate0_reason: %s" % routes["gate0_reason"])
     if "blast-radius" in paths:
         print("blast-radius: %s" % paths["blast-radius"])
-    for arm in ARMS:
+    for arm in arms:
         print("arm: %s %s" % (arm, configs[arm]))
     print("gate-upgrade-trial: prepared %s at %s" % (story["story_id"], commit[:12]))
     return 0
@@ -647,10 +702,11 @@ def story_arms(story: dict) -> dict:
 
 
 def arm_applies(doc: dict, story: dict, arm: str) -> bool:
-    """technical-spec § Arms. The story's routes must be set."""
+    """technical-spec § Arms. The story's routes must be set. On a scoped trial
+    an upgrade arm outside the scope never applies; inside it, its own rule does."""
     if arm in OFF_ARMS:
         return True
-    if not upgrade_present(doc, arm):
+    if arm not in trial_scope(doc) or not upgrade_present(doc, arm):
         return False
     if arm == "safety-fact":
         return _routes(story).get("gate3_route") == "review-agent"
@@ -691,10 +747,10 @@ def first_missing_arm(doc: dict) -> Optional[Tuple[str, str]]:
 
 
 def not_exercised(doc: dict) -> List[Tuple[str, List[str]]]:
-    """Present upgrades no story exercised, with one reason line per story."""
+    """Present scoped upgrades no story exercised, with one reason line per story."""
     stories = checked_stories(doc)
     out = []
-    for name in UPGRADES:
+    for name in trial_scope(doc):
         if not upgrade_present(doc, name) or any(exercises(s, name) for s in stories):
             continue
         out.append((name, ["- %s: %s" % (s["story_id"], _not_exercised_reason(s, name))
@@ -875,10 +931,11 @@ def _repro_entry(rp: ModuleType, args: argparse.Namespace, text: str,
             "at_parent": args.at_parent, "at_commit": args.at_commit, "repro_result": result}
 
 
-def recompute(story: dict) -> None:
+def recompute(story: dict, scope: Sequence[str] = UPGRADES) -> None:
     """The one place `upgrade_only` and `off_only` are computed (technical-spec
     § Upgrade-Only and Off-Only). `id`, `label`, and `note` carry over by
-    (upgrade, key) for keys that stay upgrade-only."""
+    (upgrade, key) for keys that stay upgrade-only. `off_only` counts only the
+    scoped upgrades, so a scoped trial stores no count for an arm it never runs."""
     arms = story_arms(story)
 
     def keys(arm: str) -> set:
@@ -905,7 +962,7 @@ def recompute(story: dict) -> None:
     story["off_only"] = {
         upgrade: (len(off_both - keys(upgrade))
                   if both_off and (arms.get(upgrade) or {}).get("exercised") else 0)
-        for upgrade in OFF_ONLY_UPGRADES}
+        for upgrade in OFF_ONLY_UPGRADES if upgrade in scope}
 
 
 def cmd_record(args: argparse.Namespace) -> int:
@@ -919,7 +976,10 @@ def cmd_record(args: argparse.Namespace) -> int:
     if not isinstance(routes, dict):
         raise Refusal("not_prepared", "%s has no routes; run prepare first" % args.story)
     if not arm_applies(doc, story, arm):
-        why = ("upgrade %s is absent" % arm if not upgrade_present(doc, arm) else
+        scope = trial_scope(doc)
+        why = ("outside the trial's upgrade scope: %s" % ",".join(scope)
+               if arm not in scope else
+               "upgrade %s is absent" % arm if not upgrade_present(doc, arm) else
                "gate3_route is %s" % routes.get("gate3_route") if arm == "safety-fact" else
                "gate0_route is %s" % routes.get("gate0_route"))
         raise Refusal("arm_not_applicable", "%s does not apply to %s (%s)"
@@ -955,7 +1015,7 @@ def cmd_record(args: argparse.Namespace) -> int:
     story["arms"] = arms
     if arm == "repro-first":
         story["repro_kind"] = args.kind
-    recompute(story)
+    recompute(story, trial_scope(doc))
     if args.origin is not None and stored_origin is None:
         doc["origin"] = args.origin
     write_json_atomic(trial_path, doc)
@@ -1306,9 +1366,12 @@ def upgrade_verdict(doc: dict, stories: List[dict], name: str) -> dict:
 
 
 def trial_report(doc: dict) -> dict:
-    """The whole report as data; the text and `--json` outputs render it."""
+    """The whole report as data; the text and `--json` outputs render it. A
+    scoped trial reports, counts, and decides the overall line over its scope
+    only, and adds a `scope` field."""
     stories = checked_stories(doc)
-    rows = [upgrade_verdict(doc, stories, name) for name in UPGRADES]
+    scope = trial_scope(doc)
+    rows = [upgrade_verdict(doc, stories, name) for name in scope]
     story_rows = []
     for story in stories:
         routes = _routes(story)
@@ -1323,7 +1386,7 @@ def trial_report(doc: dict) -> dict:
     snap = doc.get("yuss_snapshot") if isinstance(doc.get("yuss_snapshot"), dict) else {}
     unchanged = snap.get("unchanged")
     yuss = "unchanged" if unchanged is True else "changed" if unchanged is False else "not checked"
-    return {
+    report = {
         "verdict": "unverifiable" if counts["unverifiable"] else "pass",
         "reasons": ["%s %s" % (row["name"], row["reason"]) for row in rows
                     if row["verdict"] == "unverifiable"],
@@ -1337,6 +1400,9 @@ def trial_report(doc: dict) -> dict:
             counts["keep"], counts["remove"], counts["unverifiable"], counts["absent"],
             _plural(len(stories), "story")),
     }
+    if scope != UPGRADES:
+        report["scope"] = list(scope)  # absent when unscoped, so that output never changes
+    return report
 
 
 def upgrade_line(row: dict, total: int) -> str:
@@ -1358,6 +1424,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         return 0
     lines = [report["verdict"]]
     lines += ["reason: %s" % reason for reason in report["reasons"]]
+    if "scope" in report:
+        lines.append("scope: %s" % ",".join(report["scope"]))
     for story in report["stories"]:
         lines.append("story: %s gate3_route=%s gate0_route=%s repro=%s arms=%s" % (
             story["story_id"], story["gate3_route"] or "none", story["gate0_route"] or "none",
@@ -1384,6 +1452,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", default=".")
     p.add_argument("--force", action="store_true")
     p.add_argument("--yuss", default=None)
+    p.add_argument("--upgrades", default=None, metavar="LIST",
+                   help="comma list of upgrades to run (default all four)")
     p.set_defaults(func=cmd_init)
     p = sub.add_parser("prepare", help="build one story's read-only inputs and arm configs")
     p.add_argument("--trial", required=True)

@@ -16,9 +16,14 @@ network.
 Most tests load the harness by file path and call `main([...])` in-process
 (so `REVIEW_PANEL` and `SCRIPTS` can be monkeypatched); a few run it as a CLI.
 
-Temporary: Story 4 deletes this file, its fixtures, and the harness.
+Story 5 covers `init --upgrades` (a scoped trial): the stored scope, the
+`arm_not_applicable` refusal outside it, scoped `sheet` and `report`, and an
+unscoped run pinned byte for byte to the pre-Story-5 harness.
+
+Temporary: Story 6 deletes this file, its fixtures, and the harness.
 [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
 [AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5]
+[AC-5.1, AC-5.2]
 """
 
 from __future__ import annotations
@@ -1131,7 +1136,7 @@ class Trial:
 
     def __init__(self, root: Path, harness: ModuleType, present: Sequence[str] = UPGRADES,
                  routes: Optional[Dict[str, Optional[dict]]] = None,
-                 yuss: Optional[Path] = None) -> None:
+                 yuss: Optional[Path] = None, upgrades: Optional[str] = None) -> None:
         root.mkdir(parents=True, exist_ok=True)
         self.root, self.harness = root, harness
         self.trial = root / "trial.json"
@@ -1142,6 +1147,8 @@ class Trial:
                               "--repo", _probe_repo(root, present)]
         if yuss is not None:
             args += ["--yuss", yuss]
+        if upgrades is not None:
+            args += ["--upgrades", upgrades]
         assert_ran(self.call(*args))
         self.set_routes(DEFAULT_ROUTES if routes is None else routes)
 
@@ -2814,3 +2821,537 @@ class TestNoText:
         """The reviewer text the scan rejects is in the gitignored state dir."""
         raw = (e2e.trial.state / SLUG1 / "off-1.md").read_text(encoding="utf-8")
         assert "@@ -10,3 +10,3 @@" in raw
+
+
+# =============================================================================
+# Story 5: `init --upgrades` scopes a trial
+# (spec 2026-10-25-gate-upgrade-removal-measurement, Story 5)
+# [AC-5.1, AC-5.2]
+# =============================================================================
+
+SCOPE = "repro-first"
+SCOPED_ARMS = ("off-1", "off-2", "repro-first")
+OUT_OF_SCOPE = {
+    "reviewer-filters": ("filters-on.md", ()),
+    "safety-fact": ("safety-on.md", ("--verifier", VERIFIER_PASS)),
+    "gate0-divergence": ("gate0-comparison.md", ("--report-line", CHOSE)),
+}
+UNSCOPED_GOLDEN = FIXTURES / "unscoped-golden.json"
+GOLDEN_NOTE = "owner check missing at that commit"
+SCOPED_NOTE = "the retried webhook still double-charges at that commit"
+
+
+def _scoped(root: Path, harness: ModuleType, upgrades: str = SCOPE,
+            present: Sequence[str] = UPGRADES) -> Trial:
+    return Trial(root, harness, present=present, upgrades=upgrades)
+
+
+def _record_scoped(t: Trial, bug: bool = True) -> None:
+    """off-1, off-2, and repro-first on every story; S1 is a bug fix whose repro
+    still fails at the story commit when `bug` is set."""
+    t.off(S1)
+    if bug:
+        t.repro(S1, *BUG_FAIL_FAIL, output="repro-bug.md")
+    else:
+        t.repro(S1)
+    for sid in ALL_STORIES[1:]:
+        t.off(sid, "off-pass.md")
+        t.repro(sid)
+
+
+def _scoped_doc() -> dict:
+    """`_decided_doc` scoped to repro-first: only off-1, off-2, and repro-first arms."""
+    doc = _decided_doc()
+    doc["scope"] = [SCOPE]
+    for story in doc["stories"]:
+        story["arms"] = {arm: story["arms"][arm] for arm in SCOPED_ARMS}
+        story["off_only"] = {}
+    return doc
+
+
+class TestInitUpgradesScope:
+    """`init --upgrades` stores a scope narrower than all four, in UPGRADES
+    order; all four stores none. Story 5. [AC-5.1]"""
+
+    def test_scoped_init_stores_the_scope(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        result = _main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", out,
+                       "--repo", _probe_repo(tmp_path), "--upgrades", SCOPE)
+        assert_ran(result)
+        doc = _read(out)
+        assert doc["scope"] == [SCOPE]
+        assert doc["upgrades"] == {name: {"present": True} for name in UPGRADES}
+        assert len(doc["stories"]) == 4
+        assert result.out[5:] == [
+            "upgrade: repro-first present=true",
+            "scope: repro-first",
+            "gate-upgrade-trial: initialized — 4 stories, 1 upgrade present, no arms recorded"]
+
+    def test_scope_follows_upgrades_order(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        assert_ran(_main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", out,
+                         "--repo", _probe_repo(tmp_path),
+                         "--upgrades", " repro-first , safety-fact"))
+        assert _read(out)["scope"] == ["safety-fact", "repro-first"]
+
+    def test_all_four_is_unscoped_and_byte_identical(self, harness, capsys, tmp_path):
+        """Naming all four writes the same bytes and output as no `--upgrades`. [AC-5.2]"""
+        repo = _probe_repo(tmp_path)
+        plain, every = tmp_path / "plain.json", tmp_path / "every.json"
+        first = _main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", plain,
+                      "--repo", repo)
+        second = _main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", every,
+                       "--repo", repo, "--upgrades", ",".join(reversed(UPGRADES)))
+        assert plain.read_bytes() == every.read_bytes()
+        assert first == second
+        assert "scope" not in _read(plain)
+
+    @pytest.mark.parametrize("value", [
+        "", " ", ",", "repro-first,", ",repro-first", "nope", "repro-first,nope",
+        "repro-first,repro-first", "Repro-First", "off-1"])
+    def test_unknown_or_empty_list_refused(self, harness, capsys, tmp_path, value):
+        """Exit 2, one reason line, nothing written. [AC-5.1]"""
+        out = tmp_path / "t.json"
+        result = _main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", out,
+                       "--repo", _probe_repo(tmp_path), "--upgrades", value)
+        assert_refused(result, "upgrades_invalid")
+        assert not out.exists()
+
+    def test_refusal_with_force_leaves_out_unchanged(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        out.write_text("keep me", encoding="utf-8")
+        result = _main(harness, capsys, "init", "--baseline", MINI_BASELINE, "--out", out,
+                       "--repo", _probe_repo(tmp_path), "--force", "--upgrades", "nope")
+        assert_refused(result, "upgrades_invalid")
+        assert out.read_text(encoding="utf-8") == "keep me"
+
+    @pytest.mark.parametrize("scope", [[], ["nope"], SCOPE, [SCOPE, SCOPE], list(UPGRADES)])
+    def test_malformed_stored_scope_is_trial_invalid(self, harness, tmp_path, scope):
+        """A hand-edited scope that `init` would never write is refused. [AC-5.1]"""
+        doc = _scoped_doc()
+        doc["scope"] = scope
+        path = tmp_path / "trial.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        assert_refused(_call(harness, "report", "--trial", path), "trial_invalid")
+
+
+class TestScopedRecord:
+    """On a scoped trial only `off-1`, `off-2`, and the scoped upgrades' arms
+    apply; any other arm is `arm_not_applicable` and the file is unchanged.
+    Story 5. [AC-5.1]"""
+
+    @pytest.mark.parametrize("arm", sorted(OUT_OF_SCOPE))
+    def test_out_of_scope_arm_refused(self, harness, tmp_path, arm):
+        t = _scoped(tmp_path / "t", harness)
+        before = t.raw()
+        output, extra = OUT_OF_SCOPE[arm]
+        result = t.record(S1, arm, output, *extra)    # S1's routes admit every arm
+        assert_refused(result, "arm_not_applicable")
+        assert "scope" in result.err[0]
+        assert t.raw() == before
+        assert _tree(t.state) == []
+
+    @pytest.mark.parametrize("arm", sorted(OUT_OF_SCOPE))
+    def test_refused_after_scoped_arms_are_recorded(self, harness, tmp_path, arm):
+        t = _scoped(tmp_path / "t", harness)
+        _record_scoped(t)
+        before, state = t.raw(), _tree(t.state)
+        output, extra = OUT_OF_SCOPE[arm]
+        assert_refused(t.record(S4, arm, output, *extra), "arm_not_applicable")
+        assert t.raw() == before
+        assert _tree(t.state) == state
+
+    def test_scoped_arms_record(self, harness, tmp_path):
+        t = _scoped(tmp_path / "t", harness)
+        t.off(S1)
+        result = t.repro(S1, *BUG_FAIL_FAIL, output="repro-bug.md")
+        assert result.out[1:3] == ["arm: repro-first verdict=none keys=1 exercised=true",
+                                   "upgrade_only: 1"]
+        story = t.story(S1)
+        assert sorted(story["arms"]) == ["off-1", "off-2", "repro-first"]
+        assert story["upgrade_only"] == [{"id": None, "upgrade": "repro-first",
+                                          "key": REPRO_KEY, "severity": "Critical",
+                                          "label": None, "note": None}]
+        assert story["off_only"] == {}
+
+    def test_repro_first_keeps_its_evidence_rule(self, harness, tmp_path):
+        """Scope adds a rule; it does not relax repro-first's own. [AC-5.1]"""
+        t = _scoped(tmp_path / "t", harness)
+        before = t.raw()
+        assert_refused(t.record(S1, "repro-first", "repro-bug.md", states=()),
+                       "evidence_mismatch")
+        assert_refused(t.record(S1, "repro-first", "repro-bug.md", "--kind", "bug"),
+                       "evidence_mismatch")
+        assert t.raw() == before
+
+    def test_absent_scoped_upgrade_is_not_applicable(self, harness, tmp_path):
+        t = _scoped(tmp_path / "t", harness, present=("safety-fact",))
+        before = t.raw()
+        result = t.record(S1, "repro-first", "repro-not-bug.md", "--kind", "not-a-bug-fix")
+        assert_refused(result, "arm_not_applicable")
+        assert "absent" in result.err[0]
+        assert t.raw() == before
+
+    def test_two_upgrade_scope_keeps_each_arms_route_rule(self, harness, tmp_path):
+        t = _scoped(tmp_path / "t", harness, upgrades="safety-fact,repro-first")
+        assert_refused(t.record(S3, "safety-fact", "safety-on.md", "--verifier", VERIFIER_PASS),
+                       "arm_not_applicable")             # gate3_route evaluator-agent
+        assert_refused(t.record(S1, "reviewer-filters", "filters-on.md"), "arm_not_applicable")
+        t.off(S1)
+        t.safety(S1)
+        assert sorted(t.story(S1)["arms"]) == ["off-1", "off-2", "safety-fact"]
+
+
+class TestScopedSheet:
+    """`sheet` (first missing arm, ack fields) and `label` respect the scope.
+    Story 5. [AC-5.1]"""
+
+    def test_scoped_arms_are_enough_for_sheet(self, harness, tmp_path):
+        scoped = _scoped(tmp_path / "scoped", harness)
+        _record_scoped(scoped)
+        assert_ran(scoped.sheet("--seed", "3"))
+        unscoped = Trial(tmp_path / "unscoped", harness)
+        _record_scoped(unscoped)
+        before = unscoped.raw()
+        assert_refused(unscoped.sheet("--seed", "3"), "missing_arm")
+        assert unscoped.raw() == before
+
+    def test_missing_scoped_arm_blocks_sheet(self, harness, tmp_path):
+        t = _scoped(tmp_path / "t", harness)
+        t.off(S1)
+        t.repro(S1)
+        for sid in (S2, S3):
+            t.off(sid, "off-pass.md")
+            t.repro(sid)
+        t.off(S4, "off-pass.md")
+        result = t.sheet("--seed", "3")
+        assert_refused(result, "missing_arm")
+        assert result.err[0] == "reason: missing_arm — %s repro-first" % S4
+        assert not t.sheet_path.exists()
+
+    def test_ack_only_for_the_scoped_upgrade(self, harness, tmp_path):
+        t = _scoped(tmp_path / "t", harness)
+        _record_scoped(t, bug=False)
+        result = t.sheet("--seed", "3")
+        assert result.out[2:4] == ["findings: 0", "not_exercised: repro-first"]
+        text = t.sheet_text()
+        assert re.findall(r"(?m)^### not exercised: (\S+)$", text) == [SCOPE]
+        block = text[text.index("### not exercised: repro-first"):].splitlines()
+        assert block == (["### not exercised: repro-first", "exercised: 0/4"]
+                         + ["- %s: not-a-bug-fix" % sid for sid in ALL_STORIES] + ["ack:"])
+        t.fill(acks={SCOPE: "remove"})
+        assert_ran(t.label())
+        assert t.doc()["acks"] == {SCOPE: "remove"}
+        report = t.report()
+        assert report.out[0] == "pass"
+        assert [line for line in report.out if line.startswith("upgrade: ")] == [
+            "upgrade: repro-first verdict=remove exercised=0/4 reason=not_exercised"]
+
+    def test_scoped_pipeline_labels_and_reports(self, harness, tmp_path):
+        """init → record → sheet → label → report on a repro-first-only trial. [AC-5.1, AC-5.2]"""
+        t = _scoped(tmp_path / "t", harness)
+        _record_scoped(t)
+        unlabeled = t.report()
+        assert unlabeled.out[:3] == ["unverifiable", "reason: repro-first unlabeled 1",
+                                     "scope: repro-first"]
+        assert_ran(t.sheet("--seed", "5"))
+        entries = _sheet_entries(t.sheet_text())
+        assert [(v["story"], v["key"]) for v in entries.values()] == [(S1, REPRO_KEY)]
+        assert "## Not exercised\n\n(none)" in t.sheet_text()
+        t.fill(label="valid", notes={(S1, REPRO_KEY): SCOPED_NOTE})
+        assert_ran(t.label())
+        report = t.report()
+        assert report.out[0] == "pass"
+        assert [line for line in report.out if line.startswith("upgrade: ")] == [
+            "upgrade: repro-first verdict=keep exercised=1/4 upgrade_only=1 valid=1 invalid=0 "
+            "off_only=0"]
+        assert report.out[-1] == ("gate-upgrade-trial: keep 1, remove 0, unverifiable 0, "
+                                  "absent 0 — 4 stories")
+        for text in t.history:
+            assert_text_free_trial(text, TestNoText.PHRASES + (SCOPED_NOTE,))
+
+
+class TestScopedReport:
+    """A scoped `report` prints `upgrade:` lines, the overall line, and the
+    summary over the scoped upgrades only. Story 5. [AC-5.2]"""
+
+    def _write(self, tmp_path: Path, doc: dict) -> Path:
+        path = tmp_path / "trial.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        return path
+
+    def _doc(self) -> dict:
+        doc = _scoped_doc()
+        doc["stories"][1]["arms"]["repro-first"] = {"keys": [], "kind": "bug",
+                                                    "exercised": True}
+        doc["stories"][1]["repro_kind"] = "bug"
+        doc["labeled_by"] = "A. Maintainer"
+        doc["yuss_snapshot"]["unchanged"] = True
+        return doc
+
+    def test_text_report(self, harness, tmp_path):
+        result = _call(harness, "report", "--trial", self._write(tmp_path, self._doc()))
+        assert result.code == 0 and result.err == []
+        assert result.out == [
+            "pass",
+            "scope: repro-first",
+            "story: %s gate3_route=review-agent gate0_route=review-agent repro=not-a-bug-fix "
+            "arms=off-1,off-2,repro-first" % S1,
+            "story: %s gate3_route=review-agent gate0_route=evaluator-agent repro=bug "
+            "arms=off-1,off-2,repro-first" % S2,
+            "story: %s gate3_route=evaluator-agent gate0_route=review-agent "
+            "repro=not-a-bug-fix arms=off-1,off-2,repro-first" % S3,
+            "story: %s gate3_route=review-agent gate0_route=skip repro=not-a-bug-fix "
+            "arms=off-1,off-2,repro-first" % S4,
+            "upgrade: repro-first verdict=remove exercised=1/4 upgrade_only=0 valid=0 "
+            "invalid=0 off_only=0",
+            SAMPLE_LINE,
+            PROXY_LINE,
+            BLINDING_LINE,
+            "yuss: unchanged",
+            "gate-upgrade-trial: keep 0, remove 1, unverifiable 0, absent 0 — 4 stories",
+        ]
+
+    def test_out_of_scope_arms_do_not_make_it_unverifiable(self, harness):
+        """The same doc unscoped is unverifiable on the missing upgrade arms. [AC-5.2]"""
+        doc = self._doc()
+        report = harness.trial_report(doc)
+        assert report["verdict"] == "pass" and report["reasons"] == []
+        assert [row["name"] for row in report["upgrades"]] == [SCOPE]
+        del doc["scope"]
+        unscoped = harness.trial_report(doc)
+        assert unscoped["verdict"] == "unverifiable"
+        assert [row["name"] for row in unscoped["upgrades"]] == list(UPGRADES)
+
+    def test_unverifiable_reason_only_for_the_scope(self, harness, tmp_path):
+        doc = _scoped_doc()
+        del doc["stories"][2]["arms"]["repro-first"]
+        result = _call(harness, "report", "--trial", self._write(tmp_path, doc))
+        assert result.out[:3] == ["unverifiable",
+                                  "reason: repro-first missing_arm %s repro-first" % S3,
+                                  "scope: repro-first"]
+        assert [line for line in result.out if line.startswith("upgrade: ")] == [
+            "upgrade: repro-first verdict=unverifiable reason=missing_arm %s repro-first" % S3]
+        assert result.out[-1] == ("gate-upgrade-trial: keep 0, remove 0, unverifiable 1, "
+                                  "absent 0 — 4 stories")
+
+    def test_absent_scoped_upgrade(self, harness, tmp_path):
+        doc = _scoped_doc()
+        doc["upgrades"][SCOPE]["present"] = False
+        result = _call(harness, "report", "--trial", self._write(tmp_path, doc))
+        assert result.out[0] == "pass"
+        assert [line for line in result.out if line.startswith("upgrade: ")] == [
+            "upgrade: repro-first verdict=absent"]
+        assert result.out[-1] == ("gate-upgrade-trial: keep 0, remove 0, unverifiable 0, "
+                                  "absent 1 — 4 stories")
+
+    def test_json_carries_the_scope(self, harness, tmp_path):
+        path = self._write(tmp_path, self._doc())
+        text = _call(harness, "report", "--trial", path).out
+        report = json.loads(_call(harness, "report", "--trial", path, "--json").out[0])
+        assert report["scope"] == [SCOPE]
+        assert [row["name"] for row in report["upgrades"]] == [SCOPE]
+        assert report["verdict"] == text[0] and report["summary"] == text[-1]
+
+
+class TestScopedPrepare:
+    """`prepare` on a scoped trial writes only the applicable arms' configs and
+    skips blast-radius when safety-fact is out of scope. Story 5. [AC-5.1]"""
+
+    def test_only_scoped_arm_configs_and_no_blast_radius(self, standin):
+        doc = _read(standin.trial)
+        doc["scope"] = [SCOPE]
+        standin.trial.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n",
+                                 encoding="utf-8")
+        result = standin.prepare()
+        assert_ran(result)
+        assert standin.routes()["gate3_route"] == "review-agent"
+        assert not (standin.run / "blast-radius.json").exists()
+        assert [line.split()[1] for line in result.out if line.startswith("arm: ")] == list(
+            SCOPED_ARMS)
+        assert sorted(p.name for p in (standin.run / "arms").iterdir()) == sorted(SCOPED_ARMS)
+
+
+SUBSTITUTE_BASELINE = (REPO_ROOT / ".writ" / "eval" / "baselines"
+                       / "2026-11-09-repro-first-substitute.json")
+FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
+
+
+class TestSubstituteBaseline:
+    """The Repro First substitute baseline (spec.md Business Rule 14) holds
+    identity fields, the four-part rule, and one fix-commit note per story,
+    and `init --upgrades repro-first` accepts it. Story 5. [AC-5.3]"""
+
+    def test_selection_is_four_identity_entries_with_full_shas(self):
+        doc = _read(SUBSTITUTE_BASELINE)
+        selection = doc["selection"]
+        assert len(selection) == 3      # 73f34d4 excluded under rule 5
+        assert [e["story_id"] for e in doc["excluded"]] == [
+            "2026-05-13-event-settlement-role-invariants/story-1-enforce-settlement-role-invariants"]
+        assert set(doc["excluded"][0]) == {"story_id", "reason"}
+        for entry in selection:
+            assert set(IDENTITY) <= set(entry)
+            assert FULL_SHA.match(entry["story_commit"]) and FULL_SHA.match(entry["parent_sha"])
+            assert entry["story_id"] == "%s/%s" % (
+                entry["spec_folder"], Path(entry["story_path"]).stem)
+            assert entry["story_path"].endswith("/user-stories/%s.md"
+                                                % Path(entry["story_path"]).stem)
+            note = entry["fix_commit_note"]
+            assert isinstance(note, str) and note and "\n" not in note and "`" not in note
+            assert set(entry) - set(IDENTITY) <= {"fix_commit_note", "fix_commit_date",
+                                                  "parent_is_merge"}
+
+    def test_selection_rule_echoes_the_four_parts(self):
+        rule = _read(SUBSTITUTE_BASELINE)["selection_rule"]
+        assert sorted(rule) == ["1_bug_test", "2_fix_commit", "3_phase11_rules", "4_take",
+                                "5_prepare_inputs"]
+        assert "contract section" in rule["5_prepare_inputs"]
+        assert "skills/tdd-cycle/SKILL.md" in rule["1_bug_test"]
+        assert "fix(tests)" in rule["2_fix_commit"] and "fix(ci)" in rule["2_fix_commit"]
+        assert "jest.mock()" in rule["3_phase11_rules"]
+        assert "four most recent" in rule["4_take"]
+
+    def test_init_accepts_it_scoped(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        assert_ran(_main(harness, capsys, "init", "--baseline", SUBSTITUTE_BASELINE,
+                         "--out", out, "--repo", _probe_repo(tmp_path), "--upgrades", SCOPE))
+        doc = _read(out)
+        assert doc["scope"] == [SCOPE]
+        assert [s["story_id"] for s in doc["stories"]] == [
+            e["story_id"] for e in _read(SUBSTITUTE_BASELINE)["selection"]]
+
+
+def _baseline_of(root: Path, count: int) -> Path:
+    def mutate(doc: dict) -> None:
+        entries = doc["selection"]
+        doc["selection"] = [dict(entries[i % 4], story_id="%s-%d" % (entries[i % 4]["story_id"], i))
+                            for i in range(count)]
+    return _baseline_with(root, mutate)
+
+
+class TestScopedStoryCount:
+    """A scoped trial accepts 1 to 4 stories and reports over its own count;
+    an unscoped trial still needs exactly four. Story 5. [AC-5.2, AC-5.3]"""
+
+    def test_scoped_three_story_trial_inits_and_reports(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        result = _main(harness, capsys, "init", "--baseline", _baseline_of(tmp_path, 3),
+                       "--out", out, "--repo", _probe_repo(tmp_path), "--upgrades", SCOPE)
+        assert_ran(result)
+        assert result.out[-1] == ("gate-upgrade-trial: initialized — 3 stories, "
+                                  "1 upgrade present, no arms recorded")
+        doc = _read(out)
+        assert len(doc["stories"]) == 3
+        for index, story in enumerate(doc["stories"]):
+            story["routes"] = dict(ROUTES_RR)
+            kind = "bug" if index == 0 else "not-a-bug-fix"
+            story["repro_kind"] = kind
+            story["arms"] = {"off-1": {"keys": []}, "off-2": {"keys": []},
+                             "repro-first": {"keys": [], "kind": kind,
+                                             "exercised": kind == "bug"}}
+        doc["labeled_by"] = "A. Maintainer"
+        out.write_text(json.dumps(doc), encoding="utf-8")
+        report = _call(harness, "report", "--trial", out)
+        assert report.out[0] == "pass"
+        assert [line for line in report.out if line.startswith("upgrade: ")] == [
+            "upgrade: repro-first verdict=remove exercised=1/3 upgrade_only=0 valid=0 "
+            "invalid=0 off_only=0"]
+        assert report.out[-5].startswith("sample: 3 stories, ")
+        assert report.out[-1] == ("gate-upgrade-trial: keep 0, remove 1, unverifiable 0, "
+                                  "absent 0 — 3 stories")
+
+    @pytest.mark.parametrize("count", [0, 5])
+    def test_scoped_zero_or_five_stories_refused(self, harness, capsys, tmp_path, count):
+        out = tmp_path / "t.json"
+        result = _main(harness, capsys, "init", "--baseline", _baseline_of(tmp_path, count),
+                       "--out", out, "--repo", _probe_repo(tmp_path), "--upgrades", SCOPE)
+        assert_refused(result, "selection_invalid")
+        assert not out.exists()
+
+    def test_unscoped_three_stories_still_refused(self, harness, capsys, tmp_path):
+        out = tmp_path / "t.json"
+        result = _main(harness, capsys, "init", "--baseline", _baseline_of(tmp_path, 3),
+                       "--out", out, "--repo", _probe_repo(tmp_path))
+        assert_refused(result, "selection_invalid")
+        assert "exactly 4" in result.err[0]
+        assert not out.exists()
+
+
+# --- AC-5.2: an unscoped trial is byte-identical to the pre-Story-5 harness -----
+
+class _Recorder(Trial):
+    """A Trial that also logs every call's exit code, output, and trial bytes."""
+
+    def __init__(self, root: Path, harness: ModuleType) -> None:
+        self.log: List[Tuple[str, Result, bytes]] = []
+        super().__init__(root, harness)
+
+    def call(self, *args: object) -> Result:
+        result = super().call(*args)
+        trial = self.trial.read_bytes() if self.trial.exists() else b""
+        self.log.append((str(args[0]), result, trial))
+        return result
+
+
+def _unscoped_transcript(harness: ModuleType, root: Path) -> dict:
+    """Every command of an unscoped run (refusals included), with paths under
+    `root` and the repo replaced by placeholders so the transcript is stable
+    across machines and checkouts."""
+    t = _Recorder(root / "golden", harness)
+    t.report()                                               # missing arms
+    _record_full(t)
+    t.record(S3, "safety-fact", "safety-on.md", "--verifier", VERIFIER_PASS)  # refused
+    t.report()                                               # unlabeled
+    t.sheet("--seed", "7")
+    t.sheet("--seed", "7")                                   # refused: sheet recorded
+    t.fill(label="valid", notes={(S1, FEE_SHARE): GOLDEN_NOTE},
+           labels={(S4, SETTLE): "invalid"})
+    t.label()
+    t.report()
+    t.report("--json")
+    places = sorted({str(root), str(root.resolve())}, key=len, reverse=True)
+
+    def norm(text: str) -> str:
+        for place in places:
+            text = text.replace(place, "<ROOT>")
+        text = text.replace(str(REPO_ROOT), "<REPO>")
+        # The sheet's body hash covers its absolute excerpt paths; the
+        # normalized sheet text is pinned instead, and `label` checks the hash.
+        return re.sub(r'"body_sha256": "[0-9a-f]{64}"', '"body_sha256": "<SHEET>"', text)
+
+    steps = [{"command": command, "code": result.code,
+              "out": [norm(line) for line in result.out],
+              "err": [norm(line) for line in result.err],
+              "trial_sha256": hashlib.sha256(norm(trial.decode("utf-8")).encode("utf-8"))
+              .hexdigest()}
+             for command, result, trial in t.log]
+    excerpts = {p.name: norm(p.read_text(encoding="utf-8"))
+                for p in sorted((t.state / "findings").iterdir())}
+    return {"steps": steps, "trial": norm(t.trial.read_text(encoding="utf-8")),
+            "sheet": norm(t.sheet_text()), "excerpts": excerpts}
+
+
+class TestUnscopedUnchanged:
+    """An unscoped trial (no `--upgrades`) writes the same trial bytes, sheet,
+    excerpts, and output as the harness before Story 5. The golden transcript
+    `fixtures/gate-upgrade-trial/unscoped-golden.json` was captured from the
+    harness at commit 7c3f001. Story 5. [AC-5.2]"""
+
+    def test_unscoped_run_matches_the_pre_change_harness(self, harness, tmp_path):
+        golden = _read(UNSCOPED_GOLDEN)
+        actual = _unscoped_transcript(harness, tmp_path)
+        assert [s["command"] for s in actual["steps"]] == [s["command"] for s in golden["steps"]]
+        for got, want in zip(actual["steps"], golden["steps"]):
+            assert got == want
+        assert actual["trial"] == golden["trial"]
+        assert actual["sheet"] == golden["sheet"]
+        assert actual["excerpts"] == golden["excerpts"]
+
+    def test_golden_report_has_four_upgrade_lines_and_no_scope(self):
+        golden = _read(UNSCOPED_GOLDEN)
+        final = [s for s in golden["steps"] if s["command"] == "report"][-2]
+        assert [line.split()[1] for line in final["out"] if line.startswith("upgrade: ")] == (
+            list(UPGRADES))
+        assert not any(line.startswith("scope:") for line in final["out"])
+        assert "scope" not in json.loads(golden["trial"])
+        assert "scope" not in json.loads(golden["steps"][-1]["out"][0])
