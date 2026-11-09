@@ -211,7 +211,7 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **Advisory** — no hard file locking. Coding flags crossings; review verifies (Gate 3).
 
-`Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
+`Read skills/boundary-map-computation/SKILL.md` for how the map is derived. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
 Run it; pass stdout onward (treat `blocker` as empty) and save it for pre-review:
 
@@ -230,7 +230,7 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules). Pass `knowledge_context` after spec context and before dependency records when populated. If dependencies have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` after knowledge context, before implementation tasks.
 
-**When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking”.
+**When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block.
 
 **Base:** record `git rev-parse HEAD` as `<base>` before the story's first Gate 1 spawn (`--review-only`: before the story's code); reuse it on recodes.
 
@@ -239,6 +239,8 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 **Bug path:** when the report's `### Repro` block names commits, post-review runs `repro-order.py check` from `<base>` after integration; print its check line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
 
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
+
+No coding-agent type: spawn per the adapter's Agent Paths fallback; if nothing can be spawned, BLOCKED escalation. The orchestrator never codes a story itself.
 
 ---
 

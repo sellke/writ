@@ -773,7 +773,12 @@ KNOWN_OVER_BUDGET = {
     # changed source file, offset by dropping Gate 4's restatement of it.
     # 2026-11-07 (lean-story-pipeline spec-end cleanup, DEV-022): Step 4 item 3
     # no longer says implement-spec regenerates context.md. 38537 -> 38517.
-    "commands/implement-story.md": 13557,
+    # 2026-11-08 (2026-11-08-writ-agents-registered Story 2): 13557 -> 13553
+    # (file 38517 -> 38513); a shrink. Gate 1 gains the no-coding-agent-type
+    # sentence (+160), offset by cutting Gate 0.5's skill-read detail (-95) and
+    # Gate 1's restatement of how agents read `(none)` (-70). Re-pinned down
+    # because total_overage is asserted exactly.
+    "commands/implement-story.md": 13553,
 }
 
 

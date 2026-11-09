@@ -112,6 +112,42 @@ grep -Fq -- '--check failed without a reason line.' "$ROOT/eval-report.md" \
   || fail "silent failure: finding must say --check failed without a reason line"
 ok "generator --check exit 1 with no reason line -> one finding"
 
+# Story 1 of 2026-11-08-writ-agents-registered: what .claude/agents exposes.
+LINK_REMEDY='ln -sfn ../claude-code/agents .claude/agents'
+
+# AC-1.2
+ROOT="$(new_root)"
+mkdir -p "$ROOT/.claude"
+ln -s ../claude-code/agents "$ROOT/.claude/agents"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 0 ] || fail "registered link: expected exit 0, got $rc"
+grep -Fxq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "registered link: expected Findings: 0"
+ok "AC-1.2: .claude/agents -> ../claude-code/agents -> Findings 0"
+
+# AC-1.3
+ROOT="$(new_root)"
+mkdir -p "$ROOT/.claude" "$ROOT/bare-agents"
+cp "$REPO"/agents/*.md "$ROOT/bare-agents/"
+ln -s ../bare-agents "$ROOT/.claude/agents"
+rc="$(run_check "$ROOT")"
+[ "$rc" -ne 0 ] || fail "frontmatter-less link: expected non-zero exit, got $rc"
+grep -Fq 'FAIL (18 finding(s))' "$ROOT/eval-report.md" || fail "frontmatter-less link: expected 18 findings"
+n="$(grep -Fc '.claude/agents exposes no registered agent writ-' "$ROOT/eval-report.md" || true)"
+[ "$n" -eq 9 ] || fail "frontmatter-less link: expected 9 missing-name findings, got $n"
+n="$(grep -Fc 'has no frontmatter name:' "$ROOT/eval-report.md" || true)"
+[ "$n" -eq 9 ] || fail "frontmatter-less link: expected 9 no-frontmatter findings, got $n"
+n="$(grep -Fc "$LINK_REMEDY" "$ROOT/eval-report.md" || true)"
+[ "$n" -eq 18 ] || fail "frontmatter-less link: every finding must carry remedy '$LINK_REMEDY'"
+ok "AC-1.3: link to frontmatter-less copies -> 9 missing-name + 9 no-frontmatter findings, non-zero exit"
+
+# AC-1.4
+ROOT="$(new_root)"
+[ ! -e "$ROOT/.claude/agents" ] && [ ! -L "$ROOT/.claude/agents" ] || fail "no link: temp root must start without .claude/agents"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 0 ] || fail "no link: expected exit 0, got $rc"
+grep -Fxq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "no link: expected Findings: 0"
+ok "AC-1.4: no .claude/agents -> Findings 0"
+
 registry="$(awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL")"
 printf '%s\n' "$registry" | grep -Fxq "  claude-agents" \
   || fail "claude-agents must be registered in CHECKS=(...)"
