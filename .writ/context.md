@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-08T21:30:00Z
+> Last Updated: 2026-11-09T03:10:00Z
 
 ## Product Mission
 
@@ -8,7 +8,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-11-08-writ-agents-registered` — 0/2 stories, Not Started: register the `writ-*` agents in this repo and state the spawn fallback. `2026-11-06-archived-dependencies-resolve` merged in PR #72, released in v0.47.1, archived.
+- **Spec:** `2026-11-08-writ-agents-registered` — 2/2 stories, Complete (lane branch, not yet merged): register the `writ-*` agents in this repo and state the spawn fallback. `2026-11-06-archived-dependencies-resolve` merged in PR #72, released in v0.47.1, archived.
 - **In progress:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.1 (2026-11-08) is the latest release.
 
 ## Artifact Map

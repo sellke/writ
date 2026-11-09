@@ -6,8 +6,8 @@
 
 | Story | Status | Tasks | Progress |
 |---|---|---|---|
-| [Story 1: Register the writ-* agents in this repo](story-1-register-writ-agents.md) | Not Started | 0 / 7 | 0% |
-| [Story 2: Spawn fallback and no inline coding](story-2-spawn-fallback.md) | Not Started | 0 / 7 | 0% |
+| [Story 1: Register the writ-* agents in this repo](story-1-register-writ-agents.md) | Completed ✅ | 7 / 7 | 100% |
+| [Story 2: Spawn fallback and no inline coding](story-2-spawn-fallback.md) | Completed ✅ | 7 / 7 | 100% |
 
 **Total:** 2 stories, 14 tasks, 9 acceptance criteria.
 

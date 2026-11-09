@@ -24,9 +24,11 @@ In a normal project, `scripts/install.sh` **copies** product files into `.cursor
 .cursor/rules/writ.mdc         → ../../cursor/writ.mdc
 
 .claude/commands/              → ../commands/
-.claude/agents/                → ../agents/
+.claude/agents/                → ../claude-code/agents/
 .claude/skills/                → ../skills/
 ```
+
+Claude Code registers an agent only from a file with YAML frontmatter, which the generated `claude-code/agents/` files carry and `agents/` does not, so `.claude/agents/` points there while `.cursor/agents/` keeps `../agents/`.
 
 (`.claude/` may also contain Claude-only files such as `settings.local.json` or `worktrees/` — those stay as regular files.)
 

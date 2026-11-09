@@ -250,7 +250,7 @@ Commands name agents by canonical path, as in `> **Agent:** agents/coding-agent.
 | `agents/user-story-generator.md` | `.claude/agents/writ-story-gen.md` |
 | `agents/visual-qa-agent.md` | `.claude/agents/writ-visual-qa.md` |
 
-Spawn the `writ-*` agent by name. Its body is the canonical file's body, so the instructions match.
+Spawn the `writ-*` agent by name. Its body is the canonical file's body, so the instructions match. When the session lists no `writ-*` type (it started before the agents were installed, or the harness has none), spawn a general-purpose agent whose prompt begins "Read and follow `agents/<file>.md`", with the same inputs. Name the agent type that ran in the report.
 
 ### Triggering Agents
 
