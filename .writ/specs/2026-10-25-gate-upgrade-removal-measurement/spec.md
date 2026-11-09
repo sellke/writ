@@ -1,6 +1,6 @@
 # Gate Upgrade Removal Measurement
 
-> **Status:** In Progress — Repro First report ready (rating-handoff-repro-first.md)
+> **Status:** Complete
 > **Amended:** 2026-11-09 by `/edit-spec`: Repro First substitute baseline (Business Rule 14), Stories 5 and 6; see [`CHANGELOG.md`](CHANGELOG.md)
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke

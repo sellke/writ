@@ -69,7 +69,7 @@
 
 1. **Phase 12:** record the 2026-10-31 agent run as the phase's UAT (82 of 89 pass; the panel's scenarios are moot), fix or accept [`2026-10-31-gate-4-5-fail-asked-instead-of-recoding`](../issues/bugs/2026-10-31-gate-4-5-fail-asked-instead-of-recoding.md), and record one real-project `app-verify.py` run. That closes the phase and opens Phase 16's gate.
 2. **Phase 14 loose ends:** the five person checks in PR #63's body were never recorded; run them or strike them. Make the ADR-030 front-door call. The recommendation on record is to keep `/writ`; Phase 17 made its confirm step ask only on doubt, so re-measure routing on the Phase 14 request set, then decide.
-3. **Phase 15 and 17 loose ends:** `2026-10-25-gate-upgrade-removal-measurement` holds Repro First until a substitute baseline of bug-fix stories exists. Phase 17 leaves three criteria open: a Jev threshold that bounds false acts under 10% on labels it was not designed on, a script that finds decisions made without a `doubt` call, and the ask count on the next phase run.
+3. **Phase 15 and 17 loose ends:** `2026-10-25-gate-upgrade-removal-measurement` no longer holds Repro First: its substitute trial over three bug-fix stories said remove on 2026-11-09, and Story 6 removed it. Phase 17 leaves three criteria open: a Jev threshold that bounds false acts under 10% on labels it was not designed on, a script that finds decisions made without a `doubt` call, and the ask count on the next phase run.
 4. **ADR-023 review**, due 2026-11-11: has any decision been visibly over- or under-diligenced, and did the triage catch it? [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) answers that record's own "strongest case against": the unenforceable rule now has an oracle and a log.
 
 Then Phase 16, built ahead of its gate on 2026-11-06 and merged on 2026-11-08 ([PR #71](https://github.com/sellke/writ/pull/71)). Its real-PR `/ship --watch` run is recorded ([PR #72](https://github.com/sellke/writ/pull/72)); what remains is a merge the doubt check passes on its own, which waits on Jev's calibration. Whether that blocks closing the phase is the maintainer's call.
@@ -772,14 +772,14 @@ Model routing, new verification, and any rewrite of the commands the front door 
   - Orders fixes as architecture, then types, then a lint, then a test, then docs.
   - Proves each new check fails on a real past mistake.
   - Keeps a rule-to-enforcer table.
-- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed. *Measured 2026-11-04 ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)): Gate 0 Divergence kept here but removed by the divergence trial, Safety Fact kept, Reviewer Filters kept, Repro First held (never exercised; held for a substitute baseline).*
+- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed. *Measured 2026-11-04 ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)): Gate 0 Divergence kept here but removed by the divergence trial, Safety Fact kept, Reviewer Filters kept, Repro First held (never exercised; held for a substitute baseline). Substitute measured 2026-11-09 on three yuss bug-fix stories ([trial-report-repro-first.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report-repro-first.md)): Repro First removed (exercised 3/3, no upgrade-only finding).*
 
 ### Features
 
 - [x] **`/why`** `Effort: M` — `2026-10-25-why-command`: ledger first, confidence tiers, a Preserve / Change / Avoid / Risk handoff.
 - [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M` — `2026-10-25-design-divergence`: includes the blind trial. Closed — Not Implemented (2026-11-04): the blind trial said remove, and Story 6 removed the skill and its Gate 0 wiring.
 - [x] **Blast-radius safety fact at Gate 2.5** `Effort: S` — `2026-10-25-review-route-rigor`
-- [x] **Repro-first bug fixing in `tdd-cycle`** `Effort: S` — `2026-10-25-repro-first-bug-fixing`: reaches both `/prototype` and `/implement-story`.
+- [x] **Repro-first bug fixing in `tdd-cycle`** `Effort: S` — `2026-10-25-repro-first-bug-fixing`: reaches both `/prototype` and `/implement-story`. *Removed 2026-11-09 by `2026-10-25-gate-upgrade-removal-measurement` Story 6: the substitute trial said remove ([trial-report-repro-first.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report-repro-first.md)).*
 - [x] **Reviewer lead-judgment filters** `Effort: XS` — `2026-10-25-review-route-rigor`
 - [x] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S` — `2026-10-25-retro-fix-ladder`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
   - findings that existing guidance already covers count as execution failures, not missing rules

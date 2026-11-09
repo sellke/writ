@@ -11,6 +11,12 @@ report is absent. This file imports only the stdlib and pytest; it never
 imports or loads the trial harness, so it keeps guarding the record after
 Story 4 deletes the harness.
 
+Story 6 (AC-6.3): Repro First's verdict comes from
+`trial-report-repro-first.md` once that file exists, checked against the
+substitute trial file `*-repro-first-substitute-trial.json`; the other three
+verdicts come from `trial-report.md` and the first trial file (spec.md
+Business Rule 13).
+
 AC-3.2, AC-3.3, AC-3.4, and AC-3.5 are run-verified by the orchestrator during
 Story 3 (init and presence probes, the arms, the sheet and handoff, the yuss
 snapshot, and the awaiting-labels status line). This file does not re-check
@@ -44,6 +50,10 @@ BLIND_SPEC_NAME = "2026-10-25-design-divergence"
 REPORT_NAME = "trial-report.md"
 TRIAL_REL = Path(".writ") / "eval" / "gate-upgrade-trial"
 TRIAL_GLOB = "*-gate-upgrade-trial.json"
+# Story 6: the Repro First substitute trial (spec.md Business Rule 14).
+SUBSTITUTE = "repro-first"
+SUBSTITUTE_REPORT_NAME = "trial-report-repro-first.md"
+SUBSTITUTE_TRIAL_GLOB = "*-repro-first-substitute-trial.json"
 SCHEMA = "gate-upgrade-trial-v1"
 
 UPGRADES = ("gate0-divergence", "safety-fact", "reviewer-filters", "repro-first")
@@ -89,13 +99,24 @@ def _fail(name: str, verdict: str, what: str) -> None:
     raise AssertionError("upgrade: %s verdict=%s: %s" % (name, verdict, what))
 
 
-def _find_report(root: Path, spec_name: str) -> Optional[Path]:
-    """The spec's trial-report.md; `/status --archive` may have moved the spec."""
+def _find_report(root: Path, spec_name: str, report_name: str = REPORT_NAME) -> Optional[Path]:
+    """The spec's report file; `/status --archive` may have moved the spec."""
     specs = root / ".writ" / "specs"
     for folder in (specs / spec_name, specs / "archive" / spec_name):
-        if (folder / REPORT_NAME).is_file():
-            return folder / REPORT_NAME
+        if (folder / report_name).is_file():
+            return folder / report_name
     return None
+
+
+def _source(root: Path, name: str) -> Tuple[Optional[Path], str]:
+    """(report, trial-file glob) for one upgrade. Repro First reads the substitute
+    pair once trial-report-repro-first.md exists; every other upgrade, and Repro
+    First before then, reads trial-report.md and the first trial file."""
+    if name == SUBSTITUTE:
+        report = _find_report(root, SPEC_NAME, SUBSTITUTE_REPORT_NAME)
+        if report is not None:
+            return report, SUBSTITUTE_TRIAL_GLOB
+    return _find_report(root, SPEC_NAME), TRIAL_GLOB
 
 
 def _spec_md(root: Path) -> Path:
@@ -113,6 +134,17 @@ def _verdicts(text: str) -> Dict[str, str]:
         match = UPGRADE_LINE.match(line.strip())
         if match:
             found.setdefault(match.group(1), match.group(2))
+    return found
+
+
+def _all_verdicts(root: Path) -> Dict[str, str]:
+    """{upgrade: verdict}, each read from its own report (see `_source`)."""
+    found: Dict[str, str] = {}
+    for name in UPGRADES:
+        report = _source(root, name)[0]
+        verdict = _verdicts(report.read_text(encoding="utf-8")).get(name) if report else None
+        if verdict is not None:
+            found[name] = verdict
     return found
 
 
@@ -167,11 +199,11 @@ def _blind_trial_removed(root: Path) -> bool:
 # --- checks ------------------------------------------------------------------
 
 
-def _trial(root: Path, name: str, verdict: str) -> dict:
-    """The one committed trial file: right schema and a human `labeled_by`."""
-    files = sorted((root / TRIAL_REL).glob(TRIAL_GLOB))
+def _trial(root: Path, name: str, verdict: str, glob: str = TRIAL_GLOB) -> dict:
+    """The one committed trial file matching `glob`: right schema and a human `labeled_by`."""
+    files = sorted((root / TRIAL_REL).glob(glob))
     if len(files) != 1:
-        _fail(name, verdict, "%d trial files (need exactly one %s)" % (len(files), (TRIAL_REL / TRIAL_GLOB).as_posix()))
+        _fail(name, verdict, "%d trial files (need exactly one %s)" % (len(files), (TRIAL_REL / glob).as_posix()))
     try:
         trial = json.loads(files[0].read_text(encoding="utf-8"))
     except ValueError:
@@ -241,19 +273,18 @@ def _check_status(root: Path, name: str, verdict: str, verdicts: Dict[str, str])
 
 
 def _check_upgrade(root: Path, name: str) -> None:
-    report = _find_report(root, SPEC_NAME)
+    report, glob = _source(root, name)
     if report is None:
         _fail(name, "missing", "no %s" % REPORT_NAME)
-    verdicts = _verdicts(report.read_text(encoding="utf-8"))
-    verdict = verdicts.get(name)
+    verdict = _verdicts(report.read_text(encoding="utf-8")).get(name)
     if verdict is None:
-        _fail(name, "missing", "no `upgrade: %s` line in %s" % (name, REPORT_NAME))
+        _fail(name, "missing", "no `upgrade: %s` line in %s" % (name, report.name))
     if verdict not in EXPECTED:
         _fail(name, verdict, "unknown verdict")
-    trial = _trial(root, name, verdict)
+    trial = _trial(root, name, verdict, glob)
     _check_labels(trial, name, verdict)
     EXPECTED[verdict](root, trial, name, verdict)
-    _check_status(root, name, verdict, verdicts)
+    _check_status(root, name, verdict, _all_verdicts(root))
 
 
 # --- live check ----------------------------------------------------------------
@@ -479,6 +510,111 @@ def test_an_archived_spec_is_followed(tmp_path):
     _check_all(tmp_path)
 
 
+# --- Story 6: Repro First reads the substitute report ---------------------------
+
+SUBSTITUTE_TRIAL_NAME = "2026-11-09-repro-first-substitute-trial.json"
+
+
+def _unwire(root: Path, name: str) -> None:
+    """Strip an upgrade's fake wiring, leaving the repo as its removal would."""
+    for rel, text in WIRING[name]:
+        path = root / rel
+        rest = path.read_text(encoding="utf-8").replace(text, "")
+        if rel == PROBES[name][0] and PROBES[name][1] is None:
+            path.unlink()
+        else:
+            path.write_text(rest, encoding="utf-8")
+
+
+def _add_substitute(root: Path, verdict: str, labeled_by: Optional[str] = "Adam (delegated)",
+                    label: Optional[str] = "valid", extra: str = "", copies: int = 1) -> Path:
+    """The substitute pair Story 5 and Story 6 commit: report plus scoped trial file."""
+    spec = (Path(".writ") / "specs" / SPEC_NAME).as_posix()
+    report = ["remove" if verdict in DECIDED else "unverifiable",
+              "scope: repro-first", "upgrade: repro-first verdict=%s exercised=3/3" % verdict]
+    _append(root, "%s/trial-report-repro-first.md" % spec, "\n".join(report) + "\n" + extra)
+    findings = [{"id": "F01", "upgrade": "repro-first", "key": "repro:AC-1.1", "severity": "Major",
+                 "label": label, "note": None}]
+    trial = {"schema": SCHEMA, "scope": ["repro-first"], "upgrades": {"repro-first": {"present": True}},
+             "stories": [{"story_id": "s/story-1", "upgrade_only": findings}], "labeled_by": labeled_by}
+    for i in range(copies):
+        name = SUBSTITUTE_TRIAL_NAME if i == 0 else "2026-11-1%d-repro-first-substitute-trial.json" % i
+        _append(root, (TRIAL_REL / name).as_posix(), json.dumps(trial))
+    return root
+
+
+def _substitute_repo(root: Path, verdict: str, status: str, **kwargs) -> Path:
+    """First trial: three keeps and Repro First unverifiable; substitute trial: `verdict`."""
+    _make_repo(root, dict(ALL_KEEP, **{"repro-first": "unverifiable"}), status)
+    if verdict == "remove":
+        _unwire(root, "repro-first")
+    return _add_substitute(root, verdict, **kwargs)
+
+
+def test_repro_first_reads_the_substitute_report_when_it_exists(tmp_path):
+    """[AC-6.3] spec 2026-10-25-gate-upgrade-removal-measurement Story 6: Repro First's
+    `remove` comes from trial-report-repro-first.md, not the first report's `unverifiable`."""
+    _check_all(_substitute_repo(tmp_path, "remove", "Complete"))
+
+
+def test_repro_first_falls_back_to_the_first_report_without_a_substitute(tmp_path):
+    """[AC-6.3] Story 6: with no trial-report-repro-first.md, Repro First reads trial-report.md."""
+    _make_repo(tmp_path, dict(ALL_KEEP, **{"repro-first": "unverifiable"}), "In Progress — repro-first amendment_requested")
+    _unwire(tmp_path, "repro-first")
+    with pytest.raises(AssertionError, match=r"^upgrade: repro-first verdict=unverifiable: presence probe"):
+        _check_upgrade(tmp_path, "repro-first")
+
+
+def test_other_upgrades_ignore_the_substitute_report(tmp_path):
+    """[AC-6.3] Story 6: the other three verdicts come from trial-report.md even when the
+    substitute report carries a line for them."""
+    _substitute_repo(tmp_path, "remove", "Complete", extra="upgrade: safety-fact verdict=remove\n")
+    _check_upgrade(tmp_path, "safety-fact")
+
+
+def test_substitute_keep_still_wants_the_wiring(tmp_path):
+    """[AC-6.3] Story 6: a substitute `keep` checks the probe against the substitute trial file."""
+    _substitute_repo(tmp_path, "keep", "Complete")
+    _check_upgrade(tmp_path, "repro-first")
+    (tmp_path / "scripts" / "repro-order.py").unlink()
+    with pytest.raises(AssertionError, match=r"^upgrade: repro-first verdict=keep: presence probe"):
+        _check_upgrade(tmp_path, "repro-first")
+
+
+@pytest.mark.parametrize("kwargs,what", [
+    ({"labeled_by": None}, "labeled_by is None"),
+    ({"label": None}, "upgrade-only finding F01 repro:AC-1.1 has label None"),
+])
+def test_repro_first_labels_come_from_the_substitute_trial(tmp_path, kwargs, what):
+    """[AC-6.3] Story 6: the labels check reads the substitute trial file for Repro First."""
+    _substitute_repo(tmp_path, "remove", "Complete", **kwargs)
+    with pytest.raises(AssertionError, match=r"^upgrade: repro-first verdict=remove: .*" + re.escape(what)):
+        _check_upgrade(tmp_path, "repro-first")
+
+
+def test_substitute_trial_file_must_be_exactly_one(tmp_path):
+    """[AC-6.3] Story 6: two substitute trial files fail, as two first-trial files do."""
+    _substitute_repo(tmp_path, "remove", "Complete", copies=2)
+    with pytest.raises(AssertionError, match=r"2 trial files .*repro-first-substitute-trial\.json"):
+        _check_upgrade(tmp_path, "repro-first")
+
+
+@pytest.mark.parametrize("verdict,status,passes", [
+    ("remove", "Complete", True),
+    ("remove", "In Progress — repro-first amendment_requested", False),
+    ("unverifiable", "In Progress — repro-first unlabeled 1", True),
+    ("unverifiable", "Complete", False),
+], ids=["sub-remove-complete", "sub-remove-open", "sub-open-open", "sub-open-complete"])
+def test_status_uses_the_substitute_verdict(tmp_path, verdict, status, passes):
+    """[AC-6.3] Story 6: Business Rule 13 counts Repro First's substitute verdict."""
+    _substitute_repo(tmp_path, verdict, status)
+    if passes:
+        _check_upgrade(tmp_path, "gate0-divergence")
+    else:
+        with pytest.raises(AssertionError, match=r"^upgrade: gate0-divergence verdict=keep: spec\.md status"):
+            _check_upgrade(tmp_path, "gate0-divergence")
+
+
 def test_live_test_skip_reason_names_the_report():
     marks = [m for m in getattr(test_upgrade_verdict_matches_repo, "pytestmark", []) if m.name == "skipif"]
     assert len(marks) == 1
@@ -486,6 +622,7 @@ def test_live_test_skip_reason_names_the_report():
 
 
 def test_this_file_imports_only_the_stdlib_and_pytest():
+    """[AC-3.1, AC-6.3] stdlib and pytest only; never the trial harness."""
     tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
     modules = set()
     for node in ast.walk(tree):
