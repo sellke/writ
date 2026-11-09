@@ -27,6 +27,7 @@ Run: uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_ship
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import re
@@ -50,14 +51,22 @@ REAL_GIT = shutil.which("git") or "/usr/bin/git"
 
 
 def _path_without_gh() -> str:
-    """The real git's folder plus /usr/bin and /bin, minus any folder holding `gh`."""
-    dirs = [os.path.dirname(os.path.realpath(REAL_GIT)), os.path.dirname(REAL_GIT),
-            "/usr/bin", "/bin"]
-    keep = []
-    for d in dirs:
-        if d not in keep and not os.path.exists(os.path.join(d, "gh")):
-            keep.append(d)
-    return os.pathsep.join(keep)
+    """One private folder linking every executable from git's folder, /usr/bin and /bin
+    except `gh`. Dropping whole folders fails where `gh` and `git` share one (CI runners
+    install both in /usr/bin)."""
+    bin_dir = tempfile.mkdtemp(prefix="ship-cleanup-bin-")
+    atexit.register(shutil.rmtree, bin_dir, True)
+    for d in (os.path.dirname(REAL_GIT), "/usr/bin", "/bin"):
+        try:
+            names = os.listdir(d)
+        except OSError:
+            continue
+        for name in names:
+            src, dst = os.path.join(d, name), os.path.join(bin_dir, name)
+            if name == "gh" or os.path.lexists(dst) or not os.access(src, os.X_OK):
+                continue
+            os.symlink(src, dst)
+    return bin_dir
 
 
 def _env() -> Dict[str, str]:
