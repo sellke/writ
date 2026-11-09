@@ -1,6 +1,7 @@
 # Story 1: Integrate deletes the merged lane branch
 
 > **Status:** Completed ✅ (2026-11-09)
+> **Commit:** d884fcd3d6c977ebf0a31ca836fe99b087cb9697
 > **Priority:** Normal
 > **Dependencies:** None
 
