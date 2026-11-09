@@ -54,6 +54,7 @@
 - Only a human labels; `valid` = real unmet AC or Critical/Major security/architecture defect at that commit. Exception: the substitute trial's labels are delegated to the assistant (2026-11-09), marked in `labeled_by` and every note
 - Substitute trial: arms `off-1`, `off-2`, `repro-first` only; a catch still needs a repro that fails at parent and at the story commit, so it leans toward `remove`
 - Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`) (DEV-015)
+- With zero findings, `report` reads `unverifiable (unlabeled 0)` until `label` sets `labeled_by` (DEV-016)
 - Gate 0 removed + blind trial `keep` → skill stays with `/prototype` only
 
 **Experience Design:**

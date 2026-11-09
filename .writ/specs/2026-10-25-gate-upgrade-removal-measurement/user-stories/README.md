@@ -8,7 +8,7 @@
 | 2 | [Trial Harness: record, sheet, label, and report](story-2-harness-record-sheet-label-report.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
 | 3 | [Run the Arms and Hand Off for Labeling](story-3-run-arms-and-handoff.md) | Completed ✅ | Medium | Story 2 | 7 | 7/7 |
 | 4 | [Act on the Labeled Trial (Human-Gated)](story-4-act-on-labeled-trial.md) | Completed ✅ | Medium | Story 3 | 6 | 6/6 |
-| 5 | 🆕 [Run the Repro First Substitute Trial](story-5-repro-first-substitute-trial.md) | Not Started | Medium | Story 3, Story 4 | 7 | 0/7 |
+| 5 | [Run the Repro First Substitute Trial](story-5-repro-first-substitute-trial.md) | Completed ✅ | Medium | Story 3, Story 4 | 7 | 7/7 |
 | 6 | 🆕 [Act on the Repro First Verdict](story-6-act-on-repro-first-verdict.md) | Not Started | Medium | Story 5 | 7 | 0/7 |
 
 **Total:** 6 stories, 41 tasks, 29 acceptance criteria (AC-4.5 retired 2026-11-09).

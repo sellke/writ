@@ -169,3 +169,19 @@
 - **Reason:** The key grammar needs an ID, and reading order is the only order the story text fixes.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order".
+
+#### [DEV-016] With zero findings, `report` waits on `labeled_by`
+- **Severity:** Small
+- **Spec said:** AC-5.5: with no upgrade-only findings, `report` prints a final `repro-first` verdict.
+- **Implementation did:** `report` prints `unverifiable` with `reason: repro-first unlabeled 0`. Technical-spec § Verdict step 4 treats a null `labeled_by` as unlabeled even with zero findings. Story 6 runs `label` on the field-less sheet, and `report` then gives `remove`.
+- **Reason:** The harness rule predates this story and is correct: a verdict needs a recorded labeler.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "With zero findings, `report` reads `unverifiable (unlabeled 0)` until `label` sets `labeled_by`".
+
+#### [DEV-017] Arm isolation slipped during the substitute run ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 3: every arm on a story gets the same prepared inputs. Business Rule 2: yuss is read-only and no live service is involved.
+- **Implementation did:** Three slips. (1) The orchestrator cherry-picked each repro into `checkout/` while two review arms (cover `off-1`, stretch `off-2`) were still reading that tree; both reviewers reported the extra test and reviewed `HEAD` and `diff.patch` instead. (2) The cover repro arm sent HTTP requests to the live `yuss.app` and `www.yuss.app` hosts to see the redirect. (3) `sheet` cleared the first trial's excerpt files in the gitignored `.writ/state/gate-upgrade-trial/findings/`; the first trial is already labeled and committed.
+- **Reason:** The orchestrator ran the repro checks as soon as each arm returned, rather than after all arms finished. The repro arm went past its brief. `sheet` rewrites the shared excerpt directory.
+- **Resolution:** Flagged for review. No arm output changed: neither affected reviewer used the working-tree change, and no key came from it. A rerun should apply repros only after every review arm on the story has returned.
+- **Spec amendment:** N/A — flagged for post-implementation review
