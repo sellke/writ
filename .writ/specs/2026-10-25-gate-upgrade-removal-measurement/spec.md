@@ -1,6 +1,7 @@
 # Gate Upgrade Removal Measurement
 
-> **Status:** In Progress — repro-first amendment_requested (trial-report.md)
+> **Status:** In Progress — Repro First substitute trial not started (Story 5)
+> **Amended:** 2026-11-09 by `/edit-spec`: Repro First substitute baseline (Business Rule 14), Stories 5 and 6; see [`CHANGELOG.md`](CHANGELOG.md)
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** [2026-10-25-design-divergence, 2026-10-25-review-route-rigor, 2026-10-25-repro-first-bug-fixing]
@@ -17,8 +18,9 @@
 2. Four upgrades under test, each named by its switch: `Gate 0 Divergence`, `Safety Fact`, `Reviewer Filters`, `Repro First`. Each arm runs one upgrade on and the other three off. The "current gates" arm runs all four off, twice.
 3. A per-story, per-upgrade exercise record. An upgrade counts as exercised on a story only when its own trigger fires there: the predicted review-agent route for Gate 0, the Gate 2.5 review-agent route for Safety Fact, every Gate 3 run for Reviewer Filters, and the skill's own bug recognition for Repro First.
 4. A labeling sheet and `rating-handoff.md`. A human labels every upgrade-only finding `valid` or `invalid` against the story's acceptance criteria and acknowledges every upgrade the baseline never exercised. The lane never labels.
-5. A human-gated verdict story that runs `report`, commits it verbatim as `trial-report.md`, carries out each upgrade's `keep` or `remove`, records the result in roadmap Phase 15 and ADR-030 § Review, and deletes the harness.
+5. A human-gated verdict story that runs `report`, commits it verbatim as `trial-report.md`, carries out each upgrade's `keep` or `remove`, and records the result in roadmap Phase 15 and ADR-030 § Review. Harness deletion moved to item 7.
 6. An outcome test, `scripts/tests/test_gate_upgrade_trial_outcome.py`, that does not import the harness and ties each upgrade's verdict to the repo state and this spec's status.
+7. *(Amended 2026-11-09.)* A Repro First substitute trial (Business Rule 14): four yuss bug-fix stories, arms `off-1`, `off-2`, and `repro-first` only, run with `init --upgrades repro-first`. Its report is committed as `trial-report-repro-first.md`; `trial-report.md` is not edited. Story 6 acts on Repro First's verdict and then deletes the harness.
 
 **Hardest Constraint:** The keep/remove verdict rests on human labels, and the baseline may not exercise every upgrade. The lane builds the harness, runs every arm, writes the sheet and the handoff, and stops. An upgrade the baseline never exercised is removed by the roadmap's literal rule unless the human explicitly asks for an amendment; it is never silently kept.
 
@@ -40,7 +42,7 @@
 
 **Scope Boundaries:**
 - Included: the harness and its unit tests; trial inputs, prompts, the trial file, the labeling sheet, and the handoff; the outcome test; the verdict story's removal edits taken from each sibling spec's removal inventory; the roadmap Phase 15 "Removal measurement" line; the ADR-030 § Review note.
-- Excluded: always-on multi-model panels; cross-vendor routing (ADR-024); formal verification; measuring `/why` or `/retro`; replaying full `/implement-story` runs; a substitute baseline; the design-divergence blind trial (owned by `2026-10-25-design-divergence`).
+- Excluded: always-on multi-model panels; cross-vendor routing (ADR-024); formal verification; measuring `/why` or `/retro`; replaying full `/implement-story` runs; a substitute baseline for any upgrade other than Repro First; the design-divergence blind trial (owned by `2026-10-25-design-divergence`).
 - Never touched, verdict story included: `commands/why.md`, `commands/writ.md`, `commands/retro.md`, `commands/refresh-command.md`.
 
 **⚠️ Technical Concerns:**
@@ -81,6 +83,7 @@
 5. The lane writes `rating-handoff.md`, confirms `report` prints `unverifiable` with `reason: unlabeled`, sets the spec status, and stops.
 6. The maintainer fills the sheet and runs `label --sheet … --labeled-by "<name>"`.
 7. Story 4 runs `report`, commits it, and acts per upgrade.
+8. *(Amended 2026-11-09.)* Story 5 runs a Repro First–only trial on the substitute baseline and stops at `rating-handoff-repro-first.md`. Story 6 labels under the delegation, commits `trial-report-repro-first.md`, acts on Repro First's verdict, and deletes the harness.
 
 ### State Catalog
 
@@ -102,19 +105,26 @@
 
 ## Business Rules (Expanded)
 
-1. **Baseline.** The story set is the `selection` of `.writ/eval/baselines/2026-09-07-claude-fable-5-1.json`: the four stories the Phase 12 panel trial used. No substitute baseline. A human who wants one asks for an amendment on the sheet; this spec does not define it.
+1. **Baseline.** The story set is the `selection` of `.writ/eval/baselines/2026-09-07-claude-fable-5-1.json`: the four stories the Phase 12 panel trial used. A human who wants a substitute asks for an amendment on the sheet. The only substitute this spec defines is Repro First's (Business Rule 14).
 2. **yuss isolation.** As in Phase 12 Story 4: read-only `rev-parse` before any write, then `git init` and `git fetch --depth 2` under `$TMPDIR`. The run snapshots yuss HEAD, refs, and `git status --porcelain` before and after and records equality.
 3. **Arms.** All arms on a story get the same prepared diff, story, contract, the same model in one session, and the story's historical test results labeled "historical, not re-run". Each upgrade arm sets its own switch on and the other three off. Both "current gates" arms set all four off.
 4. **Exercise.** Gate 0 Divergence runs on a story only when the predicted route over its planned files is `review-agent` (the design-divergence route predictor) and its report line reads `gate0-divergence: chose …`. Safety Fact runs only when Gate 2.5's `gate3_route` over the story's changed files is `review-agent`. Reviewer Filters runs on every story. Repro First runs its full arm only when the coding agent, reading `skills/tdd-cycle/SKILL.md` with the switch on, reports `Kind:` as a bug fix.
 5. **Upgrade-only findings.** Keys come from `scripts/review-panel.py`'s parser. For the Gate 0 arm, only comparison issues that carry an `**Avoided by:**` line count. For the Repro First arm, a repro that fails at the parent commit for the bug's reason and still fails at the story commit yields the key `ac:<the AC it targets>` at Critical. A key is upgrade-only when neither "current gates" run raised it on that story.
 6. **Labels.** `valid` only when the finding names a real unmet acceptance criterion, or a real Critical or Major security or architecture defect, in the story commit, judged against the story's acceptance criteria at that commit. For a Gate 0 finding, the cited sketch line must also avoid it. Notes are one line, at most 200 characters, with no code block and no quoted source.
-7. **Acknowledgments.** Each upgrade no story exercised gets one sheet field, `ack: remove|amend`. `remove` applies the roadmap rule. `amend` holds the upgrade unchanged and leaves this spec open until `/edit-spec` adds an accepted substitute baseline.
+7. **Acknowledgments.** Each upgrade no story exercised gets one sheet field, `ack: remove|amend`. `remove` applies the roadmap rule. `amend` holds the upgrade unchanged and leaves this spec open until `/edit-spec` adds an accepted substitute baseline. Repro First's `amend` was resolved on 2026-11-09 by Business Rule 14.
 8. **Verdict.** Per upgrade, as the State Catalog. The overall check line is `pass` when every upgrade is `keep`, `remove`, or `absent`, and `unverifiable` otherwise.
-9. **Human gate.** The lane never fills the sheet and never runs `label`. Story 4 stops at its first task while `labeled_by` is null and reports that it waits on human input. It is never marked complete or skipped.
-10. **Commit order.** The labeled trial file and `trial-report.md` are committed first. Removal edits follow. The harness and its unit tests are deleted last.
+9. **Human gate.** The lane never fills the sheet and never runs `label`. Story 4 stops at its first task while `labeled_by` is null and reports that it waits on human input. It is never marked complete or skipped. Exception, the substitute trial only: on 2026-11-09 the maintainer delegated its labels to the assistant. Story 6 labels in a fresh pass that does not open the trial JSON or raw outputs first, opens every note with "Assistant-assessed, maintainer-delegated", runs `label --labeled-by "Adam Sellke (delegated to assistant)"`, and logs the delegation in the drift log, as DEV-012 did.
+10. **Commit order.** The labeled trial file and `trial-report.md` are committed first. Removal edits follow. The substitute trial repeats the cycle in Story 6: the labeled substitute trial file and `trial-report-repro-first.md` first, then any Repro First removal, then the records. The harness and its unit tests are deleted last, in Story 6.
 11. **Removal.** A `remove` verdict deletes exactly what the upgrade's sibling spec lists, plus that upgrade's own tests and wiring-test pins, then regenerates trees and re-pins the `implement-story.md` ratchet downward with a dated disclosure.
 12. **Gate 0 and the blind trial.** If this spec removes the Gate 0 upgrade and the design-divergence blind trial says `keep`, the skill stays with `/prototype` Step 2.5 as its only caller; the roadmap's "two live callers" wording is no longer met, and the ADR-030 note says why. If the blind trial says `remove`, its Story 6 deletes the skill and the Gate 0 wiring together, whatever this trial says. Whichever runs second records "already removed" instead of editing.
-13. **Spec status.** `Complete` when every upgrade is `keep`, `remove`, or `absent` and the repo matches. Otherwise `In Progress — <reason from report>`.
+13. **Spec status.** `Complete` when every upgrade is `keep`, `remove`, or `absent` and the repo matches. Otherwise `In Progress — <reason from report>`. Repro First's verdict comes from `trial-report-repro-first.md` once it exists; the other three come from `trial-report.md`.
+14. **Repro First substitute baseline** *(added 2026-11-09)*. The first trial never exercised Repro First (no baseline story was a bug fix), and the ack was `amend`. The substitute is `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`. A yuss story is admitted when all four hold:
+    1. Its spec passes `skills/tdd-cycle/SKILL.md`'s bug test: `**Type:** Bug`, an Origin citing `.writ/issues/bugs/`, or a Fix title.
+    2. A product-code `fix(...)` commit is matched to the spec by hand. `fix(tests)` and `fix(ci)` commits do not count. The baseline records one line per story on why that commit is the fix.
+    3. The Phase 11 rules hold except commit lookup: the story is Completed, the commit has a parent, it touches at least one test file outside `tests/integration/` and `tests/e2e/`, and those files import no `prisma`, `stripe`, `@neondatabase`, or `next-auth` module unless they `jest.mock()` it.
+    4. Of the admitted stories, the four most recent by fix-commit date are taken.
+
+    Admitted on 2026-11-09, read-only against yuss: `2026-09-20-custom-covers-not-saving/story-1-production-cover-origin-save` @ `ed15bba`; `2026-05-13-event-settlement-role-invariants/story-1-enforce-settlement-role-invariants` @ `73f34d4`; `2026-04-16-event-limit-upgrade-modal-wiring/story-1-wire-limit-error-to-upgrade-modal` @ `d0f5f1a`; `2026-03-03-days-present-stretch-miscount/story-1-fix-counting-logic` @ `403a9cc` (the commit touches all three story files; story 1 does the fix). The trial runs only the `off-1`, `off-2`, and `repro-first` arms. Business Rule 5 is unchanged: a catch needs a repro that fails at the parent and still fails at the story commit. Accepted fixes rarely still fail, so this trial leans toward `remove`; the report and the ADR-030 note say so.
 
 ## Detailed Requirements
 
@@ -132,7 +142,15 @@ Write the outcome test first. Check the dependencies are complete and snapshot y
 
 ### Story 4: Act on the labeled trial (human-gated)
 
-Confirm the human labels. Commit the report and trial file. Remove each `remove` upgrade by its inventory. Record the result in roadmap and ADR-030. Delete the harness and its unit tests.
+Confirm the human labels. Commit the report and trial file. Remove each `remove` upgrade by its inventory. Record the result in roadmap and ADR-030. Harness deletion moved to Story 6 on 2026-11-09.
+
+### Story 5: Run the Repro First substitute trial *(added 2026-11-09)*
+
+Add `init --upgrades` to the harness with unit tests. Write the substitute baseline (Business Rule 14). Snapshot yuss, run `init --upgrades repro-first`, `prepare`, the `off-1`, `off-2`, and `repro-first` arms on each story, and `sheet`. Write `rating-handoff-repro-first.md`, set the spec status, and stop.
+
+### Story 6: Act on the Repro First verdict *(added 2026-11-09)*
+
+Label any upgrade-only findings under the delegation in Business Rule 9. Commit the substitute trial file and `trial-report-repro-first.md`. Remove Repro First by its inventory if the verdict is `remove`. Point the outcome test at the new report. Record the result in roadmap and ADR-030 and set the spec status. Delete the harness and its unit tests.
 
 ## Implementation Approach
 

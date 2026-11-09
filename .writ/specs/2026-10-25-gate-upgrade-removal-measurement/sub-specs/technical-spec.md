@@ -83,7 +83,7 @@ State directory: `<primary checkout>/.writ/state/gate-upgrade-trial/`, where the
 
 | Subcommand | Effect | Refusals (exit 2, nothing written) |
 |---|---|---|
-| `init --baseline FILE --out FILE [--repo .] [--force]` | Copies the five identity fields per selected story; probes the four presence checks against `--repo`; writes the skeleton | baseline missing or unparseable; selection not exactly four stories; non-hex SHA; unsafe path; `--out` exists without `--force` |
+| `init --baseline FILE --out FILE [--repo .] [--force] [--upgrades LIST]` | Copies the five identity fields per selected story; probes the four presence checks against `--repo`; writes the skeleton. `--upgrades` *(Story 5)* is a comma list, default all four; it is stored in the trial file. A scoped trial applies only `off-1`, `off-2`, and the scoped upgrades' arms, and `report` prints `upgrade:` lines and the overall line over the scoped upgrades only. An unscoped trial behaves exactly as before | baseline missing or unparseable; selection not exactly four stories; non-hex SHA; unsafe path; `--out` exists without `--force` |
 | `prepare --trial FILE --story ID --yuss PATH [--tmp-root DIR]` | Calls `_prepare_run` into `<tmp-root>/writ-gate-trial-<slug>/`; adds `parent/` with `git -C checkout worktree add --detach ../parent <parent_sha>`; computes routes (§ Routes); runs `change-surface.py blast-radius --changed <files> --repo checkout` when `gate3_route` is `review-agent` and `safety-fact` is present; writes `arms/<arm>/.writ/config.md` for every arm (§ Arms); stores `routes` in the trial file; prints every path | yuss path missing; SHA unreachable; any `_prepare_run` error; a route script exits 2 (run dir removed) |
 | `record --trial FILE --story ID --arm ARM --output FILE [--origin MODEL] [--state NAME=on\|off]… [--report-line TEXT] [--verifier FILE] [--kind bug\|not-a-bug-fix] [--repro-ac AC-N.M --at-parent pass\|fail --at-commit pass\|fail]` | Validates the arm's evidence (§ Arm Evidence); parses keys; copies the output to the state directory; recomputes `upgrade_only` and `off_only` for the story, keeping labels on keys that stay upgrade-only. Re-recording an arm replaces it | arm not applicable to the story (§ Arms); evidence mismatch; `--origin` differs from the stored `origin`; output unreadable |
 | `sheet --trial FILE --out FILE [--seed N]` | Assigns opaque IDs `F01…` to all upgrade-only findings in a seeded shuffle; writes one excerpt file per finding to `<state>/findings/Fnn.md` (the issue block or AC line from the raw output; for Gate 0 also the cited sketch line); writes the sheet with blank `label:` and `note:` fields and one `ack:` field per upgrade no story exercised; records the sheet path and its body hash | any applicable arm missing; sheet already recorded without `--force` |
@@ -186,7 +186,7 @@ gate-upgrade-trial: keep 1, remove 3, unverifiable 0, absent 0 — 4 stories
 
 | Path | Content |
 |---|---|
-| `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` | The harness (Stories 1–2; deleted in Story 4) |
+| `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` | The harness (Stories 1–2, `--upgrades` in Story 5; deleted in Story 6) |
 | `.writ/eval/gate-upgrade-trial/prompts/gate0-comparison.md` | Writ's own text: compare the shipped diff with the chosen sketch; list only defects the sketch avoids; Gate 3 issue format plus `**Avoided by:**` citing a sketch line; no AC checklist |
 | `.writ/eval/gate-upgrade-trial/prompts/repro-stop.md` | Writ's own text: follow the bug path to the repro commit, then stop; report `### Repro` with `Kind:`, `Surface:`, `Command:`, the repro commit, and the failing output |
 | `.writ/eval/gate-upgrade-trial/<date>-gate-upgrade-trial.json` | The trial file |
@@ -207,9 +207,23 @@ note:
 
 Ack entry (one per upgrade no story exercised): `### not exercised: repro-first` then `exercised: 0/4`, the per-story reason (`not-a-bug-fix: <signal>`, `route evaluator-agent`), and `ack:`.
 
+## Repro First Substitute Trial (Stories 5–6, added 2026-11-09)
+
+| Path | Content |
+|---|---|
+| `.writ/eval/baselines/2026-11-09-repro-first-substitute.json` | `selection`: the four stories of spec.md Business Rule 14, identity fields only (`story_id`, `story_path`, `spec_folder`, `story_commit`, `parent_sha`, full SHAs), plus a `selection_rule` block echoing the rule and one `fix_commit_note` per story |
+| `.writ/eval/gate-upgrade-trial/<date>-repro-first-substitute-trial.json` | The substitute trial file, from `init --upgrades repro-first` |
+| `.writ/eval/gate-upgrade-trial/labeling-sheet-repro-first.md` | The substitute sheet |
+| `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/rating-handoff-repro-first.md` | The substitute handoff, same contents as `rating-handoff.md`, plus the delegation (spec.md Business Rule 9) |
+| `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/trial-report-repro-first.md` | `report` output on the substitute trial, verbatim (Story 6) |
+
+Arms, evidence, keys, and labels follow §§ Arms through Verdict unchanged, limited to `off-1`, `off-2`, and `repro-first`. `trial-report.md` is never edited.
+
+Story 6 commit order: (1) labeled substitute trial file + `trial-report-repro-first.md`; (2) Repro First removal edits if `remove`; (3) outcome test, roadmap, ADR-030, spec status; (4) delete the harness, `scripts/tests/test_gate_upgrade_trial.py`, and `scripts/tests/fixtures/gate-upgrade-trial/`, only when Repro First is `keep` or `remove`.
+
 ## Verdict Execution (Story 4)
 
-Commit order: (1) labeled trial file + `trial-report.md`; (2) removal edits per upgrade; (3) roadmap, ADR-030, spec status; (4) delete the harness, `scripts/tests/test_gate_upgrade_trial.py`, and `scripts/tests/fixtures/gate-upgrade-trial/`.
+Commit order: (1) labeled trial file + `trial-report.md`; (2) removal edits per upgrade; (3) roadmap, ADR-030, spec status. Harness deletion moved to Story 6 (§ Repro First Substitute Trial).
 
 ### Removal inventories
 
@@ -227,7 +241,7 @@ Commit order: (1) labeled trial file + `trial-report.md`; (2) removal edits per 
 
 **`repro-first`** (repro-first spec.md § Removal Inventory, every row).
 
-After any removal: `bash scripts/gen-skill.sh` when a skill was removed; `python3 scripts/gen-platform-trees.py`; re-pin `"commands/implement-story.md"` in `scripts/tests/test_governor_enforcement.py` downward with a dated disclosure naming this spec and Story 4.
+After any removal: `bash scripts/gen-skill.sh` when a skill was removed; `python3 scripts/gen-platform-trees.py`; re-pin `"commands/implement-story.md"` in `scripts/tests/test_governor_enforcement.py` downward with a dated disclosure naming this spec and the story that removed it (Story 4, or Story 6 for Repro First).
 
 ### Repo state the outcome test asserts
 
@@ -237,7 +251,7 @@ After any removal: `bash scripts/gen-skill.sh` when a skill was removed; `python
 | `remove` | `gate0-divergence`: no `Gate 0 Divergence` or `Design divergence (boundary-crossing route)` in `commands/` or `.writ/docs/`. `safety-fact`: no `skills/blast-radius/`, no `Safety Fact` in `commands/`, `agents/`, `.writ/docs/`. `reviewer-filters`: no `skills/review-judgment-filters/`, no `Reviewer Filters` or `reviewer_filters` in `commands/`, `agents/`, `.writ/docs/`. `repro-first`: no `scripts/repro-order.py`, no `Repro First` in `commands/`, `agents/`, `skills/`, `.writ/docs/` |
 | all | `spec.md` status is `Complete` when every verdict is `keep`, `remove`, or `absent`, else starts `In Progress —`; the committed trial file has `labeled_by` set and no `label: null` among upgrade-only findings |
 
-The outcome test is stdlib only, does not import the harness, and skips with a clear reason while `trial-report.md` is absent.
+The outcome test is stdlib only, does not import the harness, and skips with a clear reason while `trial-report.md` is absent. From Story 6 on, it reads Repro First's verdict from `trial-report-repro-first.md` when that file exists, and the other three from `trial-report.md`.
 
 ### Records
 
@@ -266,6 +280,9 @@ The outcome test is stdlib only, does not import the harness, and skips with a c
 | Spawn (any arm) | error, timeout, or missing required section | re-run once with the identical prompt; a second failure leaves the arm unrecorded, so `report` says `missing_arm` | story 3 procedure |
 | Repro arm | dependency install or test command cannot run in `parent/` | record `--kind bug` with `--at-parent` absent is refused; report the arm as missing with the reason in Story 3's report | story 3 procedure |
 | Story 4 | report `unverifiable` for an upgrade | that upgrade untouched; spec status names the reason | outcome test |
+| `init --upgrades` | unknown upgrade name, empty list | exit 2, nothing written | unit |
+| `record` (scoped trial) | arm outside `off-1`, `off-2`, and the scoped arms | exit 2 `arm_not_applicable`, file unchanged | unit |
+| Story 6 | substitute report `unverifiable` (e.g. `missing_arm`) | Repro First untouched; harness kept; spec status names the reason | outcome test |
 
 ## Shadow Paths
 
@@ -274,6 +291,7 @@ The outcome test is stdlib only, does not import the harness, and skips with a c
 | Trial run | all arms recorded, sheet written | no trial file → exit 2 | no upgrade-only findings anywhere → sheet with acks only, or no fields; `report` decides from acks and zero-finding `remove` | yuss unreachable → exit 2 before any write |
 | Report | four decided verdicts | — | no labels → `unverifiable` per affected upgrade | trial file malformed → exit 2 |
 | Story 4 | report committed, removals applied | `labeled_by` null → stop at task 4.1 | every verdict `keep` → no removal edits, records only | a removal leaves `rg` hits → story fails its own verification |
+| Story 6 | substitute report committed, Repro First kept or removed, harness deleted | no substitute trial file → stop at task 6.1 | zero upgrade-only findings → `label` still runs on the field-less sheet to set `labeled_by` (§ Verdict step 4); then `report` gives `remove` (exercised, none valid) | a repro arm missing → `unverifiable`; harness kept |
 
 ## Interaction Edge Cases
 
@@ -291,9 +309,11 @@ The outcome test is stdlib only, does not import the harness, and skips with a c
 
 | File | Story | Change |
 |---|---|---|
-| `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` | 1, 2 (deleted in 4) | New, temporary |
-| `scripts/tests/test_gate_upgrade_trial.py`, `scripts/tests/fixtures/gate-upgrade-trial/` | 1, 2 (deleted in 4) | New, temporary |
-| `scripts/tests/test_gate_upgrade_trial_outcome.py` | 3 | New |
+| `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` | 1, 2, 5 (deleted in 6) | New, temporary |
+| `scripts/tests/test_gate_upgrade_trial.py`, `scripts/tests/fixtures/gate-upgrade-trial/` | 1, 2, 5 (deleted in 6) | New, temporary |
+| `scripts/tests/test_gate_upgrade_trial_outcome.py` | 3, 6 | New; Story 6 reads the substitute report |
+| `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`, `<date>-repro-first-substitute-trial.json`, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md` | 5 | New |
+| `trial-report-repro-first.md`, Repro First removal-inventory files (only on `remove`), roadmap line, ADR-030 note, `spec.md` status | 6 | New / targeted edits |
 | `.writ/eval/gate-upgrade-trial/prompts/*.md`, `<date>-gate-upgrade-trial.json`, `labeling-sheet.md` | 3 | New |
 | `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/rating-handoff.md`, `spec.md` status | 3 | New / status line |
 | `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md` | 4 | New |
