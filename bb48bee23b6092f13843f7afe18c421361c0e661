@@ -1,0 +1,11 @@
+writ-audit: spec-level
+spec: none (standalone change: archive of 2026-10-25-repro-first-bug-fixing and 2026-10-25-review-route-rigor)
+landed: bb48bee23b6092f13843f7afe18c421361c0e661 (merge commit, PR #73)
+source-range: 1 commit (6e5d24d)
+verdict: n/a (no story records)
+tests: uv run --isolated --python 3.9 --with pytest pytest -q -p no:cacheprovider: exit 0 (4672 passed, 2 skipped) on 6e5d24d
+ledger: VERIFIED for PR 73 head 6e5d24d
+ci: Eval Tier 1 pass (push, pull_request)
+merge-decision: doubt id d8aa1fdd9053 fallback_merge, person approved (/ship merge)
+diff:  26 files changed, 11 insertions(+), 9 deletions(-)
+warning: no What Was Built records; minimal digest
