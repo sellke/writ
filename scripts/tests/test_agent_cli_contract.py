@@ -578,6 +578,9 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("resolve-spec-reference.py", ["resolve", "--branch", "feature/agent-cli-contract",
                                         "--specs-dir", "{repo}/.writ/specs"], {}),
     Smoke("revert-resolve.py", ["--repo", "{repo}", "--spec", SPEC_DIR.name, "story", "1"], {}),
+    # Read-only: a branch that does not exist stops at check 2 (`no_branch`).
+    Smoke("ship-branch-cleanup.py", ["delete", "--branch", "zz-smoke-no-such-branch",
+                                     "--default", "main", "--repo", "{repo}"], {}),
     Smoke("roadmap-sync.py", ["check", "--roadmap", "{tmp}/roadmap.md",
                               "--spec-name", SPEC_DIR.name], {"roadmap.md": "# Roadmap\n"}),
     Smoke("spec-deps.py", ["parse", "--spec", SPEC], {}),

@@ -429,15 +429,25 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     if worktree_path:
         _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
 
+    # The lane tip is now an ancestor of the phase branch, so `-d` succeeds
+    # unless something unusual holds the branch (e.g. a worktree that survived
+    # removal). A refusal is recorded, never overridden with `-D`; the merge
+    # already landed, so the status stays `integrated`.
+    deleted = _git(repo, "branch", "-d", lane_branch, check=False)
+    cleanup: dict[str, Any] = {"laneBranchDeleted": deleted.returncode == 0}
+    if deleted.returncode != 0:
+        cleanup["laneBranchKeptReason"] = (deleted.stderr or deleted.stdout).strip()
+
     _set_status(record, "integrated")
     record.update({
         "mergeCommit": merge_commit,
         "worktreePath": None,
+        **cleanup,
     })
     record["evidence"].extend(payload["verification"]["evidence"])
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
-    return {"status": "integrated", "mergeCommit": merge_commit, "merged": True}
+    return {"status": "integrated", "mergeCommit": merge_commit, "merged": True, **cleanup}
 
 
 def cmd_record_exit_criterion(args: argparse.Namespace) -> dict[str, Any]:

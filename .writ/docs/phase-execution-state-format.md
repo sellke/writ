@@ -67,7 +67,9 @@ Later Phase 6 stories extend this schema:
 | `specs.{id}.blockedBy` | The upstream specs that stopped this one. Reads as "upstream reached a terminal status **without delivering**" — a quarantine *or* a closure. `progress` reports which. |
 | `specs.{id}.closure` | `{reason, closedAt}` on a spec closed by decision. The reason is mandatory; the phase report prints it. |
 | `specs.{id}.attempts` | Incremented on each lane launch; Story 4 bounds retries against it. |
-| `specs.{id}.laneBranch` | The active lane branch `writ/phase/{phase}/{spec}`. |
+| `specs.{id}.laneBranch` | The lane branch `writ/phase/{phase}/{spec}`; deleted after a successful merge, kept on quarantine (renamed) and closure. The key stays as the historical name after deletion. |
+| `specs.{id}.laneBranchDeleted` | Written by `integrate` after a merge: `true` when `git branch -d` removed the lane branch, `false` when git refused. Never `-D`; status stays `integrated` either way. A spec that never merged has no key. `reconcile` checks an integrated spec by `mergeCommit` only, so a deleted lane branch reconciles `consistent`. |
+| `specs.{id}.laneBranchKeptReason` | Present only when `laneBranchDeleted` is `false`: git's refusal message (for example, the branch is still checked out in a worktree). Delete the branch by hand once the cause is gone. |
 | `specs.{id}.worktreePath` | The isolated worktree path while active; nulled after a successful merge removes it. |
 | `specs.{id}.resultPath` | Written by `create-lane`: the absolute path `<repo>/.writ/state/lane-result-<phase>-<spec>.json` in the main checkout, outside the lane worktree, so it survives worktree removal after a merge or quarantine. The lane writes its `phase-spec-result-v1` there; the orchestrator runs `validate-result --input` on it. A state file written before the field has none. |
 | `specs.{id}.agentRunId` | The platform-native fresh-subagent run identifier when available. |
@@ -121,8 +123,8 @@ accumulating duplicates.
    worktree. The primary checkout is never mutated during lane work.
 3. **Verify, then merge.** Only a validated `phase-spec-result-v1` with
    `status: succeeded`, a real `commit`, and non-empty verification evidence may be
-   merged (`--no-ff`) into the phase branch; the worktree is then removed and the
-   merge commit recorded.
+   merged (`--no-ff`) into the phase branch; the worktree and lane branch are then
+   removed and the merge commit recorded.
 4. **Preserve on anything else.** A missing, malformed, non-successful, or
    unverifiable result never touches the phase branch. Its lane is left intact for
    Story 4 to classify, quarantine, and recover.
