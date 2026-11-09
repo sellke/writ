@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-11-09-delete-merged-branches` — Delete Merged Branches
-- **Status:** In Progress (both stories complete; integration verification pending)
+- **Status:** Complete (integration suite green; not yet shipped)
 - **Story:** 2 of 2 — /ship deletes the landed local branch (Completed ✅); Story 1 (integrate deletes the merged lane branch) Completed ✅
 - **Progress:** 14/14 tasks complete (100%)
 - **Also open:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.2 (2026-11-09) is the latest release.

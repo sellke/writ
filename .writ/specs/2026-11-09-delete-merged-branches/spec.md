@@ -1,6 +1,6 @@
 # Delete Merged Branches
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-11-09
 > **Owner:** @AdamSellke
 > **Dependencies:** []
