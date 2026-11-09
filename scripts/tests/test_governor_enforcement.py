@@ -689,7 +689,8 @@ KNOWN_OVER_BUDGET = {
     # total_overage is asserted exactly.
     "commands/implement-phase.md": 1464,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
-    "commands/release.md": 7571,
+    # 2026-11-09: 7571 -> 7559; Step 3.1c archive sweep added, Step 1.3c prose trimmed.
+    "commands/release.md": 7559,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 4023 -> 3947; ADR link removed.
     # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 2): 3947 -> 421; open-path asks become

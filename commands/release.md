@@ -158,7 +158,7 @@ LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]
 
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
 
-> **Post-merge archival hook (fires only inside the `LAST_MERGED_SHA` equals `HEAD_SHA` branch above — nowhere else).** Immediately after the test-skip log line, attempt to archive the spec that merged PR belongs to: silently, best-effort, never blocking. Because this runs inside the `LAST_MERGED_SHA == HEAD_SHA` branch, which itself only evaluates inside the `Unless --skip-gate is set` block gating all of Step 1.3, `--skip-gate` skips this hook with no separate check. Wrap the entire sequence below in one best-effort guard (e.g. run it as `{ ... } 2>/dev/null || true`, or check each step's exit code explicitly) so any failure anywhere in the chain — resolver error, missing script, a non-zero exit, malformed JSON — is caught and skipped without affecting the log line above, the rest of the gate, or any later phase.
+> **Post-merge archival hook (fires only inside the `LAST_MERGED_SHA` equals `HEAD_SHA` branch above — nowhere else).** Immediately after the test-skip log line, attempt to archive the spec that merged PR belongs to: silently, best-effort, never blocking. `--skip-gate` skips it, since all of Step 1.3 is skipped. Wrap the sequence below in one best-effort guard (e.g. `{ ... } 2>/dev/null || true`) so any failure (resolver error, missing script, non-zero exit, malformed JSON) is skipped without affecting the gate or any later phase.
 >
 > 1. **Resolve:** `scripts/resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}" --commits "${LAST_MERGED_COMMITS}" --specs-dir .writ/specs` — the same shared implementation `/ship` Step 5 uses for its PR body's Spec Reference section.
 > 2. On `"result": "none"` or `"result": "ambiguous"` — stop here. No archive call, no output, no side effect.
@@ -167,7 +167,7 @@ LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]
 >    - `"archived"` or `"archived_unlogged"` — the `git mv` succeeded either way (`"archived_unlogged"` means only the ledger write failed, not the move). Commit it inside Step 1.3c, not in Phase 3's version-bump commit: `git add -A && git commit -m "chore(archive): auto-archive <resolved spec> via PR #${LAST_MERGED_PR_NUMBER}"`, including the returned `ledger_line` in the commit body when present. Committing immediately avoids leaving a dangling uncommitted `git mv` if the user later cancels the release at Step 2.3's confirmation gate.
 >    - anything else (`"already_archived"`, `"not_eligible"`, `"collision"`, `"git_mv_failed"`) — no commit, no output; continue as if this hook had not run.
 >
-> This hook never produces new terminal output, PR-body content, or a release-summary line, and never affects the gate's pass/fail verdict — the only observable side effect in any outcome is the standalone commit in step 4's first bullet (spec.md's silent Feedback Model). **Sequencing note for Phase 2:** the changelog data Step 2.1 consumes was already gathered earlier in Step 1.2, before this hook runs — Step 2.1 must keep using that already-gathered data rather than re-scanning `.writ/specs/<name>/` from disk, since this hook may have already moved that folder to `.writ/specs/archive/<name>/` by the time Step 2.1 runs.
+> This hook produces no terminal output, PR-body content, or release-summary line, and never affects the gate's verdict. Its only side effect is step 4's commit. **Sequencing note:** Step 2.1 must use the changelog data Step 1.2 already gathered, never re-scan `.writ/specs/<name>/`, because this hook (and Step 3.1c) may have moved the folder to `archive/`.
 
 > **Note on the `@sellke/writ` runtime helper.** This repo also ships a tiny npm package (`@sellke/writ`) for deterministic dates/timestamps. It is **decoupled from `/release`** — Writ methodology releases do not run npm preflight, do not bump `package.json#version`, and do not publish to npm. See [Runtime Helper Publish (manual)](#runtime-helper-publish-manual) at the end of this file.
 
@@ -398,6 +398,16 @@ python3 scripts/roadmap-sync.py append-row --roadmap .writ/product/roadmap.md \
 
 **Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/verify-spec --product` regenerates it (Check P3). Do not leave the two disagreeing without a flag.
 
+#### Step 3.1c: Archive Sweep
+
+Non-blocking; on failure warn and continue. Step 1.3c archives at most one spec; this runs the full `/status --archive` sweep:
+
+```bash
+python3 scripts/archive-sweep.py sweep --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root .
+```
+
+Keep it after Steps 1.2 and 3.1b; both read the folders it moves. The moves go into Step 3.2's commit. Report its `summary` on the Phase 5 `Archive:` line. `--dry-run` runs `scan` instead.
+
 #### Step 3.2: Commit Release
 
 ```bash
@@ -515,6 +525,7 @@ Add a confirmation line to the release summary:
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
 - **Audit rollup:** 📝 Attached to <tag-target-sha> (refs/notes/writ) / ⏭️ Skipped (writ.auditNotes=false)
 - **Roadmap:** ✅ Current / 📋 N inter-phase spec(s) recorded (`roadmap.md`) — run /verify-spec --product to check product docs against what shipped
+- **Archive:** 📦 N spec(s) archived / ✅ None
 
 ## Changes Released
 ${changelog_summary}
@@ -537,7 +548,7 @@ When `--dry-run` is specified, the command:
 3. ✅ Runs README freshness check (read-only assessment)
 4. ✅ Generates the changelog entry (display only)
 5. ✅ Shows the version bump proposal
-6. ✅ Displays exactly what files would change
+6. ✅ Displays exactly what files would change, and specs Step 3.1c would archive
 7. ❌ Does NOT modify any files
 8. ❌ Does NOT commit, tag, or push
 
