@@ -14,11 +14,13 @@ off, and the helper runs with no `gh` on PATH.
   extra local commit keeps it as `local_commits_not_in_pr` [AC-2.2].
 - A dirty tree, another worktree, a failed fetch, and an unproven branch are
   kept with their reasons; dirty and unmerged reads `not_merged` (row 7 before
-  row 8); a failed ff-only pull and a refused `git branch -d` are kept [AC-2.3].
+  row 8); a failed `git status`, a failed ff-only pull, and a refused
+  `git branch -d` are kept [AC-2.3].
 - The opt-out, the default branch, and an absent branch are skipped and change
   no ref [AC-2.4].
-- ship.md Step 6b, merge item 7, the completion line, the kept merge ban, the
-  contract row and smoke, and the plugin copy [AC-2.5].
+- ship.md Step 6b, merge item 7, the merged-PR re-entry in Step 2 and 7.1, the
+  completion line, the kept merge ban, the contract row and smoke, and the
+  plugin copy [AC-2.5].
 
 Run: uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_ship_branch_cleanup.py
 """
@@ -269,6 +271,26 @@ class KeptTests(CleanupCase):
         self.assertEqual(self.head_ref(), "refs/heads/feat")
         self.assertEqual((self.repo / "feat.txt").read_text(encoding="utf-8"), "edited\n")
 
+    def test_ac_2_3_unreadable_status_is_kept_as_dirty_tree(self) -> None:
+        """Merged, checked out, `git status` fails: kept `dirty_tree`, never read as clean. [AC-2.3]"""
+        self.push_feat()
+        self.land("merge")
+        shim = self.tmp / "bin"
+        shim.mkdir()
+        (shim / "git").write_text(
+            '#!/bin/sh\nfor a in "$@"; do [ "$a" = status ] && exit 128; done\n'
+            'exec "%s" "$@"\n' % REAL_GIT, encoding="utf-8")
+        (shim / "git").chmod(0o755)
+        env = dict(ENV, PATH=str(shim) + os.pathsep + ENV["PATH"])
+        result = subprocess.run([sys.executable, str(SCRIPT), "delete", "--branch", "feat",
+                                 "--default", "main", "--repo", str(self.repo)],
+                                cwd=str(self.tmp), env=env, capture_output=True, text=True,
+                                timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertOutcome(json.loads(result.stdout.splitlines()[-1]), "kept", "dirty_tree")
+        self.assertTrue(self.branch_exists("feat"))
+        self.assertEqual(self.head_ref(), "refs/heads/feat")
+
     def test_ac_2_3_dirty_and_unmerged_reads_not_merged(self) -> None:
         """Row 7 precedes row 8: unmerged and dirty reads `not_merged`. [AC-2.3]"""
         self.push_feat()
@@ -492,6 +514,30 @@ class ShipTextTests(CleanupCase):
         self.assertIn("Step 6b", line)
         self.assertLess(line.index("Step 6 in this pass"), line.index("Step 6b"))
         self.assertIn("Never `--delete-branch`, `--admin`, or `--auto`", _flat(step))
+
+    def test_ac_2_5_plain_ship_on_a_merged_pr_runs_steps_6_and_6b_before_step_2_merges(self) -> None:
+        """Plain `/ship`: before Step 2's merge, a `MERGED` PR from `gh pr view --json state,headRefOid`
+        runs Steps 6 and 6b and stops; no PR or no gh continues. [AC-2.5]"""
+        step2 = _section(_ship(), "### Step 2: Merge Default Branch")
+        call = "`gh pr view --json state,headRefOid`"
+        self.assertIn(call, step2)
+        line = _flat(step2[step2.index(call):step2.index("```")])
+        self.assertIn("`MERGED`", line)
+        self.assertIn("Steps 6 and 6b", line)
+        self.assertIn("stop", line)
+        self.assertIn("No PR or no `gh`", line)
+        self.assertLess(step2.index(call), step2.index("git merge origin/"))
+
+    def test_ac_2_5_watch_7_1_passes_the_merged_head_to_step_6b(self) -> None:
+        """7.1 reads `headRefOid`; `MERGED` runs Steps 6 and 6b with it; Step 6b names both head sources. [AC-2.5]"""
+        text = _ship()
+        line = next(l for l in text.splitlines() if l.startswith("**7.1 Resolve the PR.**"))
+        self.assertIn("`gh pr view --json number,state,headRefOid`", line)
+        self.assertIn("`MERGED` → Steps 6 and 6b (`--pr-state MERGED --pr-head <headRefOid>`), "
+                      "report `merged`", line)
+        step = _flat(_section(text, STEP_6B))
+        self.assertIn("Step 2 or 7.1", step)
+        self.assertIn("`view.headRefOid`", step)
 
     def test_ac_2_5_completion_output_has_the_cleanup_line(self) -> None:
         """Step 5's completion output block carries a 🧹 line. [AC-2.5]"""

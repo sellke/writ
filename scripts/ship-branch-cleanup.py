@@ -28,7 +28,8 @@ Checks, in order (the first that decides wins):
   6  else --pr-state MERGED and git rev-parse B equals --pr-head -> method -D
   7  else -> kept not_merged, or local_commits_not_in_pr when --pr-head was
      given and differs
-  8  B checked out here and git status --porcelain non-empty -> kept dirty_tree
+  8  B checked out here and git status --porcelain non-empty or failing
+     -> kept dirty_tree
   9  B checked out here -> git checkout D, then git pull --ff-only; a failure
      -> kept switch_failed (the checkout may be left on D)
   10 git branch <method> B -> deleted; else kept delete_failed:<git message>
@@ -149,7 +150,8 @@ def decide(repo: str, toplevel: str, branch: str, default: str,
 
     # 8-9: leave the branch before deleting it, but never carry local changes.
     if checked_out_here:
-        if git(repo, "status", "--porcelain")[1].strip():
+        code, out, _ = git(repo, "status", "--porcelain")
+        if code != 0 or out.strip():
             return "kept", "dirty_tree", None
         if (git(repo, "checkout", "-q", default)[0] != 0
                 or git(repo, "symbolic-ref", "-q", "HEAD")[1].strip() != "refs/heads/" + default):
