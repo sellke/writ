@@ -516,25 +516,45 @@ class ShipTextTests(CleanupCase):
         self.assertIn("Never `--delete-branch`, `--admin`, or `--auto`", _flat(step))
 
     def test_ac_2_5_plain_ship_on_a_merged_pr_runs_steps_6_and_6b_before_step_2_merges(self) -> None:
-        """Plain `/ship`: before Step 2's merge, a `MERGED` PR from `gh pr view --json state,headRefOid`
-        runs Steps 6 and 6b and stops; no PR or no gh continues. [AC-2.5]"""
+        """Plain `/ship`: before Step 2's merge, a `MERGED` PR from
+        `gh pr view --json state,headRefOid,mergeCommit` runs Steps 6 and 6b with `mergeCommit.oid`
+        as the landed SHA and stops, ahead of "No changes to ship". [AC-2.5]"""
         step2 = _section(_ship(), "### Step 2: Merge Default Branch")
-        call = "`gh pr view --json state,headRefOid`"
+        call = "`gh pr view --json state,headRefOid,mergeCommit`"
         self.assertIn(call, step2)
-        line = _flat(step2[step2.index(call):step2.index("```")])
+        line = _flat(step2[:step2.index("```")])
         self.assertIn("`MERGED`", line)
         self.assertIn("Steps 6 and 6b", line)
+        self.assertIn("`mergeCommit.oid` as the landed SHA", line)
         self.assertIn("stop", line)
-        self.assertIn("No PR or no `gh`", line)
+        self.assertIn('"No changes to ship"', line)
+        self.assertLess(line.index('"No changes to ship"'), line.index("`MERGED`"))
         self.assertLess(step2.index(call), step2.index("git merge origin/"))
 
+    def test_ac_2_5_step_2_every_non_merged_result_falls_through_to_the_merge(self) -> None:
+        """Only `MERGED` stops; an `OPEN` or `CLOSED` PR, no PR, and a failing gh call all take
+        the "Otherwise" path to `git merge`. [AC-2.5]"""
+        step2 = _section(_ship(), "### Step 2: Merge Default Branch")
+        line = _flat(step2[:step2.index("```")])
+        self.assertNotIn("No PR or no `gh`", line)
+        rest = line[line.index("stop"):]
+        self.assertIn("Otherwise", rest)
+        fallthrough = rest[rest.index("Otherwise"):]
+        self.assertIn("bring the branch up to date", fallthrough)
+        self.assertIn("`OPEN`", fallthrough)
+        self.assertIn("`CLOSED`", fallthrough)
+        self.assertNotIn("`OPEN`", line[:line.index("Otherwise")])
+
     def test_ac_2_5_watch_7_1_passes_the_merged_head_to_step_6b(self) -> None:
-        """7.1 reads `headRefOid`; `MERGED` runs Steps 6 and 6b with it; Step 6b names both head sources. [AC-2.5]"""
+        """7.1 reads `headRefOid` and `mergeCommit`; `MERGED` runs Steps 6 and 6b with them; Step 6b
+        names both head sources. [AC-2.5]"""
         text = _ship()
         line = next(l for l in text.splitlines() if l.startswith("**7.1 Resolve the PR.**"))
-        self.assertIn("`gh pr view --json number,state,headRefOid`", line)
+        self.assertIn("`gh pr view --json number,state,headRefOid,mergeCommit`", line)
         self.assertIn("`MERGED` → Steps 6 and 6b (`--pr-state MERGED --pr-head <headRefOid>`), "
                       "report `merged`", line)
+        merged = line[line.index("`MERGED` →"):line.index("`CLOSED`")]
+        self.assertIn("`mergeCommit.oid` as the landed SHA", merged)
         step = _flat(_section(text, STEP_6B))
         self.assertIn("Step 2 or 7.1", step)
         self.assertIn("`view.headRefOid`", step)
