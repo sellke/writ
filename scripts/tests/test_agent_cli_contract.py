@@ -1116,6 +1116,6 @@ def test_fail_exits_apply_only_to_listed_scripts():
     """AC-2.5 of `2026-11-06-pr-ready-and-ledger` Story 2 — a listed fail exit passes for pr-ready.py only; exit 1 still passes; others fail Business Rule 4."""
     for code in FAIL_EXITS["pr-ready.py"] + (1,):
         assert check_exit_code("pr-ready.py", [], _fail_run(code)) is None, code
-    for script, code in (("pr-ready.py", 2), ("pr-ready.py", 7), ("repro-order.py", 6)):
+    for script, code in (("pr-ready.py", 2), ("pr-ready.py", 7), ("review-override.py", 6)):
         msg = check_exit_code(script, [], _fail_run(code))
         assert msg and msg.startswith(script + ":") and "Business Rule 4" in msg, (script, code)

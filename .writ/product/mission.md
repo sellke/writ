@@ -193,7 +193,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
   - Open: the five person checks the acceptance pass left were not recorded before the merge, and the keep-or-remove review of `/writ` (routing matched 10 of 20) is undecided. The recommendation on record is keep, with its confirm step asking only on doubt after Phase 17.
 - **Phase 15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; released in v0.44.0):**
   - `/why`, answering from Writ's ledger first.
-  - A blast-radius safety fact at Gate 2.5 (floor `tested`), repro-first bug fixing, reviewer judgment filters, and `/retro`'s fix ladder, each kept by the removal trial or held for a substitute baseline.
+  - A blast-radius safety fact at Gate 2.5 (floor `tested`), reviewer judgment filters, and `/retro`'s fix ladder, each kept by the removal trial. Repro-first bug fixing was removed on 2026-11-09: on a substitute baseline of three bug-fix stories it caught nothing the shipped fixes had missed.
   - Evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)): a Gate 3 or `/review` finding blocks only on executed evidence; the review panel is removed.
   - The `design-divergence` skill lost its blind trial and is removed; `/prototype` keeps its drafts without it.
 - **Phase 17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; released in v0.44.0):**
