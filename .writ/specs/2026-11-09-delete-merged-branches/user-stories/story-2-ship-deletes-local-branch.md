@@ -1,6 +1,7 @@
 # Story 2: /ship deletes the landed local branch
 
 > **Status:** Completed ✅ (2026-11-09)
+> **Commit:** c165af3197165695fbe18cff3d82b86a0bae89bf
 > **Priority:** Normal
 > **Dependencies:** None
 
