@@ -1,6 +1,6 @@
 {
   "acks": {},
-  "baseline": ".writ/eval/baselines/2026-11-09-repro-first-substitute.json",
+  "baseline": ".writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json",
   "labeled_by": "Adam Sellke (delegated to assistant)",
   "origin": "claude-opus-5-5",
   "schema": "gate-upgrade-trial-v1",

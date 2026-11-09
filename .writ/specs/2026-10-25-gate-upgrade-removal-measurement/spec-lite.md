@@ -19,7 +19,7 @@
 - `scripts/tests/test_gate_upgrade_trial_outcome.py` — verdict ↔ repo state
 - spec folder: `rating-handoff.md`, `trial-report.md`, status line
 - Story 4 only: removal-inventory files of `remove` upgrades, roadmap "Removal measurement" line, ADR-030 § Review note
-- Story 5: `init --upgrades` in the harness; `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`; substitute trial JSON, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md`
+- Story 5: `init --upgrades` in the harness; `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`; substitute trial JSON, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md`
 - Story 6: `trial-report-repro-first.md`; Repro First removal inventory only on `remove`; outcome test reads the new report; records; harness deletion
 
 **Error Handling:**
@@ -55,6 +55,7 @@
 - Substitute trial: arms `off-1`, `off-2`, `repro-first` only; a catch still needs a repro that fails at parent and at the story commit, so it leans toward `remove`
 - Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`) (DEV-015)
 - With zero findings, `report` reads `unverifiable (unlabeled 0)` until `label` sets `labeled_by` (DEV-016)
+- The ADR-030 substitute note lists three trial stories plus the excluded `73f34d4` (DEV-020)
 - Gate 0 removed + blind trial `keep` → skill stays with `/prototype` only
 
 **Experience Design:**

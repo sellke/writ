@@ -2,7 +2,7 @@
 
 > Trial: [`.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-trial.json`](../../eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-trial.json)
 > Sheet: [`.writ/eval/gate-upgrade-trial/labeling-sheet-repro-first.md`](../../eval/gate-upgrade-trial/labeling-sheet-repro-first.md)
-> Baseline: [`.writ/eval/baselines/2026-11-09-repro-first-substitute.json`](../../eval/baselines/2026-11-09-repro-first-substitute.json)
+> Baseline: [`.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`](../../eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json)
 > Run: 2026-11-09 (Story 5). The lane did not label.
 
 ## Result

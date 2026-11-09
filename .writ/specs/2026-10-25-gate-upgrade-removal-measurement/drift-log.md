@@ -205,3 +205,19 @@
 - **Reason:** Leaving the `story-gate.py` row would ship a post-review check that calls a deleted script; the other three would describe a removed feature. Records (CHANGELOG, ADR-032, ADR-033, retros, knowledge, ledger comments) and `.writ/product/mission.md` / `mission-lite.md` are left as written.
 - **Resolution:** Flagged for review
 - **Spec amendment:** N/A — flagged for post-implementation review. The repro-first inventory is amended as built here, as DEV-011 did for Story 4.
+
+#### [DEV-020] AC-6.4 names three substitute stories, not four
+- **Severity:** Small
+- **Spec said:** AC-6.4: the ADR-030 note carries "the four substitute story IDs".
+- **Implementation did:** AC-6.4 now reads "the substitute story IDs (three, plus the excluded `73f34d4`; DEV-014)", and the ADR-030 note lists the three trial stories and the excluded one.
+- **Reason:** Follows from DEV-014, which the maintainer accepted; the Gate 3 review noted that no entry recorded the AC edit.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "The ADR-030 substitute note lists three trial stories plus the excluded `73f34d4`".
+
+#### [DEV-021] `eval.sh` findings from Stories 5 and 6, fixed in Story 6
+- **Severity:** Small
+- **Spec said:** AC-6.5: `bash scripts/eval.sh` passes with 0 findings.
+- **Implementation did:** The first Story 6 `eval.sh` run reported 27 findings in three checks, all from this spec. (1) `pipeline-baseline` validates every JSON under `.writ/eval/baselines/` against `pipeline-baseline-v1`; the substitute baseline is a different shape, so it moved to `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`, and the trial file's `baseline` field and the spec documents follow it. (2) `arch-check` read Story 5's `Dependencies` line ("Story 3 (harness exists); Story 4's report commit …") as a malformed story graph; it now reads `Story 3, Story 4`. (3) `review-override` found AC-2.2–AC-2.5 and AC-5.1, AC-5.3 untested once `test_gate_upgrade_trial.py` was deleted; Stories 2 and 5 gain `Verified by:` lines citing those tests' last recorded passing run and the deleting commit.
+- **Reason:** Story 5 did not run `eval.sh`; Story 6's harness deletion removed the only test citations for those criteria by design.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: the Story 5 baseline path now reads `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`.

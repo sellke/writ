@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-09T22:06:51Z
+> Last Updated: 2026-11-09T23:16:38Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-10-25-gate-upgrade-removal-measurement` — Gate Upgrade Removal Measurement
-- **Status:** In Progress — Repro First report ready (rating-handoff-repro-first.md)
-- **Story:** 5 of 6 — Run the Repro First Substitute Trial (Completed ✅); Story 6 (Act on the Repro First Verdict) Not Started
-- **Progress:** 34/41 tasks complete (83%)
+- **Status:** Complete
+- **Story:** 6 of 6 — Act on the Repro First Verdict (Completed ✅)
+- **Progress:** 41/41 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-017 Arm isolation slipped during the substitute run — gate-upgrade-removal-measurement (Medium)
-- DEV-016 With zero findings, `report` waits on `labeled_by` — gate-upgrade-removal-measurement (Small)
-- DEV-015 Legacy stories get `AC-1.k` by reading order — gate-upgrade-removal-measurement (Small)
+- DEV-021 `eval.sh` findings from Stories 5 and 6, fixed in Story 6 — gate-upgrade-removal-measurement (Small)
+- DEV-020 AC-6.4 names three substitute stories, not four — gate-upgrade-removal-measurement (Small)
+- DEV-019 Repro First wiring the removal inventory predates — gate-upgrade-removal-measurement (Medium)
 
 ## Open Issues
 

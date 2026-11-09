@@ -3,7 +3,7 @@
 > **Status:** Completed ✅ (2026-11-09)
 > **Commit:** f37baad20ebfc01ea526f9edaa12bc41bc568174
 > **Priority:** Medium
-> **Dependencies:** Story 3 (harness exists); Story 4's report commit `ef0c418`
+> **Dependencies:** Story 3, Story 4
 
 ## User Story
 
@@ -14,10 +14,11 @@
 ## Acceptance Criteria
 
 > **AC IDs assigned through:** AC-5.5
+> **Verified by:** AC-5.1, AC-5.3 — `scripts/tests/test_gate_upgrade_trial.py` (TestScopedRecord, TestInitUpgradesScope, TestScopedStoryCount, TestSubstituteBaseline), passing in this story's recorded run (483 passed on Python 3.9 and 3.14) and deleted with the harness in `bfb67cf` (Story 6, AC-6.5)
 
 - [x] Given the harness and a trial created with `init --upgrades repro-first`, when `record` receives an arm other than `off-1`, `off-2`, or `repro-first`, then `record` exits 2 with `arm_not_applicable` and leaves the file unchanged, and the trial file records `repro-first` as its only scoped upgrade `[AC-5.1]`
 - [x] Given a scoped trial, when `report` runs, then it prints `upgrade:` lines for `repro-first` only and its summary counts only that upgrade; given an unscoped trial, when `init`, `record`, `sheet`, and `report` run, then their output and file bytes match the pre-change harness and `report` prints four `upgrade:` lines `[AC-5.2]`
-- [x] Given `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`, when `init --baseline` reads it, then `selection` holds the three admitted entries (DEV-014), each with `story_id`, `story_path`, `spec_folder`, `story_commit`, and `parent_sha` as full 40-hex SHAs; `selection_rule` echoes Business Rule 14's rule, including the clause that the story file and spec contract exist at the fix commit; each entry has one `fix_commit_note`; a scoped trial accepts 1 to 4 stories while an unscoped one still requires exactly 4; and no field holds yuss source, diff, story, or commit-subject text `[AC-5.3]`
+- [x] Given `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`, when `init --baseline` reads it, then `selection` holds the three admitted entries (DEV-014), each with `story_id`, `story_path`, `spec_folder`, `story_commit`, and `parent_sha` as full 40-hex SHAs; `selection_rule` echoes Business Rule 14's rule, including the clause that the story file and spec contract exist at the fix commit; each entry has one `fix_commit_note`; a scoped trial accepts 1 to 4 stories while an unscoped one still requires exactly 4; and no field holds yuss source, diff, story, or commit-subject text `[AC-5.3]`
 - [x] Given the substitute trial file, when each story's arms run, then `off-1`, `off-2`, and `repro-first` recognition are recorded for every story; a bug-fix repro also records `--repro-ac`, `--at-parent`, and `--at-commit`; and a repro arm that cannot run at `parent/` stays unrecorded and is reported missing with its reason `[AC-5.4]`
 - [x] Given every applicable arm is recorded or reported missing, when `sheet` and `report` run, then `labeling-sheet-repro-first.md` and `rating-handoff-repro-first.md` exist; `report` prints `unverifiable` with `reason: unlabeled` when upgrade-only findings exist, or a final `repro-first` verdict when none exist; `labeled_by` is null; the trial file records yuss `unchanged: true`; and spec.md's status line matches the finding count `[AC-5.5]`
 
@@ -25,7 +26,7 @@
 
 - [x] 5.1 Write unit tests in `scripts/tests/test_gate_upgrade_trial.py` first: scoped `init`, the `arm_not_applicable` refusal, scoped `report` lines, and unscoped output unchanged `[AC-5.1, AC-5.2]`
 - [x] 5.2 Add `--upgrades` (comma list, default all four) to `init` in `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py`. Scope `record` and `report` to the trial's scoped upgrades. A scoped trial takes 1 to 4 stories; an unscoped one still takes exactly 4 (DEV-014) `[AC-5.1, AC-5.2]`
-- [x] 5.3 Write `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`: three identity-only `selection` entries (DEV-014), a `selection_rule` block, and one `fix_commit_note` per story. Field list in AC-5.3 `[AC-5.3]`
+- [x] 5.3 Write `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`: three identity-only `selection` entries (DEV-014), a `selection_rule` block, and one `fix_commit_note` per story. Field list in AC-5.3 `[AC-5.3]`
 - [x] 5.4 Run `init --baseline` on that file with `--upgrades repro-first`, `--yuss`, and `--out .writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-trial.json`. Then run `prepare` for each story `[AC-5.4, AC-5.5]`
 - [x] 5.5 Spawn and `record` per story: `off-1`, `off-2`, and `repro-first` recognition. Run a full repro arm on each bug-fix story, recording `--kind`, `--repro-ac`, `--at-parent`, and `--at-commit`. Report any arm that cannot run `[AC-5.4]`
 - [x] 5.6 Run `snapshot` against yuss. Run `sheet --out .writ/eval/gate-upgrade-trial/labeling-sheet-repro-first.md`. Write `rating-handoff-repro-first.md` in the spec folder, confirm `report`, and set the spec.md status line `[AC-5.5]`
@@ -74,7 +75,7 @@
 
 ### Files Created
 
-1. **`.writ/eval/baselines/2026-11-09-repro-first-substitute.json`** (53 lines)
+1. **`.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`** (53 lines)
    - Three identity-only entries (`ed15bba`, `d0f5f1a`, `403a9cc`, full SHAs), a five-clause `selection_rule`, one `fix_commit_note` per story, and an `excluded` entry for `73f34d4` (DEV-014).
 2. **`scripts/tests/fixtures/gate-upgrade-trial/unscoped-golden.json`** (414 lines)
    - A 30-command transcript captured from the harness at `7c3f001`; pins unscoped behavior byte for byte.

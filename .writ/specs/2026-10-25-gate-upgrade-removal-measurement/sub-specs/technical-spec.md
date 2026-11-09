@@ -211,7 +211,7 @@ Ack entry (one per upgrade no story exercised): `### not exercised: repro-first`
 
 | Path | Content |
 |---|---|
-| `.writ/eval/baselines/2026-11-09-repro-first-substitute.json` | `selection`: the three stories of spec.md Business Rule 14 (DEV-014), identity fields only (`story_id`, `story_path`, `spec_folder`, `story_commit`, `parent_sha`, full SHAs), plus a `selection_rule` block echoing the rule and one `fix_commit_note` per story |
+| `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json` | `selection`: the three stories of spec.md Business Rule 14 (DEV-014), identity fields only (`story_id`, `story_path`, `spec_folder`, `story_commit`, `parent_sha`, full SHAs), plus a `selection_rule` block echoing the rule and one `fix_commit_note` per story |
 | `.writ/eval/gate-upgrade-trial/<date>-repro-first-substitute-trial.json` | The substitute trial file, from `init --upgrades repro-first` |
 | `.writ/eval/gate-upgrade-trial/labeling-sheet-repro-first.md` | The substitute sheet |
 | `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/rating-handoff-repro-first.md` | The substitute handoff, same contents as `rating-handoff.md`, plus the delegation (spec.md Business Rule 9) |
@@ -312,7 +312,7 @@ The outcome test is stdlib only, does not import the harness, and skips with a c
 | `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` | 1, 2, 5 (deleted in 6) | New, temporary |
 | `scripts/tests/test_gate_upgrade_trial.py`, `scripts/tests/fixtures/gate-upgrade-trial/` | 1, 2, 5 (deleted in 6) | New, temporary |
 | `scripts/tests/test_gate_upgrade_trial_outcome.py` | 3, 6 | New; Story 6 reads the substitute report |
-| `.writ/eval/baselines/2026-11-09-repro-first-substitute.json`, `<date>-repro-first-substitute-trial.json`, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md` | 5 | New |
+| `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`, `<date>-repro-first-substitute-trial.json`, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md` | 5 | New |
 | `trial-report-repro-first.md`, Repro First removal-inventory files (only on `remove`), roadmap line, ADR-030 note, `spec.md` status | 6 | New / targeted edits |
 | `.writ/eval/gate-upgrade-trial/prompts/*.md`, `<date>-gate-upgrade-trial.json`, `labeling-sheet.md` | 3 | New |
 | `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/rating-handoff.md`, `spec.md` status | 3 | New / status line |
