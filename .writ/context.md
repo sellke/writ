@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-09T15:20:00Z
+> Last Updated: 2026-11-09T16:40:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-11-09-delete-merged-branches` — Delete Merged Branches
-- **Status:** In Progress
-- **Story:** 2 of 2 — /ship deletes the landed local branch (In Progress); Story 1 (integrate deletes the merged lane branch) Completed ✅
-- **Progress:** 7/14 tasks complete (50%)
+- **Status:** In Progress (both stories complete; integration verification pending)
+- **Story:** 2 of 2 — /ship deletes the landed local branch (Completed ✅); Story 1 (integrate deletes the merged lane branch) Completed ✅
+- **Progress:** 14/14 tasks complete (100%)
 - **Also open:** `2026-10-25-gate-upgrade-removal-measurement` (amendment requested). v0.47.2 (2026-11-09) is the latest release.
 
 ## Artifact Map
@@ -24,9 +24,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-002 Byte-budget offsets: two prose trims and a ledger re-pin — archived-dependencies-resolve (Small)
-- DEV-001 `/verify-spec` section named "Check 3f" in the spec is Check 4d — archived-dependencies-resolve (Small)
-- DEV-011 The first spec's contract tests follow the Callers cells — ship-watch-and-merge (Small)
+- DEV-005 Squash proof on the re-run entry points: plain `/ship` reads `headRefOid` before Step 2 (person's decision) — delete-merged-branches (Medium)
+- DEV-003 `pull --ff-only --no-rebase` and a HEAD check after checkout — delete-merged-branches (Small)
+- DEV-002 Step 6b does not run under `--dry-run` — delete-merged-branches (Small)
 
 ## Open Issues
 

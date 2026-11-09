@@ -7,7 +7,7 @@
 | Story | Status | Tasks | Progress |
 |---|---|---|---|
 | [Story 1: Integrate deletes the merged lane branch](story-1-integrate-deletes-lane.md) | Completed ✅ | 7 / 7 | 100% |
-| [Story 2: /ship deletes the landed local branch](story-2-ship-deletes-local-branch.md) | Not Started | 0 / 7 | 0% |
+| [Story 2: /ship deletes the landed local branch](story-2-ship-deletes-local-branch.md) | Completed ✅ | 7 / 7 | 100% |
 
 **Total:** 2 stories, 14 tasks, 10 acceptance criteria.
 

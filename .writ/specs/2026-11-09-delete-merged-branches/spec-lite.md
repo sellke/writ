@@ -11,6 +11,8 @@
 - Story 1: `git branch -d <lane>` in `cmd_integrate` after worktree removal; record `laneBranchDeleted` / `laneBranchKeptReason`; eval check; state-format doc; one `implement-phase.md` sentence.
 - Story 2: new `scripts/ship-branch-cleanup.py delete` (ordered checks in technical-spec); `/ship` Step 6b; completion line; agent-cli-contract registration; plugin copy.
 - Python 3.9 floor. Helper never calls `gh`; caller passes `--pr-state`, `--pr-head`.
+- Row 9 confirms HEAD and pulls `--ff-only --no-rebase`; a failed `git status` keeps the branch as `dirty_tree` (DEV-003).
+- Plain `/ship` reads `gh pr view --json state,headRefOid,mergeCommit` before Step 2; `MERGED` → Steps 6 and 6b, stop (DEV-005).
 
 **Files in Scope:**
 - `scripts/phase-state.py`, `scripts/eval-phase-lane.py`, `.writ/docs/phase-execution-state-format.md`, `commands/implement-phase.md`
@@ -24,9 +26,10 @@
 - Lane `-d` refused → kept, reason recorded, status still `integrated`
 - Dirty tree, other worktree, fetch failure, unpushed commits → branch kept, reason printed
 - Cleanup never fails a ship or an integrate
+- Step 6b does not run under `--dry-run` (DEV-002)
 
 **Integration Points:**
-- `/ship` Step 7.6 merge step item 7 runs Steps 6 and 6b
+- `/ship` Step 7.6 merge step item 7 appends "; then Step 6b" (the existing clause is pinned; DEV-001)
 - `reconcile` does not check lane branches of `integrated` specs
 
 ---
