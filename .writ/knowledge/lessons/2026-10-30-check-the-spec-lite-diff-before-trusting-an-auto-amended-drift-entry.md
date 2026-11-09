@@ -3,7 +3,7 @@ category: lessons
 tags: [phase-close, drift, implement-phase]
 created: 2026-10-30
 related_artifacts:
-  - .writ/specs/2026-10-25-repro-first-bug-fixing/drift-log.md
+  - .writ/specs/archive/2026-10-25-repro-first-bug-fixing/drift-log.md
   - .writ/specs/archive/2026-10-25-retro-fix-ladder/drift-log.md
   - skills/drift-triage/SKILL.md
 ---
@@ -20,8 +20,8 @@ Recorded at phase close from evidence-bound knowledge writeback.
 
 **Cited evidence:**
 
-- .writ/specs/2026-10-25-review-route-rigor/drift-log.md
-- .writ/specs/2026-10-25-repro-first-bug-fixing/drift-log.md
+- .writ/specs/archive/2026-10-25-review-route-rigor/drift-log.md
+- .writ/specs/archive/2026-10-25-repro-first-bug-fixing/drift-log.md
 - .writ/specs/archive/2026-10-25-retro-fix-ladder/drift-log.md
 - .writ/specs/2026-10-25-gate-upgrade-removal-measurement/drift-log.md
 - skills/drift-triage/SKILL.md
@@ -30,6 +30,6 @@ Recorded at phase close from evidence-bound knowledge writeback.
 
 ## Related
 
-- `.writ/specs/2026-10-25-repro-first-bug-fixing/drift-log.md`
+- `.writ/specs/archive/2026-10-25-repro-first-bug-fixing/drift-log.md`
 - `.writ/specs/archive/2026-10-25-retro-fix-ladder/drift-log.md`
 - `skills/drift-triage/SKILL.md`
