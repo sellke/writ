@@ -27,8 +27,7 @@ safety-fact (when pre-review turned it on), evidence (on an agent FAIL, or any
 verdict once the manifest exists, with `--prior`; never when safety-fact
 re-spawns Gate 3), the Gate 3 decision (the `EVALUATION_RESULT`/`REVIEW_RESULT`
 heading in `--review-output`, first match, after evidence),
-drift-format check, test-integrity coverage and authenticity, repro-order
-(only when a commit since `--base` has a `Repro:` line), then the Jev shadow
+drift-format check, test-integrity coverage and authenticity, then the Jev shadow
 (only when `jev-judge.py status` prints `pass`; never counted). It applies
 Gate 3's first-match evidence table and prints `gate3: PASS|FAIL|PAUSE (...)`.
 The repros the evidence manifest records (ADR-032: committed unchanged) stay
@@ -53,8 +52,7 @@ Overall verdict: `fail` when any counted check is `fail`, else `pass`.
 `restart:` (only on fail) is Gate 3's table target when Gate 3 fails, else the
 first failing counted check's target: `gate1` recode, `gate2` BLOCKED at Gate
 2, `gate3` re-spawn the Gate 3 agent, `gate3-blocked` BLOCKED at Gate 3,
-`gate4` BLOCKED at Gate 4's integrity check. A failing check with no target
-(repro-order) prints no `restart:` line.
+`gate4` BLOCKED at Gate 4's integrity check.
 
 Output, check shape: line 1 `pass` or `fail`; one `check: <id> <verdict>
 (<first reason or ok>)` line per check; `restart:`; `gate3:` (post-review);
@@ -104,7 +102,6 @@ AGENT_VERDICT = re.compile(r"^#{1,6}\s*(?:EVALUATION_RESULT|REVIEW_RESULT):\s*\*
 # Test suffixes test-integrity.py authenticity can read: its SOURCE_SUFFIXES plus .py.
 AUTHENTICITY_SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs")
 SHELL_SUFFIXES = (".sh", ".bash", ".zsh")
-REPRO_LINE = re.compile(r"^Repro:\s*\S", re.MULTILINE)
 PRIOR_CODES = ("repro_removed", "repro_modified", "repro_still_failing")
 MANIFEST_SCHEMA = "evidence-manifest-v1"  # review-override.py --manifest-out
 
@@ -723,16 +720,6 @@ def authenticity(ctx: Ctx, row: Row) -> Dict[str, Any]:
     return result
 
 
-def repro_order(ctx: Ctx, row: Row) -> Dict[str, Any]:
-    if not ctx.git_ok:
-        return _unverifiable(row, "no_git")
-    log = _git(ctx.repo, "log", "--format=%B", ctx.base + "..HEAD") or ""
-    if not REPRO_LINE.search(log):
-        return _skip(row, "no_repro_commit")
-    out = _invoke(ctx, row, ["check", "--repo", str(ctx.repo), "--base", ctx.base], "check")
-    return _check_shape(row, out)  # no restart: a fail marks the story DEGRADED
-
-
 def jev_shadow(ctx: Ctx, row: Row) -> Dict[str, Any]:
     early = _needs_review(ctx, row)
     if early:
@@ -768,7 +755,6 @@ CHECKS: Dict[str, List[Row]] = {
         Row("gate3_5_drift_format", "gate3_5_drift", "drift-format.py", drift_format),
         Row("gate4_coverage", "gate4_tests", "test-integrity.py", coverage),
         Row("gate4_authenticity", "gate4_tests", "test-integrity.py", authenticity),
-        Row("gate1_repro_order", "gate1_coding", "repro-order.py", repro_order),
         Row("gate3_jev_shadow", "gate3_review", "jev-judge.py", jev_shadow, counted=False),
     ],
 }

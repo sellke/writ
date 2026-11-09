@@ -605,7 +605,6 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("goal-emit.py", ["emit", "--card", "{tmp}/card.md", "--out", "{tmp}/out",
                            "--repo", "{tmp}"], {"card.md": GOAL_CARD}, "emit"),
     Smoke("jev-judge.py", ["status", "--repo", "{tmp}"], {}),
-    Smoke("repro-order.py", ["check", "--repo", "{repo}", "--base", "HEAD"], {}),
     Smoke("review-override.py", ["check", "--spec", SPEC, "--repo", "{repo}",
                                  "--story", STORY], {}),
     # `status` and `tally` are gone (ADR-032); `trial-init` is the default smoke now.

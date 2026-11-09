@@ -20,7 +20,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "story-gate.py"
@@ -32,7 +32,7 @@ PRE_ORDER = ["gate2_build_smoke", "gate2_arch_lint", "gate2_5_change_surface",
              "gate0_5_crossings", "gate2_5_blast_radius"]
 POST_ORDER = ["gate3_override", "gate3_safety_fact", "gate3_evidence", "gate3_verdict",
               "gate3_5_drift_format", "gate4_coverage", "gate4_authenticity",
-              "gate1_repro_order", "gate3_jev_shadow"]
+              "gate3_jev_shadow"]
 
 JSON_PASS = json.dumps({"verdict": "pass", "findings": [], "unverifiable": []})
 JSON_FAIL_COVERAGE = json.dumps({"verdict": "fail", "findings": [
@@ -64,7 +64,6 @@ DEFAULT_STUBS: Dict[str, Dict[str, List]] = {
     },
     "drift-format.py": {"check": ["pass\ndrift-format: pass (0 entries)\n", 0]},
     "test-integrity.py": {"coverage": [JSON_PASS, 0], "authenticity": [JSON_PASS, 0]},
-    "repro-order.py": {"check": ["pass\nrepro-order: pass (1 repro, 1 fix commit(s))\n", 0]},
     "jev-judge.py": {
         "status": ["fail\nreason: no_provider\njev-judge: fail (no_provider)\n", 0],
         "ac-shadow": ["pass\njev-judge ac-shadow: pass\n", 0],
@@ -862,22 +861,6 @@ class RouteAndGate3Tests(GateTestCase):
                         and a[0] == "evidence")
         self.assertIn("--prior", evidence)
 
-    def test_repro_order_runs_only_with_a_repro_commit(self) -> None:
-        """Gate 1 bug path: repro-order runs when a commit since base has `Repro:`."""
-        review = self.repo.review(REVIEW_PASS)
-        result = self.repo.run("--review-output", str(review), phase="post-review")
-        self.assertIn("skip (no_repro_commit)", line_for(result.stdout, "gate1_repro_order"))
-        (self.repo.root / "tests" / "test_b.py").write_text("import src.a\n", encoding="utf-8")
-        git(self.repo.root, "add", "-A")
-        git(self.repo.root, "commit", "-q", "-m", "test: repro\n\nRepro: crash on empty")
-        self.repo.stub("repro-order.py", "check",
-                       "fail\nreason: no_fix_after_repro abc\nrepro-order: fail\n", 1)
-        result = self.repo.run("--review-output", str(review), phase="post-review")
-        self.assertEqual(result.returncode, 1)
-        record = record_of(result.stdout)
-        self.assertIsNone(record["restart"])
-        self.assertNotIn("restart:", result.stdout)
-
 
 class TallyTests(GateTestCase):
     """AC-3.4: runs, fails, sole_catches per check id; writes nothing."""
@@ -925,6 +908,21 @@ def _gates_by_path(text: str) -> Dict[str, Optional[str]]:
     return paths
 
 
+def _prose_only(text: str) -> Set[str]:
+    """Gates entries marked `verification: prose-only`: no script, so no runner row."""
+    front = text.split("\n---\n", 1)[0]
+    block = front.split("\ngates:\n", 1)[1]
+    found: Set[str] = set()
+    current = None
+    for line in block.splitlines():
+        m = re.match(r"^  - id: (\S+)$", line)
+        if m:
+            current = m.group(1)
+        elif current and re.match(r"^    verification: prose-only$", line):
+            found.add(current)
+    return found
+
+
 class CommandWiringTests(unittest.TestCase):
     """AC-3.5: the procedure, the check table, and the docs agree."""
 
@@ -932,11 +930,13 @@ class CommandWiringTests(unittest.TestCase):
         self.text = COMMAND.read_text(encoding="utf-8")
 
     def test_default_check_table_equals_default_gates(self) -> None:
-        """AC-3.5: the runner's gate ids equal the `path: default` gates entries."""
+        """AC-3.5: the runner's gate ids equal the `path: default` gates entries,
+        less prose-only ones (gate1_coding lost its only row, repro-order, when
+        2026-10-25-gate-upgrade-removal-measurement Story 6 removed Repro First)."""
         module = load_module()
         table_gates = {row.gate for rows in module.CHECKS.values() for row in rows}
         default = {gid for gid, path in _gates_by_path(self.text).items()
-                   if path in (None, "default")}
+                   if path in (None, "default")} - _prose_only(self.text)
         self.assertEqual(table_gates, default)
         ids = [row.id for rows in module.CHECKS.values() for row in rows]
         self.assertEqual(ids, PRE_ORDER + POST_ORDER)

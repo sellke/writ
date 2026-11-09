@@ -197,3 +197,11 @@
 - **Reason:** The maintainer's delegation of 2026-11-09. With zero findings the verdict does not rest on any label, only on the recorded repro results.
 - **Resolution:** Accepted by user (2026-11-09)
 - **Spec amendment:** N/A — deviation accepted as-is
+
+#### [DEV-019] Repro First wiring the removal inventory predates ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 11 and AC-6.2: apply exactly the repro-first removal inventory as built (Story 6 Notes), plus that upgrade's own tests and wiring-test pins.
+- **Implementation did:** Also removed four live references added after the inventory was written: the `gate1_repro_order` row, `repro_order()`, `REPRO_LINE`, and two docstring mentions in `scripts/story-gate.py` (lean-story-pipeline Story 3, `517c975`) with their stub, row-list entry, and bug-path test in `scripts/tests/test_story_gate.py`; "Gates 3.5, 4 and 1 (bug path)" in `commands/implement-story.md` Gate 3, now "Gates 3.5 and 4"; the `repro-order.py check` line in `agents/supervisor-agent.md`; the repro sentence and "(TDD; a bug fix commits its failing repro first)" in `README.md`. Also the `repro-order.py` notes bullet in `.writ/docs/agent-cli-contract.md` beside the table row the inventory names. Only `KNOWN_OVER_BUDGET["commands/implement-story.md"]` is re-pinned: `IMPLEMENT_STORY_CAP` no longer exists (moved into `KNOWN_OVER_BUDGET` by `f6e3496`), and the pin is exact because `total_overage` is asserted exactly.
+- **Reason:** Leaving the `story-gate.py` row would ship a post-review check that calls a deleted script; the other three would describe a removed feature. Records (CHANGELOG, ADR-032, ADR-033, retros, knowledge, ledger comments) and `.writ/product/mission.md` / `mission-lite.md` are left as written.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review. The repro-first inventory is amended as built here, as DEV-011 did for Story 4.

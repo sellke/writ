@@ -71,7 +71,6 @@ Run what applies; each prints a verdict line you can cite:
 - git log --oneline {base_commit}..{head_ref} and git diff --stat {base_commit}..{head_ref}
 - The story file's Status, task checkboxes, Review Outcome, and recorded commit SHA
 - python3 scripts/ac-trace.py check --spec {spec_dir} --repo .
-- python3 scripts/repro-order.py check (when the story is a bug fix)
 - python3 scripts/exit-criteria.py check --command implement-spec --spec {spec_dir} --state {state_file} (lane only)
 - A test command the report names, only when it is targeted (one file or one selection) and writes nothing outside caches. Do not re-run the full suite or eval.sh: the orchestrator runs those itself, so a full-run claim is checked against the orchestrator's recorded output, or marked unverified.
 A script that is missing or exits 2 makes its claims unverified, not false.
