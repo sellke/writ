@@ -1,6 +1,7 @@
 # Story 6: Act on the Repro First Verdict
 
 > **Status:** Completed ✅ (2026-11-09)
+> **Commit:** ec2eb91369814edb41ad1f3af96c57e5f55f65a2
 > **Priority:** Medium
 > **Dependencies:** Story 5
 
