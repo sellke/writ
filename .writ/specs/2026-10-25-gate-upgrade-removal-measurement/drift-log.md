@@ -185,3 +185,15 @@
 - **Reason:** The orchestrator ran the repro checks as soon as each arm returned, rather than after all arms finished. The repro arm went past its brief. `sheet` rewrites the shared excerpt directory.
 - **Resolution:** Flagged for review. No arm output changed: neither affected reviewer used the working-tree change, and no key came from it. A rerun should apply repros only after every review arm on the story has returned.
 - **Spec amendment:** N/A — flagged for post-implementation review
+
+## Story 6: Act on the Repro First Verdict — Drift Report
+
+> Run: 2026-11-09
+
+#### [DEV-018] The substitute run's `labeled_by` is the assistant, delegated by the maintainer ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 9: only a human labels; the 2026-11-09 exception delegates the substitute run's labels to the assistant and requires a drift entry.
+- **Implementation did:** The sheet had no findings and no acknowledgments, so no label was judged. The assistant ran `label --labeled-by "Adam Sellke (delegated to assistant)"` on the field-less sheet only to set `labeled_by` (DEV-016), without opening the trial JSON or raw outputs first. `report` then gave `repro-first verdict=remove exercised=3/3 upgrade_only=0`.
+- **Reason:** The maintainer's delegation of 2026-11-09. With zero findings the verdict does not rest on any label, only on the recorded repro results.
+- **Resolution:** Accepted by user (2026-11-09)
+- **Spec amendment:** N/A — deviation accepted as-is

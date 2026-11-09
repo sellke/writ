@@ -1,7 +1,7 @@
 {
   "acks": {},
   "baseline": ".writ/eval/baselines/2026-11-09-repro-first-substitute.json",
-  "labeled_by": null,
+  "labeled_by": "Adam Sellke (delegated to assistant)",
   "origin": "claude-opus-5-5",
   "schema": "gate-upgrade-trial-v1",
   "scope": [
