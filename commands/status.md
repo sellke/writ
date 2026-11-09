@@ -256,7 +256,7 @@ Never suggest a command not in this list. If you need to suggest something that 
 
 ### Archive Sweep (`--archive`)
 
-> Only runs when `/status --archive` is explicitly invoked, never as a side effect of routine `/status`, `create-spec`, or `implement-spec` (Business Rule 2). See `.writ/docs/spec-lifecycle.md` for the full convention this step implements.
+> Only runs when `/status --archive` is explicitly invoked, never as a side effect of routine `/status`, `create-spec`, or `implement-spec` (Business Rule 2). `/release` Step 3.1c runs the same sweep on every release. See `.writ/docs/spec-lifecycle.md` for the full convention this step implements.
 
 When `--archive` is present, run this as an additional phase **after** Step 9:
 
