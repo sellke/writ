@@ -1,0 +1,33 @@
+Writ Audit Digest (spec)
+========================
+Spec:     2026-11-08-writ-agents-registered — Writ Agents Registered
+Landed:   main @ 99a740ae40a8044e22f4d1aa9a013467f26779d3 (PR #74, merge commit)
+Source:   bb48bee..473c97b (11 commits)
+Shipped:  2026-11-09 by Adam Sellke
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-register-writ-agents | PASS (2 iterations) | None | na |
+| story-2-spawn-fallback | PASS (1 iteration) | None | na |
+
+Aggregate
+---------
+Verdict:   PASS
+Drift:     highest = None; DEV-IDs: none
+Coverage:  na (no coverage report)
+Files:     2 created, 20 modified, 0 type-changed (.claude/agents symlink)
+Review:    3 iterations across stories
+
+Verification
+------------
+Ledger:    VERIFIED PR 74 head 473c97b (pytest 3.9: 4676 passed, 2 skipped)
+CI:        Eval Tier 1 pass (push, pull_request)
+Phase:     /implement-phase specs-writ-agents-registered COMPLETE; supervisor ACCEPT
+Merge:     doubt id fec836b045dc fallback_merge, person approved
+Agents:    every spawn used the general-purpose fallback (no writ-* type in the run's session)
+
+Refs
+----
+spec:      .writ/specs/2026-11-08-writ-agents-registered/spec.md
