@@ -23,7 +23,7 @@ Recorded at phase close from evidence-bound knowledge writeback.
 - .writ/specs/archive/2026-10-25-review-route-rigor/drift-log.md
 - .writ/specs/archive/2026-10-25-repro-first-bug-fixing/drift-log.md
 - .writ/specs/archive/2026-10-25-retro-fix-ladder/drift-log.md
-- .writ/specs/2026-10-25-gate-upgrade-removal-measurement/drift-log.md
+- .writ/specs/archive/2026-10-25-gate-upgrade-removal-measurement/drift-log.md
 - skills/drift-triage/SKILL.md
 - commands/implement-story.md
 - repeated drift: 65 Auto-amended entries, 1 spec-lite.md edit after 1fe981b (git log per spec)

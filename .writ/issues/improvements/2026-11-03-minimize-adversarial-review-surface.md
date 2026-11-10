@@ -40,7 +40,7 @@ LLM-judgment review surfaces, mostly added or grown in Phase 15 with pstack `int
 
 ## Notes
 
-- Sequence after `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/`. It is waiting on human labels and will issue keep/remove verdicts for `Reviewer Filters` and `Safety Fact`; reuse its findings data instead of re-measuring.
+- Sequence after `.writ/specs/archive/2026-10-25-gate-upgrade-removal-measurement/`. It is waiting on human labels and will issue keep/remove verdicts for `Reviewer Filters` and `Safety Fact`; reuse its findings data instead of re-measuring.
 - Out of scope unless decided otherwise: discovery-time "challenge" prompts in `/plan-product` (Premise Challenge), `/create-spec`, `/new-command`, `/edit-spec`. They interrogate the user's idea, not code, and have no empirical substitute.
 - Risk: some reviewer catches (design smell, missing case nobody wrote a test for) have no mechanical equivalent. The audit should name those and keep them, not cut by default.
 

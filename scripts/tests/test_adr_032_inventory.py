@@ -92,7 +92,7 @@ EXPECTED_VERDICTS = (
 )
 
 # The removal trial that kept the reviewer filters (spec.md → Amendment).
-REMOVAL_TRIAL_LINK = "(../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)"
+REMOVAL_TRIAL_LINK = "(../specs/archive/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)"
 
 # technical-spec.md § Removals: the two tables whose files ADR-032 must name.
 REMOVAL_TABLES = ("### Safety Fact floor (Story 6)", "### Review panel (Story 7)")
