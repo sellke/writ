@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "writ",
+  "version": "0.49.0",
+  "description": "Agree what to build, let the model build it, and see proof it works. A workflow for product managers working with an AI coding agent.",
+  "author": {
+    "name": "Adam Sellke"
+  },
+  "homepage": "https://github.com/sellke/writ",
+  "repository": "https://github.com/sellke/writ",
+  "license": "MIT",
+  "keywords": [
+    "product",
+    "spec",
+    "workflow",
+    "verification",
+    "planning"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "writ",
-  "description": "The Writ plugin for Claude Code, built from this repository.",
+  "description": "Writ, from this repository.",
   "owner": {
     "name": "Adam Sellke"
   },
@@ -8,7 +8,7 @@
     {
       "name": "writ",
       "source": "./plugins/writ",
-      "description": "AI development workflow: contract-first specs, a test-first multi-agent story pipeline, and script-backed quality gates."
+      "description": "Agree what to build, let the model build it, and see proof it works. A workflow for product managers working with an AI coding agent."
     }
   ]
 }
