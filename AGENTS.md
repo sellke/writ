@@ -1,102 +1,52 @@
-# AGENTS.md
+# Working in this repository
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+`CLAUDE.md` imports this file, so Claude Code, Codex, and Cursor all read the same instructions.
 
-## What This Project Is
+## What this project is
 
-Writ is an AI-powered development workflow framework — markdown command files and agent definitions that run on any AI coding platform (Cursor, Codex, OpenClaw). There is no application code, no build step, no test suite, and no dependencies. The deliverables are markdown files.
+Writ is a way for a product manager and an AI coding agent to work together: agree what to build, let the model build it, see proof it works. The product is ten plain-language skills. There is no application code and no build step.
 
-**Version:** See `VERSION` file. Current release process: `/release` command.
+## Where things are
 
-## Repository Structure (Self-Dogfooding)
+| Path | What it is |
+|---|---|
+| `plugins/writ/` | **The product.** `skills/` plus three plugin manifests. This folder is both the source and what installs. Nothing is generated from it and nothing is copied into it. |
+| `plugins/writ/skills/writ/rules.md` | The rules every skill reads first: who decides, honest assessment, proof, how to write for the person, where records live. |
+| `plugins/writ/skills/writ-jev/jev.py` | The only code that ships. Optional, standard-library Python 3.9+. |
+| `scripts/` | Development only: `check.py`, `install.sh`, and `tests/`. |
+| `.writ/` | This project's own plan, specs, decisions, and research, kept with Writ. `specs/archive/` and most decision records predate 1.0 and are history. |
+| `.claude/skills`, `.agents/skills` | **Symlinks** to `plugins/writ/skills`, so this repository runs the skills it is editing. Do not replace them with copies, and do not run `install.sh` here. |
 
-This repo uses Writ to build Writ. Several concerns live here:
+## Editing skills
 
-| Concern | Location | What it is |
-|---|---|---|
-| **Product source** | `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`, `SKILL.md` | The distributable methodology — what `install.sh` copies into other projects |
-| **Development workspace** | `.writ/` | Specs, research, product docs, ADRs — artifacts from using Writ to build itself |
-| **Active installation (Cursor)** | `.cursor/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
-| **Active installation (Claude Code)** | `.claude/` | Same pattern: `commands`, `agents`, and `skills` symlink to repo-root `commands/`, `agents/`, `skills/`. Keep `settings.local.json` and other Claude-only files as real files. |
-| **Active installation (Codex CLI)** | `.codex/` | **`agents` → `codex/agents/`** (TOML). Same symlink idea as other platforms — do not replace with opaque copies while developing Writ itself. |
+- A skill says what must happen, never which tool does it. No platform tool names; `check.py` fails on them.
+- Write for a reader who owns the product and does not review code. Plain words, short sentences, reasons over rules.
+- Frontmatter is `name` and `description` only. The name is the folder name and starts with `writ`.
+- One skill names another by its name or by `../<skill>/SKILL.md`. Shared text goes in `rules.md`, once.
+- Before adding a rule or a check, find the recorded mistake it would have caught. If there is none, leave it out.
+- Edits under `plugins/writ/` ship to every user. Edits under `.writ/` are this project's own records.
 
-Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.md` changes the same file via symlink. Same applies to `skills/<name>/SKILL.md` once the first skill ships.
-
-## Development Commands
-
-There is no build step. The product is markdown, but `scripts/` carries a Python and bash test suite plus `eval.sh`, the repo's quality gate. **Python floor: 3.9** (the macOS system interpreter), declared in `pyproject.toml`; the suite must stay green from 3.9 up, so never rely on newer-only stdlib behavior (a 3.13-only `pathlib` assumption already bit once).
+## Commands
 
 ```bash
-# Python tests — `uv run` picks a supported interpreter and provides pytest
-uv run pytest                        # or: uv run --python 3.9 pytest to exercise the floor
+# Skills, manifests, and README hold together. Fast; run it after any edit under plugins/writ/.
+python3 scripts/check.py
+
+# Python tests. Name the interpreter: bare `uv run pytest` picks the 3.9 system Python here.
+uv run --isolated --python 3.9 --with pytest pytest
+uv run --isolated --python 3.14 --with pytest pytest
 
 # Bash tests
 for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
 
-# Quality gate (does `git init` in a temp dir — run outside any sandbox)
-bash scripts/eval.sh                 # --check=<name> for one check
+# Preview an install into another project (run it from that project's root)
+WRIT_SRC=/path/to/this/repo bash /path/to/this/repo/scripts/install.sh --dry-run
 ```
 
-Validation of the methodology itself is via Writ commands:
+**Python floor: 3.9**, the macOS system interpreter, declared in `pyproject.toml`. `jev.py` and `check.py` must run on it with the standard library alone.
 
-```bash
-# Check spec integrity
-/verify-spec
+`VERSION`, `pyproject.toml`, and the three plugin manifests carry the same version. A release changes all five in one commit.
 
-# Full project status
-/status
+## Why it is shaped this way
 
-# Release (changelog + version bump + git tag)
-/release
-```
-
-The install/update scripts can be tested:
-```bash
-bash scripts/install.sh --dry-run    # Preview install into a target project
-bash scripts/update.sh --dry-run     # Preview update
-```
-
-## Architecture
-
-### Commands (`commands/`)
-Markdown workflow files with structured phases. Each command is self-contained — read it and follow the steps. Commands reference agents and other commands but don't import anything.
-
-Key commands in the pipeline: `plan-product` → `create-spec` → `implement-phase` (phase-level orchestrator; loops `implement-spec` per spec) or `implement-spec` directly (single spec) → `create-uat-plan` (UAT validation; auto-called by `implement-phase`) → `verify-spec` → `release`.
-
-### Agents (`agents/`)
-Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
-1. Architecture check (read-only, PROCEED/CAUTION/ABORT)
-2. Coding agent (TDD, worktree isolation, loads "What Was Built" from dependencies)
-3. Review agent (read-only, PASS/FAIL, max 3 iterations, outputs parsed for "What Was Built" records)
-4. Testing agent (coverage enforcement, >=80%)
-5. Documentation agent (framework-adaptive)
-
-Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
-
-Each agent declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn. See [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
-
-### Adapters (`adapters/`)
-Platform-specific integration guides. `adapters/codex.md` maps Writ concepts to Codex CLI subagents, `AGENTS.md`, and `.codex/config.toml`. `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.
-
-### Scripts (`scripts/`)
-Shell scripts for installation (`install.sh`), updates (`update.sh`), migration from Code Captain (`migrate.sh`), symlink management (`unlink.sh`), root-catalog generation (`gen-skill.sh`), and skills boundary linting (`lint-skill.sh`).
-
-### Skills (`skills/`)
-Folder-per-skill capability files (`skills/<name>/SKILL.md`) — the third Writ primitive (verb/noun/tool: command/agent/skill). Skills are reusable capabilities wielded by commands and agents, not workflows or roles. Authoring is via `/new-skill` with the boundary lint enforced at authoring time and again via `/refresh-command --lint-skills`. Empty by default — pilot extractions land in separate specs. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the boundary rationale.
-
-### SKILL.md
-Root catalog for platforms that support skill discovery. Auto-generated from `.writ/manifest.yaml` by `scripts/gen-skill.sh`. Describes all commands, agents, and (when present) skills with metadata.
-
-## Key Design Decisions
-
-- **Contract-first**: Specs are agreed upon before any files are created. Commands use Plan Mode for discovery, AskQuestion for bounded choices (see ADR-001 in `.writ/decision-records/`).
-- **Platform-agnostic tool references**: Commands use generic tool names. Adapters translate to platform-specific APIs.
-- **Symlinks for dogfooding**: `.cursor/` symlinks to product source so edits are immediately live and `/refresh-command` improves the product directly.
-- **`.writ/state/` is gitignored**: Ephemeral workflow state only.
-- **Spec lifecycle & archival**: completed specs move to `.writ/specs/archive/<name>/` via `/status --archive`, one path segment deeper than active specs so every existing single-level `.writ/specs/*/spec.md` glob excludes them automatically. See [`.writ/docs/spec-lifecycle.md`](.writ/docs/spec-lifecycle.md) before adding a new spec-enumeration call site or a redundant `archive/` exclusion check.
-
-## When Editing Commands or Agents
-
-- Edits to `commands/` and `agents/` are product changes that ship to all Writ users.
-- Edits to `.writ/` are development workspace artifacts for this project only.
-- The `system-instructions.md` file defines Writ's identity, Prime Directive (anti-sycophancy rules), and interaction tool selection guidance. It's the root behavioral contract.
+`.writ/product/mission.md` and `roadmap.md`, and ADR-034 to ADR-037 in `.writ/decision-records/`. Everything before 1.0 is at tag `v0.49.0` and in `.writ/product/roadmap-history.md`.
