@@ -1,5 +1,7 @@
 # ADR-017: Git-Notes Audit Channel — Immutable, Commit-Bound Audit Trail
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > **Date:** 2026-07-18
 > **Status:** Accepted
 > **Category:** Framework Architecture

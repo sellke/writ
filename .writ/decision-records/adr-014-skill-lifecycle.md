@@ -1,5 +1,7 @@
 # ADR-014: Skill Lifecycle — Earned-State Maturity for Skills
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-07-10
 > **Status:** Accepted
 > **Category:** Framework Architecture

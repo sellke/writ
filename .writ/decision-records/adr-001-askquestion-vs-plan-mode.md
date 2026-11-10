@@ -1,5 +1,7 @@
 # ADR-001: AskQuestion vs Plan Mode in Commands
 
+> **Superseded as a mechanism 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md); the idea carries on there. Kept as history.
+
 > **Date:** 2026-03-01
 > **Status:** Accepted
 > **Category:** Command Design

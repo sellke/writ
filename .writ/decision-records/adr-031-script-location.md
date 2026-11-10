@@ -1,5 +1,7 @@
 # ADR-031: Script Location Under Two Install Paths
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-10-23
 > **Status:** Accepted
 > **Category:** Framework Architecture

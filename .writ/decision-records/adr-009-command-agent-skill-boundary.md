@@ -1,5 +1,7 @@
 # ADR-009: Command, Agent, Skill — Three Primitives with Distinct Roles
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-05-03
 > **Status:** Accepted
 > **Category:** Framework Architecture

@@ -1,5 +1,7 @@
 # ADR-028: Behavioral Verification and Cross-Family Verdict Panels
 
+> **Superseded as a mechanism 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md); the idea carries on there. Kept as history.
+
 > **Date:** 2026-10-01
 > **Status:** Accepted
 > **Category:** Framework Architecture

@@ -1,5 +1,7 @@
 # ADR-024: Model Delegation — Orchestrators Anchor, Executors Floor, Failures Escalate
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-09-03
 > **Status:** Accepted
 > **Category:** Framework Architecture

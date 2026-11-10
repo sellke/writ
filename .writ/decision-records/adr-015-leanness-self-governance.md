@@ -1,5 +1,7 @@
 # ADR-015: Leanness Self-Governance — A Tripwire and a Ritual, Never a Command
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-07-11
 > **Status:** Accepted
 > **Category:** Framework Architecture
