@@ -14,6 +14,10 @@
 ## Acceptance Criteria
 
 > **AC IDs assigned through:** AC-6.5
+> **Verified by:** AC-6.1 — commit `2898b05` (labeled substitute trial and verbatim `trial-report-repro-first.md`, before any removal edit) in What Was Built → Implementation Decisions
+> **Verified by:** AC-6.2 — the live `test_upgrade_verdict_matches_repo[repro-first]` run (52 passed) and the empty `rg -n 'Repro First'` check in What Was Built → Test Results
+> **Verified by:** AC-6.4 — commit `4144a72` (roadmap, ADR-030 note, spec status `Complete`) and the live outcome status check in What Was Built → Test Results
+> **Verified by:** AC-6.5 — the full-suite runs on Python 3.9 and 3.14, the bash suite, `gen-platform-trees.py --check`, and `eval.sh` in What Was Built → Test Results
 
 - [x] Given `labeling-sheet-repro-first.md` lists upgrade-only findings, when the assistant labels them in a fresh pass without opening the trial JSON or raw outputs, then every note opens "Assistant-assessed, maintainer-delegated", `label --labeled-by "Adam Sellke (delegated to assistant)"` succeeds, `report`'s output is committed verbatim as `trial-report-repro-first.md` with the labeled substitute trial file before any removal edit, and `trial-report.md` stays byte-identical; with zero upgrade-only findings, `label` still runs on the field-less sheet so `labeled_by` is set, and the drift log records that no finding needed a label `[AC-6.1]`
 - [x] Given Repro First's verdict is `remove`, when the story closes, then its Removal Inventory (Notes) is applied as built, both whole-file caps are re-pinned downward with a dated disclosure naming this spec and Story 6, `python3 scripts/gen-platform-trees.py` has run, `scripts/repro-order.py` is absent, and `rg -n 'Repro First' commands agents skills .writ/docs` is empty; given `keep` or `unverifiable`, then no Repro First file is edited and the spec stays open with the reason `[AC-6.2]`
