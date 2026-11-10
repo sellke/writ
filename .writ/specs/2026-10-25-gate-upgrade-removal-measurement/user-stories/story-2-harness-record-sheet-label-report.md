@@ -14,6 +14,7 @@
 ## Acceptance Criteria
 
 > **AC IDs assigned through:** AC-2.5
+> **Verified by:** AC-2.2, AC-2.3, AC-2.4, AC-2.5 — `scripts/tests/test_gate_upgrade_trial.py`, passing in Story 5's recorded run (483 passed on Python 3.9 and 3.14) and deleted with the harness in `bfb67cf` (Story 6, AC-6.5)
 
 - [x] Given a trial file with a story whose `off-1` and `off-2` arms are recorded, when `record` stores a `safety-fact` arm whose output has no `Safety Fact` heading, or an `off-1` arm whose output has one, or whose `--state` values do not match the arm, then it exits 2 and the trial file is unchanged `[AC-2.1]`
 - [x] Given a Gate 0 comparison output with and without `**Avoided by:**` lines and a repro result, when `record` stores the `gate0-divergence` arm, then only issues under `### Issues Found` that carry `**Avoided by:**` produce keys, and when a `repro-first` arm records `--at-parent fail --at-commit fail`, then it stores key `ac:<repro-ac>` at `Critical`, while any other pair stores no key `[AC-2.2]`

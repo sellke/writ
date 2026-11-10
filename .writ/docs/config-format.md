@@ -65,7 +65,6 @@
 | `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
 | `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
 | `Evidence Gate` | implement-story (Gate 3), review | On by default; `off` lets the reviewer's verdict block without executed evidence; see [Evidence Gate](#evidence-gate) |
-| `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
 
 **Removed keys:** `Review Panel` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). A leftover line prints `review-panel: removed (ADR-032)` once per story and does nothing else.
 
@@ -167,25 +166,6 @@ decline, a headless run, or no answer writes
 `> Evidence gate: unverifiable (untrusted_branch)` and leaves every severity as
 written. With `off`, `/review` asks nothing, downgrades no finding, and writes
 `> Evidence gate: off`.
-
-## Repro First
-
-```markdown
-- **Repro First:** off
-```
-
-`- **Repro First:** on|off` under `## Conventions` turns off the repro-first
-bug path. It is never detected or offered for saving. No line, an empty value,
-or `on` means on. Only `off` in any case turns it off. Any other value also
-means on, and `python3 scripts/repro-order.py check --base <rev>` prints
-`reason: repro-first value <value> read as on`. The first matching line wins.
-The key must match the case shown. With `off`, the bug path in
-`skills/tdd-cycle/SKILL.md` is skipped and the ordinary cycle runs, so a bug
-fix still starts from a failing test. The coding agent's `### Repro` block
-reads `Repro: off`. Neither `/prototype` nor `/implement-story` runs the check,
-and the ordered-commits cherry-pick rule does not apply. Run by hand,
-`python3 scripts/repro-order.py check --base <rev>` prints `unverifiable` and
-`reason: repro-first off` and exits 0 before reading git.
 
 ## Rules
 

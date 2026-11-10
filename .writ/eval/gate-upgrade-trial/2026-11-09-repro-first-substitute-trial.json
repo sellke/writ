@@ -1,0 +1,219 @@
+{
+  "acks": {},
+  "baseline": ".writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json",
+  "labeled_by": "Adam Sellke (delegated to assistant)",
+  "origin": "claude-opus-5-5",
+  "schema": "gate-upgrade-trial-v1",
+  "scope": [
+    "repro-first"
+  ],
+  "sheet": {
+    "body_sha256": "f6652b0d9cc68cdd7caad9f4aac84a6a748c3bf4183b93219b5b5369e5e9a0a9",
+    "findings": 0,
+    "path": ".writ/eval/gate-upgrade-trial/labeling-sheet-repro-first.md",
+    "seed": 1171052140
+  },
+  "stories": [
+    {
+      "arms": {
+        "off-1": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-1.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-09-20-custom-covers-not-saving--story-1-production-cover-origin-save/off-1.md",
+          "raw_sha256": "37e64268227962426b3163d2a5037ee30ef49f89832058c48987a24695d658e5",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-09-20-custom-covers-not-saving--story-1-production-cover-origin-save/off-2.md",
+          "raw_sha256": "5573416f8010ea2a1e792c20aa6d72edf7a83fd32f1725f62520187fa69b5ac2",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "PASS"
+        },
+        "repro-first": {
+          "at_commit": "pass",
+          "at_parent": "fail",
+          "exercised": true,
+          "keys": [],
+          "kind": "bug",
+          "raw": "2026-09-20-custom-covers-not-saving--story-1-production-cover-origin-save/repro-first.md",
+          "raw_sha256": "d1f3ad7456019ade89b7b63d9afa1709eba38009f8404590d9f92ad9d18ed36b",
+          "repro_ac": "AC-1.1",
+          "repro_result": "fixed",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        }
+      },
+      "off_only": {},
+      "parent_sha": "ee9b4bf5c33f3afc723fe4aa2c2b484ed5d43c86",
+      "repro_kind": "bug",
+      "routes": {
+        "gate0_route": "evaluator-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "cross-component",
+        "surface": "cross-component"
+      },
+      "spec_folder": "2026-09-20-custom-covers-not-saving",
+      "story_commit": "ed15bba0d1fe67f9ea1e85c58c4b39f7f4196749",
+      "story_id": "2026-09-20-custom-covers-not-saving/story-1-production-cover-origin-save",
+      "story_path": ".writ/specs/2026-09-20-custom-covers-not-saving/user-stories/story-1-production-cover-origin-save.md",
+      "upgrade_only": []
+    },
+    {
+      "arms": {
+        "off-1": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-04-16-event-limit-upgrade-modal-wiring--story-1-wire-limit-error-to-upgrade-modal/off-1.md",
+          "raw_sha256": "f9390d6071af4b596f332049fbb71267cf73ad05e10fa8e56b447579c05fe290",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "PASS"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-04-16-event-limit-upgrade-modal-wiring--story-1-wire-limit-error-to-upgrade-modal/off-2.md",
+          "raw_sha256": "65524442880ee98464b981d8a86ae60b5a2012ebbdc6cbb7c40b57aceeabc4e1",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "PASS"
+        },
+        "repro-first": {
+          "at_commit": "pass",
+          "at_parent": "fail",
+          "exercised": true,
+          "keys": [],
+          "kind": "bug",
+          "raw": "2026-04-16-event-limit-upgrade-modal-wiring--story-1-wire-limit-error-to-upgrade-modal/repro-first.md",
+          "raw_sha256": "5edb2a4f785389d37f404019c2ecb2e21e8b602edbad560701a2989905b6c944",
+          "repro_ac": "AC-1.1",
+          "repro_result": "fixed",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        }
+      },
+      "off_only": {},
+      "parent_sha": "6976f9bb4b51731a5a88accbdabbe16cc0d8f0fc",
+      "repro_kind": "bug",
+      "routes": {
+        "gate0_reason": "unverifiable: no planned files",
+        "gate0_route": "skip",
+        "gate3_route": "review-agent",
+        "planned_surface": null,
+        "surface": "cross-component"
+      },
+      "spec_folder": "2026-04-16-event-limit-upgrade-modal-wiring",
+      "story_commit": "d0f5f1a6dae129bfb7e022a413b250687faf2b2b",
+      "story_id": "2026-04-16-event-limit-upgrade-modal-wiring/story-1-wire-limit-error-to-upgrade-modal",
+      "story_path": ".writ/specs/2026-04-16-event-limit-upgrade-modal-wiring/user-stories/story-1-wire-limit-error-to-upgrade-modal.md",
+      "upgrade_only": []
+    },
+    {
+      "arms": {
+        "off-1": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-03-03-days-present-stretch-miscount--story-1-fix-counting-logic/off-1.md",
+          "raw_sha256": "63b7731b17d134b62a4309413d15066f381d59085aaf3005beb82f8a3e5a6396",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "PASS"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-03-03-days-present-stretch-miscount--story-1-fix-counting-logic/off-2.md",
+          "raw_sha256": "f8f49f8aca76f85c56582f854829d9968087342172c5c4615c92ff4f96b02d83",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "repro-first": {
+          "at_commit": "pass",
+          "at_parent": "fail",
+          "exercised": true,
+          "keys": [],
+          "kind": "bug",
+          "raw": "2026-03-03-days-present-stretch-miscount--story-1-fix-counting-logic/repro-first.md",
+          "raw_sha256": "1c04714cad9b33480bc9d3dfbb376615d342d5b2e2bd3ca209fc0fa72c20c766",
+          "repro_ac": "AC-1.1",
+          "repro_result": "fixed",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        }
+      },
+      "off_only": {},
+      "parent_sha": "73977e95029b042ad4f73eec3dc7b1cd982aba71",
+      "repro_kind": "bug",
+      "routes": {
+        "gate0_route": "evaluator-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "cross-component",
+        "surface": "cross-component"
+      },
+      "spec_folder": "2026-03-03-days-present-stretch-miscount",
+      "story_commit": "403a9cc1e50f434a14df59e1438d7a7b3fc4dbe6",
+      "story_id": "2026-03-03-days-present-stretch-miscount/story-1-fix-counting-logic",
+      "story_path": ".writ/specs/2026-03-03-days-present-stretch-miscount/user-stories/story-1-fix-counting-logic.md",
+      "upgrade_only": []
+    }
+  ],
+  "upgrades": {
+    "gate0-divergence": {
+      "present": false
+    },
+    "repro-first": {
+      "present": true
+    },
+    "reviewer-filters": {
+      "present": true
+    },
+    "safety-fact": {
+      "present": true
+    }
+  },
+  "yuss_snapshot": {
+    "after": {
+      "head": "a5afd43585fec00e32df9786a5a2081483a26744",
+      "refs_sha256": "6afc25d2aea8170ae8e46ca903497c2ddd830d00e7edd82a030ba931b9a86d6d",
+      "status_sha256": "05697016414793c8d6610d07dd784baf00c0876878422560ac4010f848fb7039"
+    },
+    "before": {
+      "head": "a5afd43585fec00e32df9786a5a2081483a26744",
+      "refs_sha256": "6afc25d2aea8170ae8e46ca903497c2ddd830d00e7edd82a030ba931b9a86d6d",
+      "status_sha256": "05697016414793c8d6610d07dd784baf00c0876878422560ac4010f848fb7039"
+    },
+    "unchanged": true
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "repro-first-substitute-baseline-v1",
+  "spec": "2026-10-25-gate-upgrade-removal-measurement",
+  "rule": "spec.md Business Rule 14",
+  "generated_at": "2026-11-09",
+  "yuss_head": "a5afd43585fec00e32df9786a5a2081483a26744",
+  "resolution": "full SHAs from read-only git rev-parse --verify <short>^{commit} and <commit>^1 against yuss; story_path checked with ls-tree at story_commit",
+  "selection_rule": {
+    "1_bug_test": "The spec passes skills/tdd-cycle/SKILL.md's bug test: **Type:** Bug, an Origin citing .writ/issues/bugs/, or a Fix title.",
+    "2_fix_commit": "A product-code fix(...) commit is matched to the spec by hand; fix(tests) and fix(ci) commits do not count. One fix_commit_note per story says why that commit is the fix.",
+    "3_phase11_rules": "The Phase 11 rules hold except commit lookup: the story is Completed, the commit has a parent, it touches at least one test file outside tests/integration/ and tests/e2e/, and those files import no prisma, stripe, @neondatabase, or next-auth module unless they jest.mock() it.",
+    "4_take": "Of the admitted stories, the four most recent by fix-commit date are taken.",
+    "5_prepare_inputs": "The story file and its spec's contract section exist at the fix commit (what prepare reads)."
+  },
+  "selection": [
+    {
+      "story_id": "2026-09-20-custom-covers-not-saving/story-1-production-cover-origin-save",
+      "story_path": ".writ/specs/2026-09-20-custom-covers-not-saving/user-stories/story-1-production-cover-origin-save.md",
+      "spec_folder": "2026-09-20-custom-covers-not-saving",
+      "story_commit": "ed15bba0d1fe67f9ea1e85c58c4b39f7f4196749",
+      "parent_sha": "ee9b4bf5c33f3afc723fe4aa2c2b484ed5d43c86",
+      "parent_is_merge": false,
+      "fix_commit_date": "2026-09-20",
+      "fix_commit_note": "Fix-type commit in the event-cover area that lands the product change, its unit test, and the spec, whose Type field marks a bug fix; story 1 is the spec's only story."
+    },
+    {
+      "story_id": "2026-04-16-event-limit-upgrade-modal-wiring/story-1-wire-limit-error-to-upgrade-modal",
+      "story_path": ".writ/specs/2026-04-16-event-limit-upgrade-modal-wiring/user-stories/story-1-wire-limit-error-to-upgrade-modal.md",
+      "spec_folder": "2026-04-16-event-limit-upgrade-modal-wiring",
+      "story_commit": "d0f5f1a6dae129bfb7e022a413b250687faf2b2b",
+      "parent_sha": "6976f9bb4b51731a5a88accbdabbe16cc0d8f0fc",
+      "parent_is_merge": false,
+      "fix_commit_date": "2026-04-16",
+      "fix_commit_note": "Fix-type dashboard commit with one unit test; the spec lands in the same commit and its Origin cites a bug issue file."
+    },
+    {
+      "story_id": "2026-03-03-days-present-stretch-miscount/story-1-fix-counting-logic",
+      "story_path": ".writ/specs/2026-03-03-days-present-stretch-miscount/user-stories/story-1-fix-counting-logic.md",
+      "spec_folder": "2026-03-03-days-present-stretch-miscount",
+      "story_commit": "403a9cc1e50f434a14df59e1438d7a7b3fc4dbe6",
+      "parent_sha": "73977e95029b042ad4f73eec3dc7b1cd982aba71",
+      "parent_is_merge": false,
+      "fix_commit_date": "2026-03-03",
+      "fix_commit_note": "One commit lands the bug-fix spec with all three of its stories and their changes; story 1 holds the counting fix, so it is the story under trial."
+    }
+  ],
+  "excluded": [
+    {
+      "story_id": "2026-05-13-event-settlement-role-invariants/story-1-enforce-settlement-role-invariants",
+      "reason": "fails rule 5: the spec and story file land in the commit after the fix, so prepare cannot read them at the fix commit"
+    }
+  ]
+}

@@ -1,2 +1,0 @@
-unverifiable
-reason: safety_fact_missing — no Safety Fact section

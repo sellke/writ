@@ -5,7 +5,7 @@
 
 ## For Coding Agents
 
-**Deliverable:** A retrospective trial over the four Phase 11 baseline stories that runs each Phase 15 gate upgrade on against all switches off, gets human labels for upgrade-only findings, and keeps or removes each upgrade.
+**Deliverable:** A retrospective trial over the four Phase 11 baseline stories that runs each Phase 15 gate upgrade on against all switches off, gets human labels for upgrade-only findings, and keeps or removes each upgrade. Amended 2026-11-09: Repro First, never exercised, gets a substitute trial on three yuss bug-fix stories (DEV-014) (spec.md Business Rule 14; Stories 5–6).
 
 **Implementation Approach:**
 - Dev-only harness `.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` (3.9 stdlib, check shape): `init`, `prepare`, `record`, `sheet`, `label`, `report`. Loads `scripts/review-panel.py` by path for `_prepare_run`, `parse_output`, `trial_key`, `_key_order`.
@@ -19,6 +19,8 @@
 - `scripts/tests/test_gate_upgrade_trial_outcome.py` — verdict ↔ repo state
 - spec folder: `rating-handoff.md`, `trial-report.md`, status line
 - Story 4 only: removal-inventory files of `remove` upgrades, roadmap "Removal measurement" line, ADR-030 § Review note
+- Story 5: `init --upgrades` in the harness; `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`; substitute trial JSON, `labeling-sheet-repro-first.md`, `rating-handoff-repro-first.md`
+- Story 6: `trial-report-repro-first.md`; Repro First removal inventory only on `remove`; outcome test reads the new report; records; harness deletion
 
 **Error Handling:**
 - yuss missing / SHA unreachable / parent beyond depth 2 → exit 2, nothing written
@@ -49,7 +51,11 @@
 **Business Rules:**
 - Upgrade exercised only when its own trigger fires on that story
 - `keep` on ≥1 valid; `remove` when exercised and none valid; not exercised + ack `remove` → `remove`; ack `amend` or missing → `unverifiable`
-- Only a human labels; `valid` = real unmet AC or Critical/Major security/architecture defect at that commit
+- Only a human labels; `valid` = real unmet AC or Critical/Major security/architecture defect at that commit. Exception: the substitute trial's labels are delegated to the assistant (2026-11-09), marked in `labeled_by` and every note
+- Substitute trial: arms `off-1`, `off-2`, `repro-first` only; a catch still needs a repro that fails at parent and at the story commit, so it leans toward `remove`
+- Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`) (DEV-015)
+- With zero findings, `report` reads `unverifiable (unlabeled 0)` until `label` sets `labeled_by` (DEV-016)
+- The ADR-030 substitute note lists three trial stories plus the excluded `73f34d4` (DEV-020)
 - Gate 0 removed + blind trial `keep` → skill stays with `/prototype` only
 
 **Experience Design:**

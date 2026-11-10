@@ -778,7 +778,11 @@ KNOWN_OVER_BUDGET = {
     # sentence (+160), offset by cutting Gate 0.5's skill-read detail (-95) and
     # Gate 1's restatement of how agents read `(none)` (-70). Re-pinned down
     # because total_overage is asserted exactly.
-    "commands/implement-story.md": 13553,
+    # 2026-11-09 (2026-10-25-gate-upgrade-removal-measurement Story 6): 13553 -> 13201
+    # (file 38513 -> 38161); the Repro First substitute trial said remove, so the
+    # Gate 1 `**Bug path:**` line and post-review's "1 (bug path)" clause are gone.
+    # Re-pinned down because total_overage is asserted exactly.
+    "commands/implement-story.md": 13201,
 }
 
 

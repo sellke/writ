@@ -149,3 +149,75 @@
 - **Reason:** The Repro First ack is `amend` (Business Rule 7). The spec stays open until `/edit-spec` adds a substitute baseline, which needs bug-fix stories, and measuring that baseline needs this harness. Deleting it now would mean restoring it from history to finish the spec.
 - **Resolution:** Flagged for review
 - **Spec amendment:** N/A — flagged for post-implementation review. Task 4.6 runs once Repro First has a `keep` or `remove` verdict.
+
+## Story 5: Run the Repro First Substitute Trial — Drift Report
+
+> Run: 2026-11-09
+
+#### [DEV-014] Three substitute stories, not four ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 14 and AC-5.3: four admitted stories, including `2026-05-13-event-settlement-role-invariants/story-1-enforce-settlement-role-invariants` @ `73f34d4`.
+- **Implementation did:** The baseline holds three stories: `ed15bba`, `d0f5f1a`, `403a9cc`. `scripts/review-panel.py` `_prepare_run` needs the story file and the spec's `## Specification Contract` (or `## Contract Summary`) at `story_commit`. The role-invariants spec was first committed in `e33ac3d`, 10 seconds after the fix, so `prepare` cannot run on `73f34d4`. A re-screen of every yuss bug spec found no fourth story that meets all rules. The harness now lets a scoped trial (`init --upgrades`) take 1 to 4 stories; an unscoped trial still needs exactly 4. The selection rule gains a fifth clause: the story file and spec contract exist at the fix commit.
+- **Reason:** The 2026-11-09 screen checked test files and imports but not what `prepare` reads. The maintainer chose to run three stories over reading a story written after the fix or re-specifying.
+- **Resolution:** Accepted by user (2026-11-09)
+- **Spec amendment:** spec.md Business Rule 14 (three stories, fifth clause); AC-5.3 and task 5.3 in Story 5.
+
+#### [DEV-015] Legacy stories get `AC-1.k` by reading order
+- **Severity:** Small
+- **Spec said:** `record --repro-ac` takes `AC-N.M`, and `prompts/repro-stop.md` asks for the targeted criterion "by its ID in the story".
+- **Implementation did:** Two substitute stories predate AC IDs. `d0f5f1a`'s story names its criteria `AC1` to `AC4`; `403a9cc`'s story has five unnumbered criteria. For both, `AC-1.k` is the k-th criterion in reading order (`AC1` → `AC-1.1`). The repro arm brief for those two stories states the mapping. `ed15bba`'s story already uses `AC-1.1` to `AC-1.5`.
+- **Reason:** The key grammar needs an ID, and reading order is the only order the story text fixes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "Substitute stories without AC IDs: `--repro-ac AC-1.k` is the k-th criterion in reading order".
+
+#### [DEV-016] With zero findings, `report` waits on `labeled_by`
+- **Severity:** Small
+- **Spec said:** AC-5.5: with no upgrade-only findings, `report` prints a final `repro-first` verdict.
+- **Implementation did:** `report` prints `unverifiable` with `reason: repro-first unlabeled 0`. Technical-spec § Verdict step 4 treats a null `labeled_by` as unlabeled even with zero findings. Story 6 runs `label` on the field-less sheet, and `report` then gives `remove`.
+- **Reason:** The harness rule predates this story and is correct: a verdict needs a recorded labeler.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "With zero findings, `report` reads `unverifiable (unlabeled 0)` until `label` sets `labeled_by`".
+
+#### [DEV-017] Arm isolation slipped during the substitute run ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 3: every arm on a story gets the same prepared inputs. Business Rule 2: yuss is read-only and no live service is involved.
+- **Implementation did:** Three slips. (1) The orchestrator cherry-picked each repro into `checkout/` while two review arms (cover `off-1`, stretch `off-2`) were still reading that tree; both reviewers reported the extra test and reviewed `HEAD` and `diff.patch` instead. (2) The cover repro arm sent HTTP requests to the live `yuss.app` and `www.yuss.app` hosts to see the redirect. (3) `sheet` cleared the first trial's excerpt files in the gitignored `.writ/state/gate-upgrade-trial/findings/`; the first trial is already labeled and committed.
+- **Reason:** The orchestrator ran the repro checks as soon as each arm returned, rather than after all arms finished. The repro arm went past its brief. `sheet` rewrites the shared excerpt directory.
+- **Resolution:** Flagged for review. No arm output changed: neither affected reviewer used the working-tree change, and no key came from it. A rerun should apply repros only after every review arm on the story has returned.
+- **Spec amendment:** N/A — flagged for post-implementation review
+
+## Story 6: Act on the Repro First Verdict — Drift Report
+
+> Run: 2026-11-09
+
+#### [DEV-018] The substitute run's `labeled_by` is the assistant, delegated by the maintainer ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 9: only a human labels; the 2026-11-09 exception delegates the substitute run's labels to the assistant and requires a drift entry.
+- **Implementation did:** The sheet had no findings and no acknowledgments, so no label was judged. The assistant ran `label --labeled-by "Adam Sellke (delegated to assistant)"` on the field-less sheet only to set `labeled_by` (DEV-016), without opening the trial JSON or raw outputs first. `report` then gave `repro-first verdict=remove exercised=3/3 upgrade_only=0`.
+- **Reason:** The maintainer's delegation of 2026-11-09. With zero findings the verdict does not rest on any label, only on the recorded repro results.
+- **Resolution:** Accepted by user (2026-11-09)
+- **Spec amendment:** N/A — deviation accepted as-is
+
+#### [DEV-019] Repro First wiring the removal inventory predates ⚠️
+- **Severity:** Medium
+- **Spec said:** Business Rule 11 and AC-6.2: apply exactly the repro-first removal inventory as built (Story 6 Notes), plus that upgrade's own tests and wiring-test pins.
+- **Implementation did:** Also removed four live references added after the inventory was written: the `gate1_repro_order` row, `repro_order()`, `REPRO_LINE`, and two docstring mentions in `scripts/story-gate.py` (lean-story-pipeline Story 3, `517c975`) with their stub, row-list entry, and bug-path test in `scripts/tests/test_story_gate.py`; "Gates 3.5, 4 and 1 (bug path)" in `commands/implement-story.md` Gate 3, now "Gates 3.5 and 4"; the `repro-order.py check` line in `agents/supervisor-agent.md`; the repro sentence and "(TDD; a bug fix commits its failing repro first)" in `README.md`. Also the `repro-order.py` notes bullet in `.writ/docs/agent-cli-contract.md` beside the table row the inventory names. Only `KNOWN_OVER_BUDGET["commands/implement-story.md"]` is re-pinned: `IMPLEMENT_STORY_CAP` no longer exists (moved into `KNOWN_OVER_BUDGET` by `f6e3496`), and the pin is exact because `total_overage` is asserted exactly.
+- **Reason:** Leaving the `story-gate.py` row would ship a post-review check that calls a deleted script; the other three would describe a removed feature. Records (CHANGELOG, ADR-032, ADR-033, retros, knowledge, ledger comments) and `.writ/product/mission.md` / `mission-lite.md` are left as written.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review. The repro-first inventory is amended as built here, as DEV-011 did for Story 4.
+
+#### [DEV-020] AC-6.4 names three substitute stories, not four
+- **Severity:** Small
+- **Spec said:** AC-6.4: the ADR-030 note carries "the four substitute story IDs".
+- **Implementation did:** AC-6.4 now reads "the substitute story IDs (three, plus the excluded `73f34d4`; DEV-014)", and the ADR-030 note lists the three trial stories and the excluded one.
+- **Reason:** Follows from DEV-014, which the maintainer accepted; the Gate 3 review noted that no entry recorded the AC edit.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: "The ADR-030 substitute note lists three trial stories plus the excluded `73f34d4`".
+
+#### [DEV-021] `eval.sh` findings from Stories 5 and 6, fixed in Story 6
+- **Severity:** Small
+- **Spec said:** AC-6.5: `bash scripts/eval.sh` passes with 0 findings.
+- **Implementation did:** The first Story 6 `eval.sh` run reported 27 findings in three checks, all from this spec. (1) `pipeline-baseline` validates every JSON under `.writ/eval/baselines/` against `pipeline-baseline-v1`; the substitute baseline is a different shape, so it moved to `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`, and the trial file's `baseline` field and the spec documents follow it. (2) `arch-check` read Story 5's `Dependencies` line ("Story 3 (harness exists); Story 4's report commit …") as a malformed story graph; it now reads `Story 3, Story 4`. (3) `review-override` found AC-2.2–AC-2.5 and AC-5.1, AC-5.3 untested once `test_gate_upgrade_trial.py` was deleted; Stories 2 and 5 gain `Verified by:` lines citing those tests' last recorded passing run and the deleting commit.
+- **Reason:** Story 5 did not run `eval.sh`; Story 6's harness deletion removed the only test citations for those criteria by design.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: the Story 5 baseline path now reads `.writ/eval/gate-upgrade-trial/2026-11-09-repro-first-substitute-baseline.json`.

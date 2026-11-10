@@ -237,8 +237,6 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ${C
 
 **Report:** files changed, tests written, deviations from plan, concerns.
 
-**Bug path:** when the report's `### Repro` block names commits, post-review runs `repro-order.py check` from `<base>` after integration; print its check line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
-
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
 
 No coding-agent type: spawn per the adapter's Agent Paths fallback; if nothing can be spawned, BLOCKED escalation. The orchestrator never codes a story itself.
@@ -308,7 +306,7 @@ Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md` (re-s
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/story-gate.py run --phase post-review --story <story-file> --spec <spec-folder> --base <base> --review-output <review> --tests-output <tests>
 ```
 
-It runs Gate 3's `review-override.py` checks, then Gates 3.5, 4 and 1 (bug path) and the Jev shadow; applies Gate 3's first-match decision (`gate3:`); and records the head SHA, which must be the final code commit. Show the agent's claim and the runner's measurement in the story report. A check `pass` or any `unverifiable` verdict → no override; print the reason; never `⚠️ DEGRADED`.
+It runs Gate 3's `review-override.py` checks, then Gates 3.5 and 4 and the Jev shadow; applies Gate 3's first-match decision (`gate3:`); and records the head SHA, which must be the final code commit. Show the agent's claim and the runner's measurement in the story report. A check `pass` or any `unverifiable` verdict → no override; print the reason; never `⚠️ DEGRADED`.
 
 **Act on line 1.** `pass` → continue. `fail` → by `restart:`:
 
