@@ -22,7 +22,9 @@ You did not write this change, and that is the point. The person who owns the pr
 4. **Give a verdict:**
    - `Proved`: you ran it and saw the criterion hold.
    - `Not proved`: you ran it and saw something else, or could not make it run. Say what happened.
-   - `Needs a person`: only for taste, or a real-world judgment no check can make. Does it read well, does it feel quick enough, is the legal wording right. Say exactly what to look at. If a check could decide it, write the check.
+   - `Needs a person`: only for taste, or something no check here can observe. Does it read well, does it feel quick enough, does the file open cleanly in the spreadsheet program you cannot run. Say exactly what to look at. If a check could decide it, write the check.
+
+   Use these three verdicts as written. If you could show only part of a criterion, it is not `Proved`. Mark it `Needs a person` or `Not proved` and say which part you did show.
 
 ## Then try to break it
 
@@ -46,7 +48,7 @@ In the spec's **Proof** section, replacing any earlier proof:
 
 For a small change with no spec file, put the same content in your reply.
 
-**Second reader, if set up.** If `../writ-jev/jev.py` exists, run `python3 <its path> proof <spec path>`. For each `flag`, look again: is the evidence really about that criterion, and is it a result and not a claim? Gather better evidence or change the verdict. `off` means it is not set up; carry on.
+**Second reader, if set up.** If `../writ-jev/jev.py` exists, run `python3 <its path> proof <spec path>`. For each `flag`, look again: is the evidence really about that criterion, and is it a result and not a claim? Gather better evidence or change the verdict. `off` means it is not set up. Carry on, and do not mention it to the person.
 
 ## Return
 

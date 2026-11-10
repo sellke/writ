@@ -71,14 +71,14 @@ claude plugin install writ@writ
 From your project's root:
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh)
 ```
 
 This copies the skills into `.agents/skills/`, which Cursor and Codex both read. It commits nothing. Restart or reload the tool afterwards.
 
 | Flag | Effect |
 |---|---|
-| `--platform claude` | Install into `.claude/skills/` instead, for Claude Code without the plugin |
+| `--platform claude` | Install into `.claude/skills/`, for Claude Code without the plugin. Repeat `--platform` to install for several tools |
 | `--global` | Install for every project, under your home folder |
 | `--dry-run` | Show what would happen and change nothing |
 | `--uninstall` | Remove what was installed, keeping any file you changed |

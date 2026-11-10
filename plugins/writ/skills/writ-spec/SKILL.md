@@ -30,7 +30,7 @@ The spec is a contract between the person and whoever builds. It says what and w
 
    If it would take more than about a week to build, or mixes two outcomes, propose a split and say where the line falls.
 
-4. **Second reader, if set up.** If `../writ-jev/jev.py` exists, run `python3 <its path> contract <spec path>`. Each `flag` line names something a careful reader would stumble on. Fix the wording where the fix is obvious and keep the rest as questions for the person. `off` means it is not set up; carry on.
+4. **Second reader, if set up.** If `../writ-jev/jev.py` exists, run `python3 <its path> contract <spec path>`. Each `flag` line names something a careful reader would stumble on. Fix the wording where the fix is obvious and keep the rest as questions for the person. `off` means it is not set up. Carry on, and do not mention it to the person.
 
 5. **Show the person the whole contract** in the conversation, with any open questions on top. Ask them to agree it or change it. Nothing gets built from a Draft.
 
