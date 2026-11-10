@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.49.0] - 2026-11-09
+
+**Repro-first bug fixing is removed: on a substitute trial of three bug-fix stories, it caught nothing the shipped fixes had missed.** ([gate-upgrade-removal-measurement](.writ/specs/archive/2026-10-25-gate-upgrade-removal-measurement/spec.md), [PR #77](https://github.com/sellke/writ/pull/77))
+
+### Breaking Changes
+- **Repro First is removed** ([trial report](.writ/specs/archive/2026-10-25-gate-upgrade-removal-measurement/trial-report-repro-first.md), [ADR-030 § Review](.writ/decision-records/adr-030-contract-verifier-boundary-front-door.md)).
+  - A bug fix no longer commits its failing repro separately before the fix. `tdd-cycle` still says to reproduce the bug with a failing test first.
+  - `scripts/repro-order.py` is deleted. `/implement-story` and `/prototype` no longer run it, and `story-gate.py` post-review no longer has a `gate1_repro_order` check.
+  - A leftover `- **Repro First:** off` line in `.writ/config.md` is now ignored. You can delete it.
+
+### Changed
+- **The Phase 15 removal measurement is complete.** Gate 0 Divergence, the Safety Fact, and Reviewer Filters were kept by the first trial. Repro First, which no baseline story exercised, was measured on a substitute baseline of three yuss bug-fix stories and removed.
+  - The evidence is thin: three stories, and a design that counts a catch only when a shipped fix still fails its own repro.
+  - The roadmap, `mission.md`, `mission-lite.md`, and ADR-030 record the result.
+
+### Internal
+- The gate-upgrade trial harness gained `init --upgrades` to scope a trial to chosen upgrades. It was then deleted with its unit tests and fixtures. The trial files, sheets, prompts, and baselines remain as the record.
+- `KNOWN_OVER_BUDGET["commands/implement-story.md"]` re-pinned from 13553 to 13201.
+- `test_story_gate.py` excludes prose-only gates from the default-gate table check.
+- `gate-upgrade-removal-measurement` is archived. The labels for the substitute run were delegated to the assistant; there were zero findings, so no label was judged (DEV-018).
+- `pyproject.toml`'s version had drifted to 0.47.1 and now tracks the release again.
+
 ## [0.48.0] - 2026-11-09
 
 **Writ now deletes a merged branch at the step that merged it.** ([delete-merged-branches](.writ/specs/archive/2026-11-09-delete-merged-branches/spec.md), [PR #76](https://github.com/sellke/writ/pull/76))
