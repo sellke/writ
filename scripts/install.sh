@@ -1,1488 +1,324 @@
-#!/bin/bash
-# Writ Installer — sets up writ commands, agents, and rules in your project
-# Run from your project root: bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh)
+#!/usr/bin/env bash
+# Writ installer. Adds, updates, or removes the Writ skills in a project.
 #
-# Or clone first:
-#   git clone https://github.com/sellke/writ.git /tmp/writ
-#   bash /tmp/writ/scripts/install.sh
+#   bash <(curl -fsSL https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh)
 #
-# Flags:
-#   --dry-run      Preview changes without applying
-#   --no-commit    Don't auto-commit after install
-#   --force        Overwrite all files, ignoring local modifications
-#   --platform     Target platform: cursor (default), claude, or codex
-
+# Run it from your project folder. Run it again at any time to update.
+# It only touches the skill files it installed, which it lists in a
+# .writ-manifest file next to them. It never changes a file you edited and
+# never touches .writ/.
+#
+# Environment:
+#   WRIT_SRC   install from this local Writ checkout instead of downloading
+#   WRIT_REF   branch or tag to download (default: the repository's default)
+#   WRIT_REPO  repository to download from
+#
+# Exit codes: 0 done. 1 something failed. 2 refused, or bad options.
+#             3 an older Writ (0.x) install has to be removed first.
 set -euo pipefail
+unset CDPATH
 
-WRIT_REPO="https://github.com/sellke/writ.git"
+WRIT_REPO="${WRIT_REPO:-https://github.com/sellke/writ.git}"
+WRIT_REF="${WRIT_REF:-}"
+LEGACY_UNINSTALL="https://raw.githubusercontent.com/sellke/writ/v0.49.0/scripts/uninstall.sh"
 
-DRY_RUN=false
-NO_COMMIT=false
-FORCE=false
-PLATFORM="cursor"
-WRIT_CODEX_CONFIG_BASELINE_HASH=""
+DRY_RUN=false FORCE=false GLOBAL=false UNINSTALL=false IGNORE_LEGACY=false
+WANT_AGENTS=false WANT_CLAUDE=false IN_GIT=false
+ROOT="" SHOWN_ROOT="" TMP_SRC="" SRC_SKILLS="" VERSION="" FILES="" CHANGES=0
 
-while [ $# -gt 0 ]; do
-  case $1 in
-    --dry-run)    DRY_RUN=true ;;
-    --no-commit)  NO_COMMIT=true ;;
-    --force)      FORCE=true ;;
-    --platform)
-      shift
-      PLATFORM="${1:-}"
-      if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ] && [ "$PLATFORM" != "codex" ]; then
-        echo "❌ Unknown platform: $PLATFORM"
-        echo "   Supported: cursor, claude, codex"
-        exit 1
-      fi
-      ;;
-    --help|-h)
-      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force] [--platform cursor|claude|codex]"
-      echo ""
-      echo "Installs Writ commands, agents, and rules into your project."
-      echo "Run from your project root."
-      echo ""
-      echo "Platforms:"
-      echo "  cursor (default)  Install into .cursor/ for Cursor IDE"
-      echo "  claude            Install into .claude/ for Claude Code CLI"
-      echo "  codex             Install into .codex/ for Codex CLI (AGENTS.md + .agents/skills/)"
-      echo ""
-      echo "Flags:"
-      echo "  --dry-run      Preview changes without applying"
-      echo "  --no-commit    Don't auto-commit after install"
-      echo "  --force        Overwrite existing files/directories"
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1 (try --help)"
-      exit 1
-      ;;
-  esac
-  shift
-done
+say() { printf '%s\n' "$*"; }
+die() { local code="$1"; shift; printf 'Error: %s\n' "$*" >&2; exit "$code"; }
 
-# ---------------------------------------------------------------------------
-# Platform-specific paths
-# ---------------------------------------------------------------------------
+usage() {
+  cat <<'EOF'
+Usage: install.sh [--platform <claude|cursor|codex>]... [--global] [--dry-run]
+                  [--force] [--uninstall] [--ignore-legacy] [--help]
 
-if [ "$PLATFORM" = "cursor" ]; then
-  PLATFORM_DIR=".cursor"
-  MANIFEST_FILE=".cursor/.writ-manifest"
-  AGENTS_SRC="agents"
-  PLATFORM_LABEL="Cursor"
-  SKILLS_DIR=".cursor/skills"
-  AGENT_FILE_GLOB="*.md"
-elif [ "$PLATFORM" = "claude" ]; then
-  PLATFORM_DIR=".claude"
-  MANIFEST_FILE=".claude/.writ-manifest"
-  AGENTS_SRC="claude-code/agents"
-  PLATFORM_LABEL="Claude Code"
-  SKILLS_DIR=".claude/skills"
-  AGENT_FILE_GLOB="*.md"
-elif [ "$PLATFORM" = "codex" ]; then
-  PLATFORM_DIR=".codex"
-  MANIFEST_FILE=".codex/.writ-manifest"
-  AGENTS_SRC="codex/agents"
-  PLATFORM_LABEL="Codex CLI"
-  SKILLS_DIR=".agents/skills"
-  AGENT_FILE_GLOB="*.toml"
-fi
+Installs or updates the Writ skills in the current project. Safe to run again.
 
-echo "⚡ Writ Installer ($PLATFORM_LABEL)"
-echo "=================="
-echo ""
-
-# ---------------------------------------------------------------------------
-# Guards
-# ---------------------------------------------------------------------------
-
-if [ -f "SKILL.md" ] && [ -d "commands" ] && [ -d "agents" ] && [ -d "scripts" ]; then
-  echo "❌ This appears to be the Writ source repository."
-  echo "   install.sh is for installing Writ into other projects."
-  echo "   This repo uses symlinks — see .writ/docs/self-dogfooding.md"
-  exit 1
-fi
-
-# ---------------------------------------------------------------------------
-# Portable SHA-256
-# ---------------------------------------------------------------------------
+  --platform <name>  Tool to install for. Repeat it to install for several.
+                       cursor, codex   .agents/skills (the default)
+                       claude          .claude/skills
+                     With no --platform, a re-run updates what is installed.
+  --global           Install for all your projects, under your home folder.
+  --dry-run          Show what would happen. Change nothing.
+  --force            Replace files you changed with the Writ versions.
+  --uninstall        Remove the Writ skills. Files you changed are kept.
+  --ignore-legacy    Install even if an older Writ (0.x) install is present.
+  --help             Show this help.
+EOF
+}
 
 hash_file() {
-  if command -v shasum &>/dev/null; then
-    shasum -a 256 "$1" | cut -d' ' -f1
-  elif command -v sha256sum &>/dev/null; then
-    sha256sum "$1" | cut -d' ' -f1
-  else
-    openssl dgst -sha256 "$1" | awk '{print $NF}'
-  fi
+  if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1
 }
 
-# ---------------------------------------------------------------------------
-# Manifest helpers
-# ---------------------------------------------------------------------------
-
-manifest_version() {
-  [ -f "$MANIFEST_FILE" ] && grep '^# version:' "$MANIFEST_FILE" | sed 's/^# version: //' || true
-}
-
-manifest_mode() {
-  if [ -f "$MANIFEST_FILE" ] && grep -q '^# mode:' "$MANIFEST_FILE"; then
-    grep '^# mode:' "$MANIFEST_FILE" | sed 's/^# mode: //'
-  else
-    echo "copy"
-  fi
-}
-
-manifest_hash_for() {
-  local path="$1"
-  [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
-}
-
-# <<< writ-merge-bundled-begin (used by scripts/tests/test_merge_agents_md.sh — keep synced) >>>
-writ_block_marker_counts() {
-  local file="$1"
-  awk '{
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") starts++
-      if (line == "<!-- writ:end -->") ends++
-    }
-    END { print starts + 0, ends + 0 }' "$file"
-}
-
-writ_compute_writ_block_inner_hash() {
-  local file="$1"
-  local tmp ec inner_hash_val
-  tmp=$(mktemp)
-  awk 'BEGIN { starts=0; ends=0; capturing=0; seen_end=0 }
-    {
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") {
-        starts++
-        if (capturing==1 || seen_end==1) { exit 2 }
-        capturing=1
-        next
-      }
-      if (line == "<!-- writ:end -->") {
-        ends++
-        if (capturing!=1) { exit 2 }
-        capturing=0
-        seen_end=1
-        next
-      }
-      if (capturing==1) print
-    }
-    END {
-      if (starts!=1 || ends!=1 || capturing==1) exit 2
-    }' "$file" >"$tmp"
-  ec=$?
-  if [ "$ec" -ne 0 ]; then
-    rm -f "$tmp"
-    return "$ec"
-  fi
-  inner_hash_val="$(hash_file "$tmp")"
-  rm -f "$tmp"
-  printf '%s\n' "${inner_hash_val:-}"
-}
-
-writ_file_ends_with_newline() {
-  local file="$1"
-  local last_hex
-  [ -s "$file" ] || return 0
-  last_hex=$(tail -c 1 "$file" | od -An -t x1 | tr -d ' \n')
-  [ "$last_hex" = "0a" ]
-}
-
-# writ_block_inner_has_line FILE LINE — returns 0 when a line between the
-# markers equals LINE once its trailing "\r" is stripped. Keep synced with
-# update.sh.
-writ_block_inner_has_line() {
-  local file="$1"
-  WRIT_WANT_LINE="$2" awk '{
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") { inside=1; next }
-      if (line == "<!-- writ:end -->") { inside=0; next }
-      if (inside == 1 && line == ENVIRON["WRIT_WANT_LINE"]) found=1
-    }
-    END { exit found ? 0 : 1 }' "$file"
-}
-
-writ_rewrite_agents_md_with_inner() {
-  local file="$1"
-  local new_inner="$2"
-  local staging
-  staging=$(mktemp)
-  local start_line end_line
-  read -r start_line end_line <<<"$(awk '{
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") { printf "%d ", NR; found_s=1 }
-      if (line == "<!-- writ:end -->") { print NR; exit }
-    }' "$file")"
-  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ]; then
-    rm -f "$staging"
-    return 1
-  fi
-  if [ "$start_line" -ge "$end_line" ]; then
-    rm -f "$staging"
-    return 2
-  fi
-  if [ "${start_line:-0}" -le 0 ]; then
-    rm -f "$staging"
-    return 2
-  fi
-  if [ "$start_line" -gt 1 ]; then
-    head -n $((start_line - 1)) "$file" >"$staging"
-  else
-    : >"$staging"
-  fi
-  printf '%s\n' '<!-- writ:start -->' >>"$staging"
-  printf '%s\n' "$new_inner" >>"$staging"
-  printf '%s\n' '<!-- writ:end -->' >>"$staging"
-  tail -n +$((end_line + 1)) "$file" >>"$staging"
-  mv "$staging" "$file"
-}
-
-# merge_agents_md — Codex ONLY. Integrates codex/AGENTS.md.template into AGENTS.md
-# Globals: WRIT_SRC, MANIFEST_FILE, FORCE, CODEX_MERGE_PREVIEW (optional)
-merge_agents_md() {
-  local op="${1:-apply}" # preview | apply
-  local template="$WRIT_SRC/codex/AGENTS.md.template"
-  if [ ! -f "$template" ]; then
-    echo "❌ Missing $template — cannot integrate AGENTS.md for Codex."
-    return 12
-  fi
-  AGENTS_MERGE_NOTE=""
-  local upstream_inner
-  upstream_inner=$(cat "$template")
-  local upstream_hash
-  upstream_hash=$(hash_file "$template")
-
-  local agents_md="AGENTS.md"
-  if [ "$op" = "preview" ]; then
-    if [ ! -f "$agents_md" ]; then
-      AGENTS_MERGE_NOTE="Would create AGENTS.md with Writ block (no prior file)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    local cnt
-    cnt=$(writ_block_marker_counts "$agents_md")
-    local start_cnt end_cnt
-    read -r start_cnt end_cnt <<<"$cnt"
-    if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
-      AGENTS_MERGE_NOTE="Would append Writ block to existing AGENTS.md (no markers found)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
-      AGENTS_MERGE_NOTE="Writ block error: malformed markers (expected exactly one start and end marker)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    local start_line end_line
-    read -r start_line end_line <<<"$(awk '{
-        line=$0
-        sub(/\r$/, "", line)
-        if (line == "<!-- writ:start -->") printf "%d ", NR
-        if (line == "<!-- writ:end -->") print NR
-      }' "$agents_md")"
-    if [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
-      AGENTS_MERGE_NOTE="Writ block error: malformed marker order."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    local inner_hash=""
-    inner_hash=""
-    if ! inner_hash="$(writ_compute_writ_block_inner_hash "$agents_md")"; then
-      AGENTS_MERGE_NOTE="Writ block error: malformed markers (inner parse)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    local baseline_hash
-    baseline_hash=$(manifest_hash_for "AGENTS.md.writ-block")
-    if [ "$FORCE" = true ]; then
-      AGENTS_MERGE_NOTE="Would replace marker-bounded Writ block (--force)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    if [ "$inner_hash" = "$upstream_hash" ]; then
-      AGENTS_MERGE_NOTE="Writ block already matches upstream template (unchanged)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
-      AGENTS_MERGE_NOTE="Would update Writ block (matches manifest baseline → safe overwrite)."
-      printf '%s\n' "$AGENTS_MERGE_NOTE"
-      return 0
-    fi
-    AGENTS_MERGE_NOTE="Would preserve Writ block (local modifications detected)."
-    printf '%s\n' "$AGENTS_MERGE_NOTE"
-    return 0
-  fi
-
-  local tmp_new
-  tmp_new=$(mktemp)
-
-  if [ ! -f "$agents_md" ]; then
-    printf '%s\n' '<!-- writ:start -->' > "$tmp_new"
-    printf '%s\n' "$upstream_inner" >> "$tmp_new"
-    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
-    mv "$tmp_new" "$agents_md"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block created"
-    return 0
-  fi
-
-  local cnt
-  cnt=$(writ_block_marker_counts "$agents_md")
-  local start_cnt end_cnt
-  read -r start_cnt end_cnt <<<"$cnt"
-  if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
-    cat "$agents_md" >> "$tmp_new"
-    if ! writ_file_ends_with_newline "$agents_md"; then
-      printf '\n' >> "$tmp_new"
-    fi
-    printf '%s\n' '<!-- writ:start -->' >> "$tmp_new"
-    printf '%s\n' "$upstream_inner" >> "$tmp_new"
-    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
-    mv "$tmp_new" "$agents_md"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block appended (existing content preserved)"
-    return 0
-  fi
-
-  if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (expected exactly one <!-- writ:start --> and one <!-- writ:end -->)."
-    return 13
-  fi
-
-  local start_line end_line
-  read -r start_line end_line <<<"$(awk '{
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") printf "%d ", NR
-      if (line == "<!-- writ:end -->") print NR
-    }' "$agents_md")"
-
-  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ] || [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (invalid marker order)."
-    return 13
-  fi
-
-  local inner_hash=""
-  if ! inner_hash="$(writ_compute_writ_block_inner_hash "$agents_md")"; then
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (inner block parse failed)."
-    return 13
-  fi
-
-  local baseline_hash
-  baseline_hash=$(manifest_hash_for "AGENTS.md.writ-block")
-
-  if [ "$FORCE" = true ]; then
-    writ_rewrite_agents_md_with_inner "$agents_md" "$upstream_inner"
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block updated (--force)"
-    return 0
-  fi
-
-  if [ "$inner_hash" = "$upstream_hash" ]; then
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block preserved (already current)"
-    return 0
-  fi
-
-  if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
-    writ_rewrite_agents_md_with_inner "$agents_md" "$upstream_inner"
-    rm -f "$tmp_new"
-    AGENTS_MERGE_NOTE="AGENTS.md: Writ block updated"
-    return 0
-  fi
-
-  rm -f "$tmp_new"
-  AGENTS_MERGE_NOTE="AGENTS.md: Writ block preserved (local modifications)"
-  printf '%s\n' "⚡ $AGENTS_MERGE_NOTE — re-run with --force to overwrite the Writ block."
-  return 0
-}
-
-# merge_claude_md — Claude Code ONLY. Integrates claude-code/CLAUDE.md into CLAUDE.md.
-# Structurally a same-file duplicate of merge_agents_md (keep synced) — see Notes in
-# .writ/specs/2026-08-13-claude-md-install-merge for why this isn't a shared helper.
-# Globals: WRIT_SRC, MANIFEST_FILE, FORCE, CLAUDE_MERGE_NOTE (set on every path)
-merge_claude_md() {
-  local op="${1:-apply}" # preview | apply
-  local template="$WRIT_SRC/claude-code/CLAUDE.md"
-  if [ ! -f "$template" ]; then
-    echo "❌ Missing $template — cannot integrate CLAUDE.md for Claude Code."
-    return 12
-  fi
-  CLAUDE_MERGE_NOTE=""
-  local upstream_inner
-  upstream_inner=$(cat "$template")
-  local upstream_hash
-  upstream_hash=$(hash_file "$template")
-
-  local claude_md="CLAUDE.md"
-  if [ "$op" = "preview" ]; then
-    if [ ! -f "$claude_md" ]; then
-      CLAUDE_MERGE_NOTE="Would create CLAUDE.md with Writ block (no prior file)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    local cnt
-    cnt=$(writ_block_marker_counts "$claude_md")
-    local start_cnt end_cnt
-    read -r start_cnt end_cnt <<<"$cnt"
-    if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
-      CLAUDE_MERGE_NOTE="Would append Writ block to existing CLAUDE.md (no markers found)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
-      CLAUDE_MERGE_NOTE="Writ block error: malformed markers (expected exactly one start and end marker)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    local start_line end_line
-    read -r start_line end_line <<<"$(awk '{
-        line=$0
-        sub(/\r$/, "", line)
-        if (line == "<!-- writ:start -->") printf "%d ", NR
-        if (line == "<!-- writ:end -->") print NR
-      }' "$claude_md")"
-    if [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
-      CLAUDE_MERGE_NOTE="Writ block error: malformed marker order."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    local inner_hash=""
-    inner_hash=""
-    if ! inner_hash="$(writ_compute_writ_block_inner_hash "$claude_md")"; then
-      CLAUDE_MERGE_NOTE="Writ block error: malformed markers (inner parse)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    local baseline_hash
-    baseline_hash=$(manifest_hash_for "CLAUDE.md.writ-block")
-    if [ "$FORCE" = true ]; then
-      CLAUDE_MERGE_NOTE="Would replace marker-bounded Writ block (--force)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    if [ "$inner_hash" = "$upstream_hash" ]; then
-      CLAUDE_MERGE_NOTE="Writ block already matches upstream template (unchanged)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
-      CLAUDE_MERGE_NOTE="Would update Writ block (matches manifest baseline → safe overwrite)."
-      printf '%s\n' "$CLAUDE_MERGE_NOTE"
-      return 0
-    fi
-    CLAUDE_MERGE_NOTE="Would preserve Writ block (local modifications detected)."
-    printf '%s\n' "$CLAUDE_MERGE_NOTE"
-    if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
-      printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run install.sh --force to replace the block."
-    fi
-    return 0
-  fi
-
-  local tmp_new
-  tmp_new=$(mktemp)
-
-  if [ ! -f "$claude_md" ]; then
-    printf '%s\n' '<!-- writ:start -->' > "$tmp_new"
-    printf '%s\n' "$upstream_inner" >> "$tmp_new"
-    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
-    mv "$tmp_new" "$claude_md"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block created"
-    return 0
-  fi
-
-  local cnt
-  cnt=$(writ_block_marker_counts "$claude_md")
-  local start_cnt end_cnt
-  read -r start_cnt end_cnt <<<"$cnt"
-  if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
-    cat "$claude_md" >> "$tmp_new"
-    if ! writ_file_ends_with_newline "$claude_md"; then
-      printf '\n' >> "$tmp_new"
-    fi
-    printf '%s\n' '<!-- writ:start -->' >> "$tmp_new"
-    printf '%s\n' "$upstream_inner" >> "$tmp_new"
-    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
-    mv "$tmp_new" "$claude_md"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block appended (existing content preserved)"
-    return 0
-  fi
-
-  if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (expected exactly one <!-- writ:start --> and one <!-- writ:end -->)."
-    return 13
-  fi
-
-  local start_line end_line
-  read -r start_line end_line <<<"$(awk '{
-      line=$0
-      sub(/\r$/, "", line)
-      if (line == "<!-- writ:start -->") printf "%d ", NR
-      if (line == "<!-- writ:end -->") print NR
-    }' "$claude_md")"
-
-  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ] || [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (invalid marker order)."
-    return 13
-  fi
-
-  local inner_hash=""
-  if ! inner_hash="$(writ_compute_writ_block_inner_hash "$claude_md")"; then
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
-    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (inner block parse failed)."
-    return 13
-  fi
-
-  local baseline_hash
-  baseline_hash=$(manifest_hash_for "CLAUDE.md.writ-block")
-
-  if [ "$FORCE" = true ]; then
-    writ_rewrite_agents_md_with_inner "$claude_md" "$upstream_inner"
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block updated (--force)"
-    return 0
-  fi
-
-  if [ "$inner_hash" = "$upstream_hash" ]; then
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block preserved (already current)"
-    return 0
-  fi
-
-  if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
-    writ_rewrite_agents_md_with_inner "$claude_md" "$upstream_inner"
-    rm -f "$tmp_new"
-    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block updated"
-    return 0
-  fi
-
-  rm -f "$tmp_new"
-  CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
-  printf '%s\n' "⚡ $CLAUDE_MERGE_NOTE — re-run with --force to overwrite the Writ block."
-  if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
-    printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run install.sh --force to replace the block."
-  fi
-  return 0
-}
-# <<< writ-merge-bundled-end >>>
-
-# seed_codex_config — install-once copy of codex/config.toml.template.
-# Globals: WRIT_SRC, MANIFEST_FILE, PLATFORM_DIR
-seed_codex_config() {
-  local op="${1:-apply}" # preview | apply
-  local template="$WRIT_SRC/codex/config.toml.template"
-  local dest=".codex/config.toml"
-  SEED_CODEX_CONFIG_NOTE=""
-  if [ ! -f "$template" ]; then
-    echo "❌ Missing $template — cannot seed Codex config."
-    return 14
-  fi
-  if [ "$op" = "preview" ]; then
-    if [ -f "$dest" ]; then
-      SEED_CODEX_CONFIG_NOTE="Would skip .codex/config.toml (already exists; install-once)."
-    else
-      SEED_CODEX_CONFIG_NOTE="Would seed .codex/config.toml from template (first install)."
-    fi
-    printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
-    return 0
-  fi
-  if [ -f "$dest" ]; then
-    WRIT_CODEX_CONFIG_BASELINE_HASH="$(manifest_hash_for ".codex/config.toml.baseline")"
-    SEED_CODEX_CONFIG_NOTE="⚡ Preserved: .codex/config.toml (install-once)"
-    printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
-    return 0
-  fi
-  mkdir -p "$(dirname "$dest")"
-  cp "$template" "$dest"
-  WRIT_CODEX_CONFIG_BASELINE_HASH="$(hash_file "$template")"
-  SEED_CODEX_CONFIG_NOTE="✨ Seeded: .codex/config.toml"
-  printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
-  return 0
-}
-
-# seed_cursorindexingignore — install-once .cursorindexingignore excluding
-# archived specs from Cursor's semantic search index. Seeded on every
-# platform (harmless where inert) so the archive convention (Story 2)
-# degrades gracefully by default, not only for Cursor installs.
-# Globals: none (writes SEED_CURSORINDEXINGIGNORE_NOTE for the summary line)
-seed_cursorindexingignore() {
-  local op="${1:-apply}" # preview | apply
-  local dest=".cursorindexingignore"
-  if [ -f "$dest" ]; then
-    if [ "$op" = "preview" ]; then
-      SEED_CURSORINDEXINGIGNORE_NOTE="Would skip .cursorindexingignore (already exists; install-once)."
-    else
-      SEED_CURSORINDEXINGIGNORE_NOTE="⚡ Preserved: .cursorindexingignore (install-once)"
-    fi
-    printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
-    return 0
-  fi
-  if [ "$op" = "preview" ]; then
-    SEED_CURSORINDEXINGIGNORE_NOTE="Would seed .cursorindexingignore (first install)."
-    printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
-    return 0
-  fi
-  printf '%s\n' ".writ/specs/archive/**" > "$dest"
-  SEED_CURSORINDEXINGIGNORE_NOTE="✨ Seeded: .cursorindexingignore"
-  printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
-  return 0
-}
-
-writ_warn_agents_md_size() {
-  local max_bytes=32768
-  [ -f "AGENTS.md" ] || return 0
-  local sz
-  sz=$(wc -c < "AGENTS.md" | tr -d ' ')
-  if [ "${sz:-0}" -gt "$max_bytes" ]; then
-    local kb=$(( (sz + 1023) / 1024 ))
-    printf '%s\n' "⚠️  AGENTS.md is ${kb} KiB, exceeds default Codex cap (32 KiB). Configure project_doc_max_bytes or split via AGENTS.override.md." >&2
-  fi
-}
-
-# Previous baselines, one "<hash>  <path>" line each. write_copy_manifest
-# snapshots them before it truncates the manifest; empty on a fresh install.
-MANIFEST_PREVIOUS_BASELINES=""
-
-previous_manifest_hash_for() {
-  [ -n "$MANIFEST_PREVIOUS_BASELINES" ] || return 0
-  awk -v p="$1" '$2 == p { print $1; exit }' <<< "$MANIFEST_PREVIOUS_BASELINES"
-}
-
-# record_file_baseline — append the manifest line for one shipped file
-# (Business Rule 3). Local copy equals upstream: the upstream hash. Local copy
-# differs (the overlay preserved it): its previous baseline, or no line when it
-# had none, so a later update still preserves it. No local copy, or nothing
-# upstream: no line. Never writes an empty hash. Keep synced with update.sh.
-record_file_baseline() {
-  local target="$1" path="$2" upstream_file="$3" local_file="$4" hash
-  [ -f "$local_file" ] && [ -f "$upstream_file" ] || return 0
-  if cmp -s "$local_file" "$upstream_file"; then
-    hash=$(hash_file "$upstream_file")
-  else
-    hash=$(previous_manifest_hash_for "$path")
-  fi
-  [ -n "$hash" ] || return 0
-  printf '%s  %s\n' "$hash" "$path" >> "$target"
-}
-
-write_copy_manifest() {
-  local version="$1" target="$2"
-
-  # Snapshot the previous baselines before the truncation below. Business
-  # Rule 10: write `# baselines: shipped` on a fresh install or over a manifest
-  # that has it. Over a manifest without it (written by an older script) write
-  # none, so the next update.sh repairs its baselines.
-  local shipped_header=true
-  MANIFEST_PREVIOUS_BASELINES=""
-  if [ -f "$target" ]; then
-    MANIFEST_PREVIOUS_BASELINES=$(awk '!/^#/ && NF' "$target")
-    if ! grep -qx '# baselines: shipped' "$target"; then
-      shipped_header=false
-    fi
-  fi
-
-  cat > "$target" << EOF
-# Writ Manifest — do not edit manually
-# Tracks installed file baselines for safe overlay updates.
-EOF
-  if [ "$shipped_header" = true ]; then
-    echo "# baselines: shipped" >> "$target"
-  fi
-  cat >> "$target" << EOF
-# mode: copy
-# platform: $PLATFORM
-# version: $version
-# date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-# source: $WRIT_REPO
-EOF
-
-  # Walk the shipped set in $WRIT_SRC with the overlay scans' own filters,
-  # never the project's folders (Business Rule 1): a user's own file in a
-  # tracked folder gets no line, and a user file at a shipped path that the
-  # overlay preserved ("no baseline") stays without one.
-  local f name agents_dir skill_folder skill_name
-  append_manifest_shippable_scripts "$target"
-  append_manifest_writ_docs "$target"
-  for f in "$WRIT_SRC"/commands/*.md; do
-    [ -f "$f" ] || continue
-    name=$(basename "$f")
-    record_file_baseline "$target" "commands/$name" "$f" "$PLATFORM_DIR/commands/$name"
-  done
-  agents_dir="$WRIT_SRC/$AGENTS_SRC"
-  for f in "$agents_dir"/$AGENT_FILE_GLOB; do
-    [ -f "$f" ] || continue
-    name=$(basename "$f")
-    record_file_baseline "$target" "agents/$name" "$f" "$PLATFORM_DIR/agents/$name"
-  done
-
-  for skill_folder in "$WRIT_SRC"/skills/*/; do
-    [ -f "${skill_folder}SKILL.md" ] || continue
-    skill_name=$(basename "$skill_folder")
-    record_file_baseline "$target" "skills/$skill_name/SKILL.md" \
-      "${skill_folder}SKILL.md" "$SKILLS_DIR/$skill_name/SKILL.md"
-  done
-
-  # Platform files copied whole.
-  if [ "$PLATFORM" = "cursor" ]; then
-    record_file_baseline "$target" "rules/writ.mdc" \
-      "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
-  fi
-  # Every platform ships system-instructions.md: CLAUDE.md imports it,
-  # writ.mdc carries it, and the Codex AGENTS.md block points to it.
-  record_file_baseline "$target" "system-instructions.md" \
-    "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
-
-  # Writ block: the inner hash when it equals the template hash the merge
-  # functions compare against. Otherwise the block was preserved: keep its
-  # previous baseline, or write no line. Keep synced with update.sh.
-  local block="" template="" inner="" block_hash=""
-  case "$PLATFORM" in
-    claude) block="CLAUDE.md"; template="$WRIT_SRC/claude-code/CLAUDE.md" ;;
-    codex)  block="AGENTS.md"; template="$WRIT_SRC/codex/AGENTS.md.template" ;;
-  esac
-  if [ -n "$block" ] && [ -f "$block" ] && [ -f "$template" ]; then
-    inner=$(writ_compute_writ_block_inner_hash "$block") || inner=""
-    if [ -n "$inner" ] && [ "$inner" = "$(hash_file "$template")" ]; then
-      block_hash="$inner"
-    else
-      block_hash=$(previous_manifest_hash_for "$block.writ-block")
-    fi
-    if [ -n "$block_hash" ]; then
-      echo "$block_hash  $block.writ-block" >> "$target"
-    fi
-  fi
-
-  # seed_codex_config set this: the template hash on first install, or the
-  # recorded baseline when the config already existed.
-  if [ "$PLATFORM" = "codex" ] && [ -n "${WRIT_CODEX_CONFIG_BASELINE_HASH:-}" ]; then
-    echo "$WRIT_CODEX_CONFIG_BASELINE_HASH  .codex/config.toml.baseline" >> "$target"
-  fi
-}
-
-# ---------------------------------------------------------------------------
-# Resolve writ source
-# ---------------------------------------------------------------------------
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WRIT_ROOT="$(dirname "$SCRIPT_DIR")"
-WRIT_SRC=""
-
-if [ -f "$WRIT_ROOT/SKILL.md" ] && [ -d "$WRIT_ROOT/commands" ]; then
-  WRIT_SRC="$WRIT_ROOT"
-  echo "📦 Using local writ: $WRIT_SRC"
-else
-  if ! command -v git &>/dev/null; then
-    echo "❌ git is required to clone Writ. Install git or clone manually first."
-    exit 1
-  fi
-  echo "📥 Cloning writ from GitHub..."
-  WRIT_SRC=$(mktemp -d)
-  if ! git clone --depth 1 "$WRIT_REPO" "$WRIT_SRC" 2>&1 | tail -1; then
-    echo "❌ Failed to clone $WRIT_REPO"
-    echo "   Check your network connection and try again."
-    rm -rf "$WRIT_SRC"
-    exit 1
-  fi
-  cleanup() { rm -rf "$WRIT_SRC"; }
-  trap cleanup EXIT
-  echo "   Done."
-fi
-
-VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
-VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
-
-echo ""
-
-# ---------------------------------------------------------------------------
-# Inventory
-# ---------------------------------------------------------------------------
-
-CMD_COUNT=0
-for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
-AGENT_COUNT=0
-for f in "$WRIT_SRC/$AGENTS_SRC/"$AGENT_FILE_GLOB; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
-SKILL_COUNT=0
-if [ -d "$WRIT_SRC/skills" ]; then
-  for d in "$WRIT_SRC/skills"/*/; do [ -d "$d" ] && [ -f "${d}SKILL.md" ] && SKILL_COUNT=$((SKILL_COUNT + 1)); done
-fi
-
-if [ "$PLATFORM" = "codex" ] && [ "$AGENT_COUNT" -eq 0 ]; then
-  printf '%s\n' "⚠️  codex/agents/ source missing — agent install skipped" >&2
-fi
-
-echo "  📋 Commands:  $CMD_COUNT"
-echo "  🤖 Agents:    $AGENT_COUNT"
-[ "$SKILL_COUNT" -gt 0 ] && echo "  📜 Skills:    $SKILL_COUNT"
-if [ "$PLATFORM" = "cursor" ]; then
-  echo "  📜 Rules:     1 (writ.mdc)"
-  echo "  📖 System:    1 (system-instructions.md)"
-elif [ "$PLATFORM" = "claude" ]; then
-  echo "  📖 Root:      1 (CLAUDE.md)"
-  echo "  📖 System:    1 (system-instructions.md)"
-elif [ "$PLATFORM" = "codex" ]; then
-  echo "  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)"
-  echo "  📖 System:    1 (system-instructions.md)"
-  echo "  🧩 Codex cfg: install-once .codex/config.toml when absent"
-fi
-echo "  🎯 Platform:  $PLATFORM_LABEL"
-echo "  📌 Version:   $VERSION_LONG"
-echo ""
-
-EXISTING_VERSION=$(manifest_version)
-EXISTING_MODE=$(manifest_mode)
-
-if [ -n "$EXISTING_VERSION" ]; then
-  echo "  ℹ️  Existing installation (version: $EXISTING_VERSION, mode: $EXISTING_MODE)"
-  if [ "$EXISTING_MODE" = "link" ]; then
-    echo "  ⚠️  Converting linked → copied installation"
-  fi
-  echo ""
-fi
-
-# ---------------------------------------------------------------------------
-# Shared: .writ/ workspace + legacy cleanup
-# ---------------------------------------------------------------------------
-
-init_writ_workspace() {
-  if [ ! -d ".writ" ]; then
-    echo ""
-    echo "  📁 Creating .writ/ directory structure..."
-  fi
-  # The eleven PATHS of scripts/scaffold-writ.py; test_scaffold_writ.py fails on drift.
-  mkdir -p .writ/{specs,product,research,decision-records,docs,knowledge,state} .writ/issues/{bugs,features,improvements,goals}
-
-  # .gitignore, as scaffold-writ.py does it: created when absent; each missing
-  # entry appended in one write, under the comment unless the file has it.
-  # Lines compare trimmed and whole, one trailing "/" ignored.
-  local gi_entry gi_add="" gi_head=""
-  for gi_entry in ".writ/state/" ".writ-lanes-*/"; do
-    if ! awk -v e="${gi_entry%/}" '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); sub(/\/$/, "") } $0 == e { f = 1 } END { exit !f }' .gitignore 2>/dev/null; then
-      gi_add="$gi_add$gi_entry"$'\n'
-    fi
-  done
-  if [ -n "$gi_add" ]; then
-    if [ ! -f .gitignore ]; then
-      gi_head='# Writ ephemeral state'$'\n'
-    elif awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, "") } $0 == "# Writ ephemeral state" { f = 1 } END { exit !f }' .gitignore; then
-      if [ -n "$(tail -c 1 .gitignore)" ]; then gi_head=$'\n'; fi
-    else
-      gi_head=$'\n''# Writ ephemeral state'$'\n'
-    fi
-    printf '%s%s' "$gi_head" "$gi_add" >> .gitignore
-  fi
-
-  if [ -f ".cursor/rules/cc.mdc" ]; then
-    echo "  🧹 Removing old Code Captain rules..."
-    rm -f .cursor/rules/cc.mdc
-  fi
-}
-
-# configure_audit_notes_sync — guarded, idempotent refs/notes/writ fetch refspec.
-# Configures the git-notes audit channel (ADR-017) to arrive on clone/fetch.
-# Adds no push refspec: any remote.<name>.push line replaces push.default, so a
-# plain `git push` would push only the notes and never the branch. /ship and
-# /release push the notes explicitly. Gated behind the writ.auditNotes opt-out
-# marker (default true): when the marker is false, adds nothing and removes any
-# Writ-added refspecs (no residue). No-op gracefully when not in a git repo or
-# when no remote is configured.
-# Globals: DRY_RUN
-configure_audit_notes_sync() {
-  local mode="${1:-apply}" # preview | apply
-  # Fetch into a remote-tracking ref that local operations never write. Fetching
-  # straight into refs/notes/writ with a '+' silently discards any local note
-  # added since the last push; /ship and /release merge origin-writ in instead.
-  local fetch_refspec="+refs/notes/writ:refs/notes/origin-writ"
-  # Anchored value regexes for --unset-all (only '+' is a regex metachar here).
-  local fetch_regex='^\+refs/notes/writ:refs/notes/origin-writ$'
-  # Pre-0.33 refspec, replaced by the line above. Removed on upgrade and on
-  # opt-out so no repo keeps clobbering local notes on fetch.
-  local legacy_fetch_regex='^\+refs/notes/writ:refs/notes/writ$'
-  # Push line earlier installs added. Removed on upgrade from every remote,
-  # whatever the opt-out says, because it hijacked a plain `git push`.
-  local legacy_push_regex='^refs/notes/writ$'
-
-  if ! command -v git &>/dev/null || ! git rev-parse --is-inside-work-tree &>/dev/null; then
-    echo "    ⏭️  Audit notes: not a git repository — skipping refs/notes/writ sync."
-    return 0
-  fi
-
-  # Opt-out marker (absent = enabled).
-  local audit_enabled
-  audit_enabled=$(git config --bool writ.auditNotes 2>/dev/null || echo true)
-
-  # Default push remote (origin preferred, else first remote).
-  local remote
-  remote=$(git remote 2>/dev/null | grep -Fx origin || true)
-  [ -z "$remote" ] && remote=$(git remote 2>/dev/null | head -1 || true)
-  if [ -z "$remote" ]; then
-    echo "    ⏭️  Audit notes: no git remote — skipping refs/notes/writ sync (notes still attach locally)."
-    return 0
-  fi
-
-  # Before the opt-out branch, so enabled and opted-out repos both migrate.
-  local r
-  while IFS= read -r r; do
-    [ -n "$r" ] || continue
-    git config --get-all "remote.$r.push" 2>/dev/null | grep -Fxq "refs/notes/writ" || continue
-    if [ "$mode" = "preview" ]; then
-      echo "    🔀 Audit notes: would remove remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
-    else
-      git config --unset-all "remote.$r.push" "$legacy_push_regex" 2>/dev/null || true
-      echo "    🔀 Audit notes: removed remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
-    fi
-  done <<< "$(git remote 2>/dev/null || true)"
-
-  if [ "$audit_enabled" = "false" ]; then
-    if [ "$mode" = "preview" ]; then
-      echo "    ⏭️  Audit notes: writ.auditNotes=false — would remove any refs/notes/writ refspecs on '$remote'."
-      return 0
-    fi
-    # Opt-out: remove only Writ-added refspecs; leave no residue. The legacy
-    # refspec is cleared too — opting out must not leave a clobbering fetch.
-    git config --unset-all "remote.$remote.fetch" "$fetch_regex" 2>/dev/null || true
-    git config --unset-all "remote.$remote.fetch" "$legacy_fetch_regex" 2>/dev/null || true
-    echo "    🧹 Audit notes disabled (writ.auditNotes=false) — refs/notes/writ refspecs removed from '$remote'."
-    return 0
-  fi
-
-  if [ "$mode" = "preview" ]; then
-    if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "+refs/notes/writ:refs/notes/writ"; then
-      echo "    🔀 Audit notes: would migrate the legacy fetch refspec on '$remote' (it discarded local notes on fetch)."
-    fi
-    if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
-      echo "    ✓ Audit notes: refs/notes/writ fetch already configured on '$remote' (idempotent — no change)."
-    else
-      echo "    📝 Audit notes: would add the refs/notes/writ fetch refspec to '$remote'."
-    fi
-    return 0
-  fi
-
-  # Enabled: drop the pre-0.33 clobbering refspec before adding the safe one, so
-  # an upgrade migrates rather than accumulating two fetch lines for the same ref.
-  if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "+refs/notes/writ:refs/notes/writ"; then
-    git config --unset-all "remote.$remote.fetch" "$legacy_fetch_regex" 2>/dev/null || true
-    echo "    🔀 Audit notes: migrated legacy fetch refspec (it discarded local notes on fetch)."
-  fi
-
-  # Idempotently add the refspec (grep existing first — never duplicate).
-  if ! git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
-    git config --add "remote.$remote.fetch" "$fetch_refspec"
-  fi
-  echo "    📝 Audit notes: refs/notes/writ fetch configured on '$remote'."
-}
-
-# ===========================================================================
-# COPY MODE
-# ===========================================================================
-
-# ---------------------------------------------------------------------------
-# Three-way overlay logic
-# ---------------------------------------------------------------------------
-
-_NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
-
-# Runtime scripts shipped to installed projects (excludes lifecycle, eval, and internal tooling).
-is_shippable_script() {
-  local base="$1"
-  case "$base" in
-    install.sh|update.sh|uninstall.sh|unlink.sh|migrate.sh|publish-writ-runtime.sh|eval.sh)
-      return 1 ;;
-    writ-runtime-readme.md)
-      return 1 ;;
-    eval-*|_*|sweep-*)
-      return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
-      return 1 ;;
-    gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)
-      # Writ-source generators and checks: they read agents/, claude-code/agents/, codex/agents/, .writ/manifest.yaml, and SKILL.md, which no install has. ADR-031.
-      return 1 ;;
-    zsh-guard.py)
-      # Claude Code PreToolUse hook for Writ's own sessions (zsh pitfalls, retro 2026-10-30 F5); no command runs it. ADR-031.
-      return 1 ;;
-  esac
-  case "$base" in
-    *.py|*.sh)
-      return 0 ;;
-    jev-thresholds.json)
-      # jev-judge.py's calibrated thresholds; the one data file that ships.
-      return 0 ;;
-  esac
-  return 1
-}
-
-# Writ reference docs shipped to installed projects (.writ/docs/).
-is_shippable_writ_doc() {
+add_platform() {
   case "$1" in
-    recommended-delivery-state-format.md)
-      # ADR-013 dormant staging contract; dev-only with recommend-state.py.
-      return 1 ;;
+    cursor|codex) WANT_AGENTS=true ;;
+    claude)       WANT_CLAUDE=true ;;
+    *) die 2 "Unknown platform '$1'. Use claude, cursor, or codex." ;;
   esac
-  return 0
 }
 
-# Three-way overlay for flat project-root directories (scripts/, .writ/docs/, etc.).
-overlay_scan_flat_dir() {
-  local src_dir="$1" dest_dir="$2" rel_prefix="$3" mode="$4" filter="${5:-}"
-  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
-
-  local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
-  for src_file in "$src_dir"/*; do
-    [ -f "$src_file" ] || continue
-    fname=$(basename "$src_file")
-    if [ "$filter" = "script" ] && ! is_shippable_script "$fname"; then
-      continue
+# Refuse the wrong folder, and stop for a Writ 0.x install, before any write.
+check_project() {
+  local top found="" p
+  top=$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -d "$ROOT/plugins/writ/skills" ] || [ -d "${top:-$ROOT}/plugins/writ/skills" ]; then
+    die 2 "This is the Writ source repository, where the skill folders are links to the source. Run the installer in another project."
+  fi
+  if [ -n "$top" ] || [ -e "$ROOT/.git" ]; then
+    IN_GIT=true
+  elif [ ! -e "$ROOT/.agents" ] && [ ! -e "$ROOT/.claude" ]; then
+    die 2 "This folder is not a git repository, so it does not look like a project: $ROOT. Go to your project folder and run this again, or add --global to install for all your projects."
+  fi
+  if ! $IGNORE_LEGACY; then
+    for p in cursor claude codex; do
+      [ ! -f "$ROOT/.$p/.writ-manifest" ] || found="$found $p"
+    done
+    if [ -n "$found" ]; then
+      {
+        say "This project has an older Writ (0.x) install. Remove it first by running, in this folder:"
+        for p in $found; do say "  bash <(curl -s $LEGACY_UNINSTALL) --platform $p"; done
+        say "That keeps everything under .writ/ (specs, decisions, research); run this installer again afterwards."
+      } >&2
+      exit 3
     fi
-    if [ "$filter" = "doc" ] && ! is_shippable_writ_doc "$fname"; then
-      continue
-    fi
+  fi
+  if [ -n "$(git -C "$ROOT" rev-parse --show-prefix 2>/dev/null || true)" ]; then
+    say "Note: this is a subfolder of the git repository at $top. The skills go in this subfolder. Most tools look for them at the top, so run this from there unless you mean it."
+  fi
+}
 
-    local_file="$dest_dir/$fname"
-    rel_path="$rel_prefix/$fname"
-    upstream_hash=$(hash_file "$src_file")
-
-    if [ ! -f "$local_file" ]; then
-      _NEW=$((_NEW + 1))
-      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
-      if [ "$mode" = "apply" ]; then
-        mkdir -p "$dest_dir"
-        cp "$src_file" "$local_file"
-        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
-      fi
-      continue
-    fi
-
-    local_hash=$(hash_file "$local_file")
-
-    if [ "$local_hash" = "$upstream_hash" ]; then
-      _UNCHANGED=$((_UNCHANGED + 1))
-      continue
-    fi
-
-    baseline_hash=$(manifest_hash_for "$rel_path")
-
-    if [ "$FORCE" = true ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
-      if [ "$mode" = "apply" ]; then
-        cp "$src_file" "$local_file"
-        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
-      fi
-    elif [ -z "$baseline_hash" ]; then
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
-    elif [ "$local_hash" = "$baseline_hash" ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
-      if [ "$mode" = "apply" ]; then
-        cp "$src_file" "$local_file"
-        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
-      fi
-    else
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
-    fi
+# Never write through a destination that is a link leading out of the project.
+check_dest() {
+  local part real
+  for part in "${1%/*}" "$1"; do
+    [ -L "$ROOT/$part" ] || continue
+    real=$(cd "$ROOT/$part" 2>/dev/null && pwd -P) || real=""
+    case "$real/" in
+      "$ROOT"/*) ;;
+      *) die 2 "$SHOWN_ROOT$part is a link that leads outside $ROOT, so nothing was written. Replace the link with a real folder, then run this again." ;;
+    esac
   done
 }
 
-# Manifest lines for the top-level scripts upstream ships (the overlay's
-# "script" filter). Called only by write_copy_manifest.
-append_manifest_shippable_scripts() {
-  local target="$1" f base
-  for f in "$WRIT_SRC"/scripts/*; do
-    [ -f "$f" ] || continue
-    base=$(basename "$f")
-    is_shippable_script "$base" || continue
-    record_file_baseline "$target" "scripts/$base" "$f" "scripts/$base"
+# Sets SRC_SKILLS, VERSION, and FILES (every file to install, one per line).
+find_source() {
+  local src="${WRIT_SRC:-}" self="${BASH_SOURCE[0]:-}" err
+  if [ -z "$src" ] && [ -f "$self" ] && [ -d "$(dirname "$self")/../plugins/writ/skills" ]; then
+    src="$(dirname "$self")/.."   # run from a Writ checkout: install from it
+  fi
+  if [ -z "$src" ]; then
+    command -v git >/dev/null 2>&1 || die 1 "git is needed to download Writ. Install git, then run this again."
+    TMP_SRC=$(mktemp -d "${TMPDIR:-/tmp}/writ-install.XXXXXX")
+    trap 'rm -rf "$TMP_SRC"' EXIT
+    say "Downloading Writ..."
+    set -- --quiet --depth 1
+    [ -z "$WRIT_REF" ] || set -- "$@" --branch "$WRIT_REF"
+    err=$(GIT_TERMINAL_PROMPT=0 git clone "$@" "$WRIT_REPO" "$TMP_SRC" 2>&1) ||
+      die 1 "Could not download Writ from $WRIT_REPO${WRIT_REF:+ ($WRIT_REF)}. Check your connection, then run this again. Git said: $(tail -n 1 <<< "$err")"
+    src="$TMP_SRC"
+  fi
+  [ -d "$src/plugins/writ/skills" ] || die 1 "No Writ skills found in $src (expected plugins/writ/skills there)."
+  SRC_SKILLS=$(cd "$src/plugins/writ/skills" && pwd)
+  VERSION="unknown"
+  [ ! -f "$src/VERSION" ] || VERSION=$(tr -d ' \t\r\n' < "$src/VERSION")
+  FILES=$(cd "$SRC_SKILLS" && find . -type f ! -name '*.pyc' ! -name .DS_Store ! -path '*/__pycache__/*' |
+    sed 's|^\./||' | LC_ALL=C sort)
+  [ -n "$FILES" ] || die 1 "No Writ skills found in $src (plugins/writ/skills is empty)."
+}
+
+# Prints the hash the current manifest holds for path $1, or nothing.
+old_hash() {
+  local line
+  [ -f "$MANIFEST" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "${line#*  }" = "$1" ]; then say "${line%%  *}"; return 0; fi
+  done < "$MANIFEST"
+}
+
+# True when no link sits at $1 or at a folder above it inside the destination.
+plain_path() {
+  local p="$1"
+  while :; do
+    [ ! -L "$DEST/$p" ] || return 1
+    case "$p" in */*) p="${p%/*}" ;; *) return 0 ;; esac
   done
 }
 
-# Manifest lines for the .writ/docs/*.md upstream ships (the overlay's "doc"
-# filter). Called only by write_copy_manifest.
-append_manifest_writ_docs() {
-  local target="$1" f base
-  for f in "$WRIT_SRC"/.writ/docs/*.md; do
-    [ -f "$f" ] || continue
-    base=$(basename "$f")
-    is_shippable_writ_doc "$base" || continue
-    record_file_baseline "$target" ".writ/docs/$base" "$f" ".writ/docs/$base"
+record() { NEW_MANIFEST="$NEW_MANIFEST$1  $2"$'\n'; }
+step() { if $DRY_RUN; then say "    would $1 $2"; fi; }
+
+# keep <path> <why> <hash>: leave the person's file alone and report it. A
+# non-empty hash stays in the manifest, so the file still counts as changed.
+keep() {
+  KEPT=$((KEPT + 1))
+  KEPT_LIST="$KEPT_LIST    $1 ($2)"$'\n'
+  [ -z "$3" ] || record "$3" "$1"
+}
+
+# put <verb> <path>: copy one source file into the destination.
+put() {
+  local dst="$DEST/$2"
+  step "$1" "$2"
+  CHANGES=$((CHANGES + 1))
+  $DRY_RUN && return 0
+  { mkdir -p "$(dirname "$dst")" && cp "$SRC_SKILLS/$2" "$dst.writ-tmp" && mv -f "$dst.writ-tmp" "$dst"; } ||
+    die 1 "Could not write $dst."
+}
+
+# Remove the folders above removed file $1 that are now empty, up to the destination.
+prune() {
+  local p="$1"
+  while case "$p" in */*) true ;; *) false ;; esac; do
+    p="${p%/*}"
+    rmdir "$DEST/$p" 2>/dev/null || break
   done
 }
 
-overlay_scan() {
-  local src_dir="$1" local_dir="$2" label="$3" mode="$4" pattern="${5:-*.md}"
-  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
-
-  local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
-  for src_file in "$src_dir"/$pattern; do
-    [ -f "$src_file" ] || continue
-    fname=$(basename "$src_file")
-    local_file="$local_dir/$fname"
-    rel_path="${label}/${fname}"
-    upstream_hash=$(hash_file "$src_file")
-
-    if [ ! -f "$local_file" ]; then
-      _NEW=$((_NEW + 1))
-      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
-      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
-      continue
-    fi
-
-    local_hash=$(hash_file "$local_file")
-
-    if [ "$local_hash" = "$upstream_hash" ]; then
-      _UNCHANGED=$((_UNCHANGED + 1))
-      continue
-    fi
-
-    baseline_hash=$(manifest_hash_for "$rel_path")
-
-    if [ "$FORCE" = true ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
-      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
-    elif [ -z "$baseline_hash" ]; then
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
-    elif [ "$local_hash" = "$baseline_hash" ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
-      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
-    else
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
-    fi
-  done
-}
-
-# Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
-# Mirrors overlay_scan semantics for SKILL.md; never overwrites sidecar files after first install.
-overlay_scan_skills() {
-  local src_dir="$1" local_dir="$2" mode="$3"
-  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
-
-  local skill_folder skill_name src_skill local_skill rel_path upstream_hash local_hash baseline_hash
-  local sidecar sidecar_name local_sidecar
-  for skill_folder in "$src_dir"/*/; do
-    [ -d "$skill_folder" ] || continue
-    skill_name=$(basename "$skill_folder")
-    src_skill="${skill_folder}SKILL.md"
-    [ -f "$src_skill" ] || continue
-
-    local_skill="$local_dir/$skill_name/SKILL.md"
-    rel_path="skills/$skill_name/SKILL.md"
-    upstream_hash=$(hash_file "$src_skill")
-
-    if [ ! -f "$local_skill" ]; then
-      _NEW=$((_NEW + 1))
-      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
-      if [ "$mode" = "apply" ]; then
-        mkdir -p "$local_dir/$skill_name"
-        cp "$src_skill" "$local_skill"
-        # Sidecar files copied on first install only
-        for sidecar in "$skill_folder".[!.]* "$skill_folder"*; do
-          [ -e "$sidecar" ] || continue
-          sidecar_name=$(basename "$sidecar")
-          [ "$sidecar_name" = "SKILL.md" ] && continue
-          [ -d "$sidecar" ] && continue
-          cp "$sidecar" "$local_dir/$skill_name/$sidecar_name"
-        done
-      fi
-      continue
-    fi
-
-    local_hash=$(hash_file "$local_skill")
-
-    if [ "$local_hash" = "$upstream_hash" ]; then
-      _UNCHANGED=$((_UNCHANGED + 1))
-      continue
-    fi
-
-    baseline_hash=$(manifest_hash_for "$rel_path")
-
-    if [ "$FORCE" = true ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
-      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
-    elif [ -z "$baseline_hash" ]; then
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
-    elif [ "$local_hash" = "$baseline_hash" ]; then
-      _UPDATED=$((_UPDATED + 1))
-      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
-      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
-    else
-      _PRESERVED=$((_PRESERVED + 1))
-      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
-    fi
-  done
-}
-
-# --- Dry run ---
-
-if [ "$DRY_RUN" = true ]; then
-  echo "🏃 DRY RUN — No changes will be made"
-  echo ""
-  if [ "$EXISTING_MODE" = "link" ]; then
-    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents$([ "$SKILL_COUNT" -gt 0 ] && echo ", $SKILL_COUNT skills"))."
+# Install, update, or uninstall one destination ($1, relative to ROOT).
+sync_dest() {
+  DEST="$ROOT/$1"; MANIFEST="$DEST/.writ-manifest"
+  local shown="$SHOWN_ROOT$1" tools="Cursor and Codex" old_version="none" f new old cur line p
+  [ "$1" = ".agents/skills" ] || tools="Claude Code"
+  ADDED=0 UPDATED=0 KEPT=0 REMOVED=0 KEPT_LIST="" NEW_MANIFEST="" CAN_FORCE=false
+  if [ -f "$MANIFEST" ]; then
+    old_version=$(sed -n '/^# version: /{s///p;q;}' "$MANIFEST")
+  elif $UNINSTALL; then
+    say "No Writ install found in $shown. Nothing to remove."
+    return 0
+  fi
+  if $UNINSTALL; then
+    say "Removing Writ ${old_version:-unknown} from $shown ($tools)"
   else
-    echo "  Commands:"
-    overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
-    echo ""
-    echo "  Runtime scripts:"
-    overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "preview" "script"
-    echo "  Writ docs:"
-    overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview" "doc"
-    echo ""
-    echo "  Agents:"
-    overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
-    echo ""
-    if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
-      echo "  Skills:"
-      overlay_scan_skills "$WRIT_SRC/skills" "$SKILLS_DIR" "preview"
-      echo ""
+    say "Writ for $tools, in $shown"
+    say "  Version: ${old_version:-unknown} -> $VERSION"
+    while IFS= read -r f; do
+      new=$(hash_file "$SRC_SKILLS/$f"); old=$(old_hash "$f")
+      if ! plain_path "$f" || [ -d "$DEST/$f" ]; then
+        keep "$f" "a link or a folder is in the way" "$old"
+      elif [ ! -e "$DEST/$f" ]; then
+        put add "$f"; ADDED=$((ADDED + 1)); record "$new" "$f"
+      else
+        cur=$(hash_file "$DEST/$f")
+        if [ "$cur" = "$new" ]; then        # already the Writ version: nothing to do
+          record "$new" "$f"
+        elif [ "$cur" = "$old" ]; then      # untouched since install: safe to update
+          put update "$f"; UPDATED=$((UPDATED + 1)); record "$new" "$f"
+        elif $FORCE; then
+          put "replace your version of" "$f"; UPDATED=$((UPDATED + 1)); record "$new" "$f"
+          $DRY_RUN || say "    Replaced your version of $f (--force)."
+        else
+          CAN_FORCE=true
+          if [ -n "$old" ]; then keep "$f" "you changed it" "$old"; else keep "$f" "it was here before Writ" ""; fi
+        fi
+      fi
+    done <<< "$FILES"
+  fi
+  # Files the manifest lists that Writ no longer ships (on uninstall: all of them).
+  if [ -f "$MANIFEST" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in '#'*|'') continue ;; esac
+      old="${line%%  *}"; p="${line#*  }"
+      case "$p" in /*|*..*|"$line") continue ;; esac   # never follow a path out of the destination
+      if ! $UNINSTALL && grep -Fxq -- "$p" <<< "$FILES"; then continue; fi
+      [ -e "$DEST/$p" ] || [ -L "$DEST/$p" ] || continue
+      if plain_path "$p" && [ -f "$DEST/$p" ] && [ "$(hash_file "$DEST/$p")" = "$old" ]; then
+        step remove "$p"; REMOVED=$((REMOVED + 1)); CHANGES=$((CHANGES + 1))
+        $DRY_RUN || { rm -f "$DEST/$p"; prune "$p"; }
+      elif $UNINSTALL; then
+        keep "$p" "you changed it" ""
+      else
+        keep "$p" "no longer part of Writ, but you changed it" ""
+      fi
+    done < "$MANIFEST"
+  fi
+  if $UNINSTALL; then
+    if ! $DRY_RUN; then
+      rm -f "$MANIFEST"   # then the skills folder and its parent, only if nothing else is in them
+      if rmdir "$DEST" 2>/dev/null; then rmdir "$(dirname "$DEST")" 2>/dev/null || true; fi
     fi
-    if [ "$PLATFORM" = "cursor" ]; then
-      echo "  Rules:   writ.mdc → always updated"
-      echo "  System:  system-instructions.md → always updated"
-    elif [ "$PLATFORM" = "claude" ]; then
-      echo "  System:  system-instructions.md → always updated"
-      echo "  CLAUDE.md integration plan:"
-      merge_claude_md preview
-    elif [ "$PLATFORM" = "codex" ]; then
-      echo "  System:  system-instructions.md → always updated"
-      echo "  AGENTS.md integration plan:"
-      merge_agents_md preview
-      echo "  Codex config seed plan:"
-      seed_codex_config preview
+    say "  $REMOVED_WORD $REMOVED, $KEPT_WORD $KEPT (customised)."
+  else
+    if ! $DRY_RUN; then
+      mkdir -p "$DEST"
+      printf '# version: %s\n# Written by the Writ installer. It lists each installed file and its checksum. Leave it in place.\n%s' \
+        "$VERSION" "$NEW_MANIFEST" > "$MANIFEST.writ-tmp"
+      mv -f "$MANIFEST.writ-tmp" "$MANIFEST"
     fi
-    echo ""
-    echo "  Audit notes sync (refs/notes/writ):"
-    configure_audit_notes_sync preview
+    say "  $ADDED_WORD $ADDED, $UPDATED_WORD $UPDATED, $KEPT_WORD $KEPT (customised), $REMOVED_WORD $REMOVED."
   fi
-  echo ""
-  echo "  Cursor indexing ignore (install-once):"
-  seed_cursorindexingignore preview
-  echo ""
-  echo "💡 To reset a file to core: delete the local copy and re-run install."
-  echo "💡 To force overwrite all: install.sh --force"
-  if [ "$PLATFORM" = "codex" ] && [ "$AGENT_COUNT" -eq 0 ]; then
-    exit 1
+  if [ "$KEPT" -gt 0 ]; then
+    say "  Kept as you have them:"
+    printf '%s' "$KEPT_LIST"
+    if $CAN_FORCE; then say "  To replace files you changed with the Writ versions, run this again with --force."; fi
   fi
-  exit 0
-fi
+}
 
-# --- Install ---
-
-echo "Installing..."
-
-# Remove symlinks if converting from a linked installation
-if [ "$EXISTING_MODE" = "link" ]; then
-  echo "  Removing symlinks..."
-  for f in "$PLATFORM_DIR"/commands/*.md; do
-    [ -L "$f" ] && rm -f "$f"
+main() {
+  local dest dests=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --platform)
+        [ $# -ge 2 ] || die 2 "--platform needs a name: claude, cursor, or codex."
+        add_platform "$2"; shift ;;
+      --platform=*)    add_platform "${1#*=}" ;;
+      --global)        GLOBAL=true ;;
+      --dry-run)       DRY_RUN=true ;;
+      --force)         FORCE=true ;;
+      --uninstall)     UNINSTALL=true ;;
+      --ignore-legacy) IGNORE_LEGACY=true ;;
+      --help|-h)       usage; exit 0 ;;
+      *) die 2 "Unknown option '$1'. Run with --help to see the options." ;;
+    esac
+    shift
   done
-  for f in "$PLATFORM_DIR"/agents/*.md "$PLATFORM_DIR"/agents/*.toml; do
-    [ -L "$f" ] && rm -f "$f"
-  done
-  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
-    [ -L "$f" ] && rm -f "$f"
-  done
-  for f in .writ/docs/*.md; do
-    [ -L "$f" ] && rm -f "$f"
-  done
-  for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
-    [ -L "$f" ] && rm -f "$f"
-  done
-  if [ -d "$SKILLS_DIR" ] || [ -L "$SKILLS_DIR" ]; then
-    for skill_folder in "$SKILLS_DIR"/*/; do
-      [ -L "${skill_folder%/}" ] && rm -f "${skill_folder%/}"
-      [ -L "${skill_folder}SKILL.md" ] && rm -f "${skill_folder}SKILL.md"
-    done
-    [ -L "$SKILLS_DIR" ] && rm -f "$SKILLS_DIR"
+  command -v shasum >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1 ||
+    die 1 "Neither shasum nor sha256sum is installed, and one of them is needed."
+  ADDED_WORD="Added" UPDATED_WORD="updated" KEPT_WORD="kept" REMOVED_WORD="removed"
+  if $UNINSTALL; then REMOVED_WORD="Removed"; fi
+  if $DRY_RUN; then
+    ADDED_WORD="Would add" UPDATED_WORD="update" KEPT_WORD="keep" REMOVED_WORD="remove"
+    if $UNINSTALL; then REMOVED_WORD="Would remove"; fi
   fi
-  if [ "$PLATFORM" = "cursor" ]; then
-    for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
-      [ -L "$f" ] && rm -f "$f"
-    done
-  elif [ "$PLATFORM" = "claude" ]; then
-    [ -L "CLAUDE.md" ] && rm -f "CLAUDE.md"
+
+  if $GLOBAL; then
+    if [ -z "${HOME:-}" ] || [ ! -d "$HOME" ]; then die 2 "--global needs a home folder, and HOME is not set to one."; fi
+    ROOT=$(cd "$HOME" && pwd -P)
+    # shellcheck disable=SC2088
+    SHOWN_ROOT="~/"   # literal text for the report, not a path
+  else
+    ROOT=$(pwd -P)
+    check_project
   fi
-fi
-
-mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
-[ -d "$WRIT_SRC/skills" ] && mkdir -p "$SKILLS_DIR"
-[ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
-
-if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then STEP_TOTAL=7; else STEP_TOTAL=6; fi
-[ "$PLATFORM" = "codex" ] && STEP_TOTAL=$((STEP_TOTAL + 1))
-STEP=0
-
-STEP=$((STEP + 1))
-echo "  [$STEP/$STEP_TOTAL] Commands..."
-overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
-CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
-
-STEP=$((STEP + 1))
-echo "  [$STEP/$STEP_TOTAL] Scripts & Writ docs..."
-overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "apply" "script"
-SCRIPT_NEW=$_NEW; SCRIPT_UPDATED=$_UPDATED; SCRIPT_PRESERVED=$_PRESERVED
-overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply" "doc"
-DOC_NEW=$_NEW; DOC_UPDATED=$_UPDATED; DOC_PRESERVED=$_PRESERVED
-
-STEP=$((STEP + 1))
-echo "  [$STEP/$STEP_TOTAL] Agents..."
-overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
-AGENT_NEW=$_NEW; AGENT_UPDATED=$_UPDATED; AGENT_PRESERVED=$_PRESERVED
-
-SKILL_NEW=0; SKILL_UPDATED=0; SKILL_PRESERVED=0
-if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
-  STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] Skills..."
-  overlay_scan_skills "$WRIT_SRC/skills" "$SKILLS_DIR" "apply"
-  SKILL_NEW=$_NEW; SKILL_UPDATED=$_UPDATED; SKILL_PRESERVED=$_PRESERVED
-fi
-
-STEP=$((STEP + 1))
-if [ "$PLATFORM" = "cursor" ]; then
-  echo "  [$STEP/$STEP_TOTAL] Rules..."
-  cp "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/"
-
-  STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] System instructions..."
-  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
-elif [ "$PLATFORM" = "claude" ]; then
-  echo "  [$STEP/$STEP_TOTAL] CLAUDE.md integration..."
-  merge_claude_md apply
-  STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] System instructions..."
-  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
-elif [ "$PLATFORM" = "codex" ]; then
-  echo "  [$STEP/$STEP_TOTAL] AGENTS.md integration..."
-  merge_agents_md apply
-  STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] Codex CLI config..."
-  seed_codex_config apply
-  writ_warn_agents_md_size
-  STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] System instructions..."
-  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
-fi
-
-STEP=$((STEP + 1))
-echo "  [$STEP/$STEP_TOTAL] Writing manifest..."
-write_copy_manifest "$VERSION" "$MANIFEST_FILE"
-
-init_writ_workspace
-
-# Configure the git-notes audit channel sync (ADR-017), guarded by writ.auditNotes.
-echo "  🔗 Audit notes sync (refs/notes/writ)..."
-configure_audit_notes_sync apply
-
-echo "  🔎 Cursor indexing ignore (install-once)..."
-seed_cursorindexingignore apply
-
-# --- Summary ---
-
-echo ""
-
-if [ "$PLATFORM" = "codex" ] && [ "${AGENT_COUNT:-0}" -eq 0 ]; then
-  echo "❌ Codex agent sources were missing; install incomplete."
-  exit 1
-fi
-
-echo "✅ Writ installed for $PLATFORM_LABEL! (version: $VERSION)"
-
-TOTAL_NEW=$((CMD_NEW + AGENT_NEW + SKILL_NEW + SCRIPT_NEW + DOC_NEW))
-TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED + SKILL_UPDATED + SCRIPT_UPDATED + DOC_UPDATED))
-TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED + SKILL_PRESERVED + SCRIPT_PRESERVED + DOC_PRESERVED))
-
-if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" -gt 0 ]; then
-  echo ""
-  echo "  📋 Summary:"
-  [ "$TOTAL_NEW" -gt 0 ]       && echo "     $TOTAL_NEW new file(s) installed"
-  [ "$TOTAL_UPDATED" -gt 0 ]   && echo "     $TOTAL_UPDATED file(s) updated"
-  [ "$TOTAL_PRESERVED" -gt 0 ] && echo "     $TOTAL_PRESERVED file(s) preserved (local modifications kept)"
-  if [ "$SKILL_NEW" -gt 0 ] || [ "$SKILL_UPDATED" -gt 0 ] || [ "$SKILL_PRESERVED" -gt 0 ]; then
-    echo "     Skills: $SKILL_NEW new, $SKILL_UPDATED updated, $SKILL_PRESERVED preserved"
+  if ! $WANT_AGENTS && ! $WANT_CLAUDE; then
+    # No --platform: every place Writ is already installed, else .agents/skills.
+    if [ -f "$ROOT/.agents/skills/.writ-manifest" ]; then WANT_AGENTS=true; fi
+    if [ -f "$ROOT/.claude/skills/.writ-manifest" ]; then WANT_CLAUDE=true; fi
+    $WANT_CLAUDE || WANT_AGENTS=true
   fi
-  if [ "$TOTAL_PRESERVED" -gt 0 ]; then
-    echo ""
-    echo "  💡 To reset a file to core: delete it and re-run install."
-    echo "  💡 To force overwrite all: install.sh --force"
+  if $WANT_AGENTS; then dests=".agents/skills"; fi
+  if $WANT_CLAUDE; then dests="$dests .claude/skills"; fi
+  for dest in $dests; do check_dest "$dest"; done
+  $UNINSTALL || find_source
+  for dest in $dests; do sync_dest "$dest"; done
+
+  say ""
+  if $DRY_RUN; then
+    say "Dry run: nothing was changed."
+  elif $UNINSTALL; then
+    say "Nothing under .writ/ (specs, decisions, research) was touched."
+    if $IN_GIT && [ "$CHANGES" -gt 0 ]; then say "Nothing was committed. The removals are uncommitted, and committing them is your call."; fi
+  else
+    if [ "$CHANGES" -eq 0 ]; then
+      say "No files were changed."
+    elif $IN_GIT; then
+      say "Nothing was committed. The new and changed files are uncommitted, and committing them is your call."
+    fi
+    say "Restart or reload your tool, then type /writ (Cursor, Claude Code) or \$writ (Codex)."
   fi
-fi
+}
 
-if [ "$PLATFORM" = "codex" ]; then
-  echo ""
-  [ -n "${AGENTS_MERGE_NOTE:-}" ] && echo "  $AGENTS_MERGE_NOTE"
-  [ -n "${SEED_CODEX_CONFIG_NOTE:-}" ] && echo "  $SEED_CODEX_CONFIG_NOTE"
-elif [ "$PLATFORM" = "claude" ]; then
-  echo ""
-  [ -n "${CLAUDE_MERGE_NOTE:-}" ] && echo "  $CLAUDE_MERGE_NOTE"
-fi
-
-[ -n "${SEED_CURSORINDEXINGIGNORE_NOTE:-}" ] && { echo ""; echo "  $SEED_CURSORINDEXINGIGNORE_NOTE"; }
-
-# --- Scoped git commit ---
-
-if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
-  f=""; base=""
-  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
-    [ -f "$f" ] || continue
-    base=$(basename "$f")
-    is_shippable_script "$base" && git add "$f" 2>/dev/null || true
-  done
-  git add .writ/docs/*.md 2>/dev/null || true
-  git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
-  [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
-  if [ "$PLATFORM" = "cursor" ]; then
-    git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
-  elif [ "$PLATFORM" = "claude" ]; then
-    git add "CLAUDE.md" 2>/dev/null || true
-    git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
-  elif [ "$PLATFORM" = "codex" ]; then
-    git add "AGENTS.md" ".codex/config.toml" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
-  fi
-  git add "$MANIFEST_FILE" 2>/dev/null || true
-  [ -d .writ ] && git add .writ/ 2>/dev/null || true
-  [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
-  [ -f .cursorindexingignore ] && git add .cursorindexingignore 2>/dev/null || true
-
-  git commit -m "$(cat <<EOF
-chore: install Writ development workflow ($PLATFORM_LABEL)
-
-See: https://github.com/sellke/writ
-EOF
-)" 2>/dev/null && echo "  📦 Git commit created." || echo "  ℹ️  Nothing to commit (already up to date)."
-fi
-
-echo ""
-echo "Usage:"
-if [ "$PLATFORM" = "cursor" ]; then
-  echo "  In Cursor chat, try: /initialize, /create-spec, /implement-story"
-elif [ "$PLATFORM" = "claude" ]; then
-  echo "  In Claude Code, try: /create-spec, /implement-story, /status"
-elif [ "$PLATFORM" = "codex" ]; then
-  echo "  In Codex CLI, restart sessions to reload AGENTS.md — try /create-spec, /implement-story"
-fi
-echo ""
-echo "⚡ So it is written. So it shall be built."
+main "$@"

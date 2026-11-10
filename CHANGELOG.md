@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+**Writ 1.0: rebuilt for the product manager. Ten plain-language skills, one rule for who decides, an independent verifier, and a one-file spec replace the 0.x commands, agents, adapters, and scripts.** ([ADR-034](.writ/decision-records/adr-034-product-manager-audience.md), [ADR-035](.writ/decision-records/adr-035-people-decide-what-model-decides-how.md), [ADR-036](.writ/decision-records/adr-036-plain-language-skills.md), [ADR-037](.writ/decision-records/adr-037-jev-second-reader.md), [surface audit](.writ/research/2026-11-09-writ-1.0-surface-audit.md))
+
+### Breaking Changes
+- **Every 0.x command is gone.** Writ is now the skills `writ`, `writ-plan`, `writ-research`, `writ-prototype`, `writ-spec`, `writ-build`, `writ-verify`, `writ-ship`, `writ-issue`, and `writ-retro`, plus the optional `writ-jev`.
+
+  | 0.x | 1.0 |
+  |---|---|
+  | `/writ`, `/status`, `/initialize` | `/writ` |
+  | `/plan-product` (and `--reconcile`), `/verify-spec --product` | `/writ-plan` |
+  | `/research`, `/why`, `/create-adr` | `/writ-research` |
+  | `/prototype`, `/writ-design` | `/writ-prototype` |
+  | `/create-spec`, `/edit-spec`, `/assess-spec` | `/writ-spec` |
+  | `/implement-story`, `/implement-spec`, `/implement-phase`, `/refactor` | `/writ-build` |
+  | `/review`, `/create-uat-plan`, `/verify-spec`, `/security-audit` | `/writ-verify` |
+  | `/ship`, `/release` | `/writ-ship` |
+  | `/create-issue` | `/writ-issue` |
+  | `/retro`, `/refresh-command` | `/writ-retro` |
+  | `/update-writ`, `/reinstall-writ`, `/uninstall-writ` | re-run `scripts/install.sh` (`--uninstall` to remove) |
+  | `/knowledge`, `/create-goal`, `/revert`, `/migrate`, `/new-command`, `/new-skill` | removed |
+
+- **Upgrading from 0.x.** The 1.0 installer stops when it finds a 0.x install and prints the command that removes it. Everything under `.writ/` is kept. Specs written with 0.x still build: `/writ-build` reads the old `spec.md` as the contract.
+- **A spec is one file.** `spec.md` holds the problem, the outcome and its measure, scope, acceptance criteria (`A1`, `A2`, ...), decisions, and proof. Story files, `spec-lite.md`, sub-specs, drift logs, recommendation logs, UAT plans, and the state files under `.writ/state/` are no longer written.
+- **No gates, agents, or pipeline scripts.** The model plans and builds its own way. One independent verifier checks each acceptance criterion against the running product and writes the proof. The nine agent definitions, the 19 pipeline skills, and all 37 shipped scripts are removed.
+- **Who is asked what.** People are asked about direction, the contract, taste, and acts that cannot be taken back (merge, release, publishing, deleting data). The computed doubt check, the decision log, the supervisor agent, and autonomous merge are removed. Merge and release happen on your word.
+- **Jev has a different job.** It no longer decides when to ask you. As the optional `writ-jev`, it reads the contract before you agree it and the proof before you read it, and flags lines for a second look.
+- **Packaging.** Writ ships as Agent Skills from `plugins/writ/`, for Claude Code, Cursor, and Codex. Adapters, the generated platform trees, the OpenClaw guide, `system-instructions.md`, and the blocks merged into `CLAUDE.md`, `AGENTS.md`, and Cursor rules are gone. The reference docs under `.writ/docs/`, `.writ/context.md`, `mission-lite.md`, and the knowledge ledger are no longer written.
+
+### Added
+- `/writ-verify` can be run on its own: "does this work?" on any branch.
+- `scripts/install.sh` installs, updates, and uninstalls in one script, into `.agents/skills/` (Cursor and Codex) or `.claude/skills/`, per project or with `--global`.
+- A Codex plugin manifest and marketplace file, beside the Claude Code and Cursor ones.
+
+### Internal
+- `scripts/check.py` replaces `eval.sh` and its 71 checks. It fails on a skill whose name and folder disagree, a reference that does not resolve, a platform tool name in a skill, a manifest version that differs from `VERSION`, and a skill the README leaves out.
+- Product docs: the mission is rewritten; the roadmap is Now / Next / Later; Phases 1 to 17 are in `.writ/product/roadmap-history.md`. Twenty decision records are marked superseded.
+- Built by direct edits on branch `writ-1.0` at the maintainer's direction. Everything removed is at tag `v0.49.0`.
+
 ## [0.49.0] - 2026-11-09
 
 **Repro-first bug fixing is removed: on a substitute trial of three bug-fix stories, it caught nothing the shipped fixes had missed.** ([gate-upgrade-removal-measurement](.writ/specs/archive/2026-10-25-gate-upgrade-removal-measurement/spec.md), [PR #77](https://github.com/sellke/writ/pull/77))

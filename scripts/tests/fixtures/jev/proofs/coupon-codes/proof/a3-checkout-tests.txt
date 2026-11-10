@@ -1,0 +1,15 @@
+$ pytest tests/checkout -v
+============================= test session starts ==============================
+collected 9 items
+
+tests/checkout/test_address.py::test_postcode_is_required PASSED         [ 11%]
+tests/checkout/test_address.py::test_unknown_postcode_shows_message PASSED [ 22%]
+tests/checkout/test_address.py::test_saved_address_is_prefilled PASSED   [ 33%]
+tests/checkout/test_totals.py::test_total_sums_line_items PASSED         [ 44%]
+tests/checkout/test_totals.py::test_delivery_fee_added_under_40 PASSED   [ 55%]
+tests/checkout/test_totals.py::test_free_delivery_from_40 PASSED         [ 66%]
+tests/checkout/test_payment.py::test_declined_card_shows_message PASSED  [ 77%]
+tests/checkout/test_payment.py::test_successful_payment_creates_order PASSED [ 88%]
+tests/checkout/test_payment.py::test_order_confirmation_email_sent PASSED [100%]
+
+============================== 9 passed in 3.07s ===============================

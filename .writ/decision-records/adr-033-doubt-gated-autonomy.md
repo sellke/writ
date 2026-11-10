@@ -1,5 +1,7 @@
 # ADR-033: Ask on Doubt, Not on Principle
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > **Date:** 2026-11-05
 > **Status:** Accepted
 > **Amended:** 2026-11-05 — what the Phase 17 build changed; 2026-11-06 — merge acts under the ledger (see § Amendments)

@@ -1,0 +1,16 @@
+{
+  "name": "writ",
+  "owner": {
+    "name": "Adam Sellke"
+  },
+  "metadata": {
+    "description": "Writ, from this repository."
+  },
+  "plugins": [
+    {
+      "name": "writ",
+      "source": "plugins/writ",
+      "description": "Agree what to build, let the model build it, and see proof it works. A workflow for product managers working with an AI coding agent."
+    }
+  ]
+}

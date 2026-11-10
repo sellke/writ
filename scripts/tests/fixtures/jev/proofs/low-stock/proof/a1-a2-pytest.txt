@@ -1,0 +1,15 @@
+$ pytest tests/alerts/test_threshold_form.py -v
+============================= test session starts ==============================
+collected 9 items
+
+tests/alerts/test_threshold_form.py::test_save_shows_alert_at[0] PASSED   [ 11%]
+tests/alerts/test_threshold_form.py::test_save_shows_alert_at[1] PASSED   [ 22%]
+tests/alerts/test_threshold_form.py::test_save_shows_alert_at[250] PASSED [ 33%]
+tests/alerts/test_threshold_form.py::test_save_shows_alert_at[999] PASSED [ 44%]
+tests/alerts/test_threshold_form.py::test_rejected_keeps_old_threshold[empty] PASSED [ 55%]
+tests/alerts/test_threshold_form.py::test_rejected_keeps_old_threshold[abc] PASSED [ 66%]
+tests/alerts/test_threshold_form.py::test_rejected_keeps_old_threshold[-1] PASSED [ 77%]
+tests/alerts/test_threshold_form.py::test_rejected_keeps_old_threshold[1000] PASSED [ 88%]
+tests/alerts/test_threshold_form.py::test_rejected_keeps_old_threshold[2.5] PASSED [100%]
+
+============================== 9 passed in 0.63s ===============================

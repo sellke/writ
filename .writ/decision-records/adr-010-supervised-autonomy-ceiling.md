@@ -1,5 +1,7 @@
 # ADR-010: Supervised Autonomy Ceiling at the Phase Level
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > Status: Accepted
 > Date: 2026-07-09
 > Deciders: Adam (product owner)

@@ -1,5 +1,7 @@
 # ADR-027: Optional Judgment Provider — Jev Replaces a Verdict Source, Behind a Double Opt-in
 
+> **Superseded in part 2026-11-09** by [ADR-037](adr-037-jev-second-reader.md): Jev's jobs change; the double opt-in and privacy terms stand. Kept as history.
+
 > **Date:** 2026-09-25
 > **Status:** Accepted
 > **Category:** Framework Architecture

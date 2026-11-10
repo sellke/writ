@@ -1,0 +1,11 @@
+payment provider test mode, events for customer cus_test_41, oldest first
+
+2026-11-09 10:02:11  customer.created               cus_test_41
+2026-11-09 10:02:12  subscription.created           interval=month amount=500 currency=gbp
+2026-11-09 10:02:13  charge.succeeded               amount=500 currency=gbp
+-- test clock advanced to 2026-12-09 --
+2026-12-09 10:02:13  charge.succeeded               amount=500 currency=gbp
+2026-12-09 10:02:14  receipt.sent                   subject="Your receipt from Eastgate Food Bank"
+-- test clock advanced to 2027-01-09 --
+2027-01-09 10:02:13  charge.succeeded               amount=500 currency=gbp
+2027-01-09 10:02:14  receipt.sent                   subject="Your receipt from Eastgate Food Bank"

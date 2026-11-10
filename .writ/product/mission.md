@@ -1,214 +1,63 @@
-# Writ — Product Mission
+# Writ: Product Mission
 
-> Created: 2026-02-27
-> Last Updated: 2026-11-06
-> Status: Active
-> Contract Locked: ✅ (2026-07-10 strategic refresh — ADR-010 to ADR-013; 2026-10-20 refresh — [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md); 2026-11-05 refresh — [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md))
-> Last Revision: 2026-11-08 — v0.47.1 released the archived-dependency fix (PR #72), Phase 16's first real-PR `/ship --watch` run. v0.47.0 released Phase 16 (PR #71). v0.44.0 released Phases 14, 15, and 17 (PR #63, #64, #65). The 2026-11-05 reconcile pass recorded the **direction change**: Writ asks a person on doubt, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Earlier revisions are in the roadmap's [Revision Log](roadmap.md#revision-log).
+> Last agreed: 2026-11-09, by Adam Sellke ([ADR-034](../decision-records/adr-034-product-manager-audience.md) to [ADR-037](../decision-records/adr-037-jev-second-reader.md))
+> Earlier missions and every phase from 1 to 17 are in [roadmap-history.md](roadmap-history.md).
 
-## Pitch
+## Who it is for
 
-Writ is the thin, portable methodology layer on top of increasingly capable AI harnesses. It owns the durable contracts of software development — specs, drift logs, decisions, knowledge, phase state — and delegates the mechanics (context management, subagent plumbing, browsing, retrieval) to whatever platform is underneath. The result is code, methodology, and accumulated knowledge that don't degrade as the project, team, or AI platform changes around them.
+A semi-technical product manager. They know the user, the business objective, and what good looks like. They can run a product locally and read a summary of a change. They do not review code, and they should not have to learn how software gets built to get software built.
 
-**Writ owns three things and delegates or deletes the rest** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):
+## The problem
 
-- **The contract:** the spec, its acceptance and exit criteria, and the stakes of each decision.
-- **The verifier:** scripts that re-derive verdicts about the code and the running app, not only about Writ's own artifacts.
-- **The boundary:** when an agent stops and asks a person: on reasonable doubt, derived from evidence, reversibility, and a calibrated judgment, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)).
+AI coding agents can now build most of what a product needs. That moved the hard part. It is no longer writing the code. It is deciding what to build, saying it clearly enough to be built, and knowing whether what came back is what was asked for.
 
-Users reach all three through one front door. It restates the request, classifies it, and routes it to the command whose ceremony fits.
+A product manager working with an agent today hits three walls:
 
-> **"Thin" is an aspiration this document must keep earning — and Phase 10 changed how it is measured.** The 2026-08-11 alarm (516KB of command prose ≈ 129k tokens) was largely a measurement artifact: no invocation loads the directory. The worst real invocation is 77,669 bytes (~19.4k tokens), 7.2× smaller, now measured by `scripts/measure-invocation.py`. The deeper finding is that bytes measure the wrong quantity — the aim is economy of *steps and decisions to reach exit criteria*, and where the two diverge, bytes point the wrong way. Per [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md), "thin" is governed by stakes-proportional diligence per decision, assessed per-invocation, with **no mechanically enforced efficiency constraint** — a deliberate cost: an unenforceable true rule beat an enforceable wrong one. Bytes remain measured as drift signal only.
+1. **The agent asks the wrong person the wrong questions.** Which library, retry or skip, how to split the work. They cannot judge the answers, and every question pulls them out of their own work.
+2. **Intent lives in chat.** What was agreed, what was left out, and why, scroll away. The agent builds something adjacent, and nobody can point at the line it broke.
+3. **"Done" is the agent's own word.** They cannot read the diff, so they either trust the report or find an engineer.
 
-AI coding tools made generating code trivially easy and building durable software harder. In 2026 the harnesses themselves are strong: native memory, native skills, native subagents, native planning modes. What no harness provides is the **negotiated contract layer** — the structured agreement about what gets built, how deviations reconcile, and how knowledge compounds. Writ is that layer, in plain markdown, on git, portable across every platform.
+## What Writ does
 
-## Users
+Writ gives the person and the agent a short, shared way of working:
 
-### Primary Customers
+- **People decide what and why. The model decides how.** The person is asked about direction, the contract, taste, and acts that cannot be taken back. Everything else the model decides and reports.
+- **A contract before a build.** One file says the problem, the outcome and its measure, what is in and out, and how anyone could tell it is done. The person agrees it. Any later change to it goes through them.
+- **Proof instead of a report.** A verifier that did not write the change checks every line of the contract against the running product and writes down what it ran and what it saw, with steps the person can try themselves.
+- **Plain files in git.** The plan, the contracts, the decisions, and the proofs outlast any one session, model, or tool.
 
-**Solo builders shipping real products with AI.** They use Cursor, Claude Code, Codex, or similar tools daily. They've experienced the pain firsthand: AI generates code fast, but the product still breaks at integration, drifts from intent, skips edge cases, and accumulates debt faster than they can pay it down. There's no team to catch these problems — every failure lands on one person.
+It ships as ten plain-language skills named `writ` and `writ-*`, and works in Claude Code, Cursor, and Codex.
 
-### User Personas
+## Objective and measure
 
-**The Ambitious Solo Builder** (25-45)
-- **Role:** Independent developer, technical founder, or senior dev working solo on a meaningful project
-- **Context:** Building a real product (not a toy) with AI coding tools. Shipping to users who expect reliability.
-- **Pain Points:**
-  - AI-generated code works in isolation but breaks at integration
-  - Specs become fiction as implementation reveals complexity — no structured way to reconcile
-  - Native harness memory captures preferences and trivia, not negotiated decisions and their rationale
-  - Six months later, returning to a feature shipped last quarter, even the original developer struggles to reconstruct *why* a decision was made
-  - Quality is inconsistent — sometimes brilliant, sometimes embarrassing
-  - Opaque, unbounded agent loops produce volume without accountability, and a harness that asks permission by category spends the one person's time on questions it could answer; autonomy needs a record of every decision, and a question only where the record shows doubt
-  - A framework with dozens of commands has to be learned before it helps; the first task should take one command
-- **Goals:** Ship with confidence, not hope. Walk away from a running phase and come back to reviewable results. Spend time on hard problems, not rework.
+**Objective:** a product manager takes a business problem to a shipped, proved change without an engineer translating in either direction.
 
-**The Framework Tinkerer** (secondary)
-- **Role:** Developer who loves process tools and methodology
-- **Context:** Tries every new dev framework. Evaluates Writ against velocity-first alternatives (GStack), memory platforms (GBrain), and rigor skill packs (pstack).
-- **Pain Points:** Most AI dev frameworks are tool-centric (CLIs, daemons, databases) rather than methodology-centric
-- **Goals:** Find the "right way" to work with AI agents. Contribute improvements back.
+**Measures** (agreed 2026-11-09):
 
-## The Problem
+1. One product manager who did not build Writ completes problem → contract → build → proof → shipped change, unaided, on a real product. Look: when the first outside trial ends.
+2. Across the first ten builds, the person is asked nothing about method. Count questions by kind from the session history.
+3. No change that the verifier marked proved fails in users' hands in the first ten builds.
 
-### The Harness Got Smart. The Contract Layer Is Still Missing.
+## What makes it different
 
-The 2024–2025 framing — "AI agents are brilliant juniors who need structure" — is now only half true. Modern harnesses natively handle todo tracking, planning modes, subagent orchestration, skill loading, semantic codebase indexing, and session memory with maintenance loops. Frameworks that re-implement those mechanics are depreciating assets.
+- **Against using an agent bare:** the contract and the proof. The agent alone has neither.
+- **Against rigor skill packs such as pstack:** they make each agent a better engineer and keep no record of what was agreed. Writ keeps the agreement and checks the result against it. They can run together.
+- **Against spec-first frameworks for developers:** Writ's contract is written for the person who owns the outcome, and Writ does not prescribe the build.
 
-What remains unsolved, and what no harness ships:
+## What it is not
 
-1. **No negotiated contract before code.** Harnesses execute; they don't force the expensive thinking to happen while changes cost nothing. Intent lives in chat scrollback, which evaporates.
+- **Not a build procedure.** No gates, stories, or pipelines. The model plans its own work.
+- **Not an unattended loop.** Work starts when a person asks, is bounded by a contract, and stops for their word before merge and release.
+- **Not a memory system, a browser, or a runtime.** Writ uses what the platform provides.
+- **Not a style pack.** It carries a way of working, not one author's taste.
+- **Not hosted.** Files and git. The one optional outside call is Jev, as a second reader of the contract and the proof, off unless switched on.
 
-2. **No structured reconciliation when reality diverges from plan.** The coder adapts silently, the spec becomes fiction, and native memory faithfully remembers the fiction.
+## Principles
 
-3. **Autonomy without accountability, or accountability by interruption.** Opaque loops produce work faster than a person can review it. The usual fix, a human gate on every class of consequential action, spends the person's time on questions the harness could answer and still lets unchecked subagent reports through. Delivery has to be observable, resumable, and recorded, with a person asked only where the record shows doubt.
-
-4. **Memory that accumulates instead of compounding.** Native memory and brain layers capture facts, but an append-only store degrades — duplicates, contradictions, and stale entries pile up unless something consolidates them. And knowledge trapped in a database can't be reviewed in a PR.
-
-5. **Platform churn erodes methodology.** Teams that encode their workflow in one tool's proprietary config rebuild it when the tool changes. The industry consensus now matches Writ's founding bet: the portable layer (plain files, git, conventions, CI checks) is the durable investment; tool-specific scaffolding is the disposable one.
-
-**Our Solution:** Writ provides the contract layer — contract-first specs, a script-verified implementation pipeline, proportional drift healing, phase-level orchestration that takes initiative and records every decision, and a consolidating knowledge ledger — all in plain markdown on git, adapted to each platform rather than competing with it, and reached through one front door. As harnesses absorb mechanics, Writ sheds them and concentrates on what compounds.
-
-## Differentiators
-
-### Non-Degrading by Construction
-
-Plain-text artifacts in git mean specs, decisions, and lessons are reviewable forever. The drift log means intent and implementation reconcile rather than diverge silently. The adapter abstraction means a Writ project survives AI tool churn. The knowledge ledger *consolidates* — merge, never append — so accumulated context stays sharp instead of rotting. Six months from now, the contributor reading the codebase — even a future version of yourself — finds context, not mystery. ([ADR-006](../decision-records/adr-006-non-degrading-destination.md), [ADR-008](../decision-records/adr-008-spec-as-team-contract-moat.md))
-
-### The Contract Layer, Not Another Harness
-
-Unlike frameworks that ship daemons, browsers, or databases, Writ is markdown, git, and thin scripts. It rides *on top of* native harness capabilities — native memory, native skills, native subagents — and interoperates with external second brains (GBrain via MCP is the worked example) rather than re-implementing them. Markdown is the canonical system of record; every index over it is optional and disposable. ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md)) The interop is being generalized from one vendor to engine detection — tracked in [`2026-10-03-generalize-second-brain-retrieval`](../issues/improvements/2026-10-03-generalize-second-brain-retrieval.md).
-
-Skill packs are the other neighbor. pstack, for example, makes each agent rigorous: it explores designs, runs cross-model review, and verifies against the running app. It keeps no record of what was agreed before code. Writ keeps the project's intent and checks the result against it, across sessions, agents, and platforms. The two can run in the same project.
-
-### Initiative, With a Decision Log
-
-Normal `/implement-phase` runs an entire roadmap phase after one confirmation — fresh context per spec, quarantine branching on failure, User Challenge framing, and an honest completion report with UAT plans. Until Phase 17, `--recommend` adds evidence-backed autonomy on two commands: `/create-spec --recommend` authors and locks a spec package from evidence and then stops, and `/implement-phase --recommend` runs the phase as an end-to-end loop that also authors any missing specs. Both end short of merge, PR, and release.
-
-Phase 17 ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md), merged 2026-11-05) makes initiative the default. Every question a command would ask is a decision, and `jev-judge.py doubt` decides it: rules first (release always asks; since Phase 16 a merge acts only when `pr-ready.py` passes for the exact PR head on a VERIFIED ledger row, and while Jev is uncalibrated it still asks; an act that is not git-revertable, or a recommendation without evidence, asks), then Jev ([ADR-027](../decision-records/adr-027-optional-judgment-provider.md)), then, without a calibrated threshold, the decision's kind: scope, priorities, and taste reach a person; method choices do not. A supervisor agent re-derives every story and lane report before an orchestrator accepts it. `--recommend` survives only as an accepted no-op. What makes the autonomy accountable is the record: the decision log, the supervisor's claims table, and Phase 16's verification ledger bound to the PR head. Opaque unbounded loops remain out of scope.
-
-**Jev is first in line, not yet in charge.** Jev scores its confidence that a recommendation is right. On 98 of the maintainer's past answers, that score with the evidence attached ranked overrides as more doubtful than accepted decisions 80% of the time, against 66% for the first question Writ asked it. Scored three times per decision, it would act on 34 to 46 of the 88 accepted decisions, and about 2 to 3% of its acts would be ones the maintainer overrode. `doubt-calibrate` writes a threshold only when that share is at most 10% at a 95% upper bound, and with 10 overrides the bound sits at the cap: 7.8% on one run, 10.4% on another ([report](../eval/doubt-calibration/report.md)). So Jev shadows, its score is logged, and every answered question becomes a label.
-
-### Self-Improvement With Evidence
-
-The learning loop is falsifiable, not anecdotal. `/refresh-command` refinements must cite transcript evidence and pass eval checks before merging. `/retro` reads the agent transcripts of a run and proposes fixes to the *environment* — steering files, navigation hints, lint rules, docs — never to the code, with every finding cited to a transcript path and an observable signal (v0.41.0; [ADR-025](../decision-records/adr-025-friction-signals.md) amendment). Skills carry a lifecycle — candidate → proven → promoted — with the evidence recorded. Drift logs feed the knowledge ledger. The methodology improves the way the code does: through gates.
-
-Phase 15 gives `/retro` a fix order: architecture first, then types, then a lint whose error names the fix, then a test, and docs last. Each new check must fail on a real past mistake, and a table pairs every rule with what enforces it. Friction signals are retired, because the transcript review covers their purpose ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). Phase 17 adds a third channel: every override of an autonomous decision is a labeled example that recalibrates the doubt thresholds ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)).
-
-### Adaptive Ceremony
-
-An unsettled idea gets explored in `/prototype`, which is now the exploration workflow (PR #59, v0.42.0). It produces a few code-portable drafts on declared axes, records the choice and why each rejected draft lost, then builds the chosen direction or hands it to `/create-spec --from-prototype`. A small change runs through the same command with divergence off. A core feature gets the full gated pipeline. A roadmap phase gets supervised orchestration.
-
-Phase 14's front door, `/writ` (merged 2026-11-04), picks the level: it restates the request, classifies it, routes it, and sends any fork that running something could answer to `/prototype` instead of a question. It confirmed the route on every request until Phase 17 made that confirmation ask only on doubt.
-
-### Clear Steps, Firm Boundaries
-
-Every command has explicit phases, defined handoffs, and predictable outcomes. Agents know exactly what they're responsible for and when to stop. The result is repeatable quality — not brilliant one day and embarrassing the next.
-
-## What Writ Is Not Building
-
-- **Not an opaque, unbounded loop runner.** Ralph-style iteration is deprecated. Autonomy is session-started, bounded to a spec or a phase, logged decision by decision, and supervised ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Phase 17 makes initiative the default in place of `--recommend` ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md)); release, tag, and publish still wait for a person; since Phase 16 a merge acts only on a VERIFIED ledger row for the exact head and a passing doubt check, so while Jev is uncalibrated it still asks. Unattended loops that outrun the record stay excluded.
-- **Not a memory database or retrieval engine.** Markdown in git is the canonical knowledge substrate ([ADR-005](../decision-records/adr-005-knowledge-substrate-markdown-over-database.md)). External indexes — native harness memory, GBrain, anything else — are welcome *consumers* of that substrate via documented integration, never the system of record.
-- **Not a velocity-first sprint flow.** Writ trades raw shipping speed for durability. Parallel-sprint frameworks (GStack) target a different problem.
-- **Not a browser daemon or tool-specific runtime.** Writ uses the platform's native browser and tools through adapters.
-- **Not a SaaS or hosted service.** Markdown, git, and shell scripts. No accounts, no servers, no telemetry.
-- **Not a personal style pack.** Writ ships methodology, not one author's taste as universal rules. Punctuation bans and file-length vetoes are project choices, not Writ rules.
-- **Not a wrapper over platform design tools.** `/writ-design` stays a separate command from Claude Code's native `/design`, and neither delegates to the other. `/prototype` may render its drafts on a platform's own design surface. That is `/prototype`'s choice of renderer and does not involve `/writ-design`.
-- **Not a cross-vendor model router by default.** Agents stay family-locked ([ADR-024](../decision-records/adr-024-model-delegation.md)). The cross-family review panel was removed on 2026-11-04 ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). The one outside model Writ calls is Jev, an opt-in judgment provider that answers typed questions and never runs an agent ([ADR-027](../decision-records/adr-027-optional-judgment-provider.md)).
-
-## Key Features
-
-### The Proven Core (shipped, load-bearing)
-
-- **Contract-first specs (`/create-spec`):** Plan Mode discovery, negotiated contract, story decomposition — the expensive thinking happens before code.
-- **Gated implementation (`/implement-story`, `/implement-spec`):** By default one coding agent and a fresh-context evaluator, with script-backed gates (build, tests, coverage, boundary crossings, drift) re-deriving the verdicts; the six-agent pipeline is the explicit `--full-pipeline` path. Tiered spec-healing when reality diverges from plan.
-- **Issue capture (`/create-issue`), shipping (`/ship`), verification (`/verify-spec`), disciplined refactoring (`/refactor`):** The workflow from idea to merged PR with no manual gaps.
-- **System instructions + Prime Directive:** The behavioral contract that sets every session on the right foot — identity, anti-sycophancy hard constraints, auto-orientation.
-
-### Phase 6 — Autonomy Ceiling (✅ shipped, v0.19.0)
-
-- **`/implement-phase` hardening:** Fresh context per spec, quarantine branching on failure, User Challenge framing for mid-run scope decisions, `dependencies:` spec frontmatter for deterministic sequencing, knowledge writeback at phase close.
-- **Ralph deprecation:** The bash loop retires; its durable inventions (state schema rigor, escalation semantics, quarantine branches) live on inside `/implement-phase`.
-- **`/status` health line:** One-line production-grade summary derived from existing checks (eval Tier 1, `/verify-spec`, drift logs).
-
-### Phase 7 — Compounding Layer (✅ shipped, v0.19.0)
-
-- **Skill lifecycle:** candidate → proven → promoted, with evidence recorded; 3–5 extractions from the highest-traffic commands.
-- **Evidence-bound `/refresh-command`:** Refinements cite transcript evidence and pass evals before merging.
-- **Knowledge consolidation:** Merge duplicates, surface contradictions, prune stale entries — markdown in, markdown out, reviewable in PRs.
-
-### Phase 8 — Memory Interop (✅ shipped, v0.20.0)
-
-- **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed. *(v0.41.0: the `gbrain-interop` skill was removed — it had no consumers. `.writ/docs/gbrain-recipe.md` remains and the adapters link it; a provider-neutral replacement is an open issue.)*
-- **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.
-
-### Phase 9 — Git-Native Provenance & Recovery (✅ shipped, v0.23.0)
-
-- **Git-notes audit channel:** Audit trail written to `git notes`, not a parallel ledger — provenance lives where the code lives.
-- **Logical-unit revert:** `/revert` unwinds a story or a whole spec as a coherent unit, restoring Writ artifacts alongside the code.
-- **Artifact-integrity handshake:** Commands verify declared Required Artifacts before doing work — HALT on required-missing, degraded mode on optional-missing.
-
-### Phase 10 — Component Contract & Progressive Disclosure (◐ partially complete, v0.29–0.30)
-
-- **Component contract (✅ shipped):** 31/31 commands and 7/7 agents declare `problem` / `outcome` / `exit_criteria`; all 31 commands carry `## Completion`. Machine-checked as blocking `structural` eval checks, proven to bite by mutation.
-- **Loop bounds (✅ shipped):** All 5 loop-bearing commands declare `max_iterations` + `on_exhaustion` (was 0 of 5), each citing calibration evidence.
-- **Autonomy gate classes (✅ shipped):** The gate-class table in `_preamble.md` — human gates only for product/spec direction, the production boundary, and design/UX taste ([ADR-022](../decision-records/adr-022-autonomy-gate-classes.md)).
-- **Progressive disclosure (✗ stopped on evidence):** One command converted (`implement-story`, floor −35.9%); the pilot measured ~1,017 B irreducible overhead per skill and a +9.7% worst-path regression, and `required_skills:` turned out to pre-load eagerly rather than on demand. Five sibling specs closed unimplemented, contracts kept as design records.
-- **The byte budget (✗ withdrawn, not deferred):** The absolute budget shipped non-blocking, then [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) voided it — bytes measure file size, not the stated aim of step economy. No number replaces it.
-
-### Phase 11 — Contract-and-Verifier Layer (✅ shipped, v0.36.0)
-
-- **Pruned base:** `system-instructions.md` + `_preamble.md` under 10 KB; every cut recorded in an append-only ledger and kept only after a baseline re-run ([ADR-026](../decision-records/adr-026-constraint-test-pruning.md)).
-- **Mechanized gates:** eight of ten `/implement-story` gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay `prose-only`. *(Historical, true at Phase 11 close. Phase 12 made Gate 4.5 behavioral verification: it still declares `prose-only`, but the verdict now comes from `scripts/app-verify.py`, and `implement-story.md` carries one `prose-only` declaration, not two.)*
-- **Spec analysis:** `spec-analyze.py` flags contradictory, missing, and ambiguous acceptance criteria at lock; advisory.
-- **Escalation, not default:** two-agent default pipeline; Goal Cards emit platform-runnable `/goal` contracts.
-
-### Phase 12 — Behavioral Verification (◐ implemented and released, v0.40.0 — UAT run by an agent 2026-10-31, 82 of 89 pass; one real-project run outstanding)
-
-- **Behavioral verification:** a per-project recipe (`.writ/docs/app-verification.md`, drafted by `/create-uat-plan`) names the project's own checks; UAT scenarios cite its feature IDs; Gate 4.5 runs the checks against the running app, records evidence, and leaves `prose-only`. An exit code decides, never an agent.
-- **Cross-family review panel:** shipped opt-in and kept by its trial ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)), then removed on 2026-11-04 by [ADR-032](../decision-records/adr-032-evidence-gated-review.md): a confirmed repro from one reviewer blocks without a second vendor.
-
-### Inter-phase — `/prototype` as Exploration (✅ shipped, v0.42.0, PR #59)
-
-- **Exploration workflow:** `/prototype` opens with constructed divergence when there is UI surface or the direction is unsettled. It declares two or three orthogonal axes, runs one subagent per draft with no shared context, and caps at three code-portable drafts. It records the choice and why each rejected draft lost in `.writ/prototypes/<date>-<slug>/exploration.md`. A run that ends at a recorded choice with no code is complete. Rendering is delegated to the platform.
-- **Consumer:** `/create-spec --from-prototype` reads the exploration record. The chosen draft becomes the Deliverable, and rejected drafts become a Directions Considered section.
-- Evidence: [`2026-10-19-prototype-visual-drafts-research.md`](../research/2026-10-19-prototype-visual-drafts-research.md).
-
-### Phase 13 — Subtract and Repair (✅ shipped, v0.43.0)
-
-- **Repairs:**
-  - Claude Code installs now carry the Prime Directive, and the `CLAUDE.md` block is generated from the manifest.
-  - Install, update, and uninstall no longer delete or overwrite files the user wrote or customized, including `CLAUDE.md`.
-  - CI runs `pytest` on the 3.9 floor and the bash tests.
-  - `/design` is renamed `/writ-design`, so it no longer collides with Claude Code's native `/design`.
-- **Cuts:** the lean siblings, the dormant staging machinery, the friction-signal no-op lines, and links to Writ's own history in shipped commands are gone. `eval.sh` literal pins on commands fell from 207 to 144. `create-spec.md` shrank from 54,264 to 38,562 bytes.
-- All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed on PR #62, merged 2026-11-01.
-
-### Phases 14–17 ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md), [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md))
-
-- **Phase 14, Front Door and Distribution (✅ merged in PR #63, 2026-11-04; released in v0.44.0):**
-  - One entry command, `/writ`, that restates, classifies, and routes.
-  - Plugin distribution for Cursor and Claude Code, with scripts inside the plugin.
-  - Generated per-platform trees, with a CI check that fails on any platform term an adapter does not map.
-  - Open: the five person checks the acceptance pass left were not recorded before the merge, and the keep-or-remove review of `/writ` (routing matched 10 of 20) is undecided. The recommendation on record is keep, with its confirm step asking only on doubt after Phase 17.
-- **Phase 15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; released in v0.44.0):**
-  - `/why`, answering from Writ's ledger first.
-  - A blast-radius safety fact at Gate 2.5 (floor `tested`), reviewer judgment filters, and `/retro`'s fix ladder, each kept by the removal trial. Repro-first bug fixing was removed on 2026-11-09: on a substitute baseline of three bug-fix stories it caught nothing the shipped fixes had missed.
-  - Evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)): a Gate 3 or `/review` finding blocks only on executed evidence; the review panel is removed.
-  - The `design-divergence` skill lost its blind trial and is removed; `/prototype` keeps its drafts without it.
-- **Phase 17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; released in v0.44.0):**
-  - One rule replaces the gate-class table: decide, act, record; ask only on reasonable doubt.
-  - Jev runs first on every decision; until a threshold bounds its false acts under 10%, it shadows and the decision's kind decides. On Writ's own 98 past answers the bound sits at the cap.
-  - A supervisor agent re-derives every subagent report before an orchestrator trusts it.
-  - `--recommend` retires; every run writes a decision log; overrides recalibrate the thresholds; `/writ` and `/create-uat-plan` ask only on doubt.
-- **Phase 16, Verified Landing (◐ merged in PR #71, 2026-11-08; released in v0.47.0):**
-  - A read-only PR-readiness check, a verification ledger bound to the PR head SHA and patch-id, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it.
-  - Built ahead of its gate (Phase 12's close) at the maintainer's direction. ADR-033 is its ceiling: release, tag, and publish stay asks. The first real-PR `/ship --watch` run is recorded (PR #72, 2026-11-08); its merge asked because Jev is uncalibrated.
-
-### Next Horizon
-
-Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is implemented and released in v0.40.0:** Writ's verifiers so far checked Writ's own artifacts, and Phase 12 made one check the user's feature. Its three machinery criteria are met; an agent ran its UAT on 2026-10-31, and closing the phase is the open item, not more building. Inter-phase work since: `/retro` as a transcript review and the `gbrain-interop` removal (v0.41.0), and, in v0.42.0, the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59).
-
-**Phase 13 shipped in v0.43.0 and closed after human UAT** (2026-10-22); its two follow-up PRs merged on 2026-11-01. **Phase 14 merged on 2026-11-04** (PR #63). **Phase 15 merged on 2026-11-05** (PR #64), and **Phase 17 (Doubt-Gated Autonomy)**, committed that day by [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) and built ahead of the queue at the maintainer's direction, merged after it (PR #65). All three shipped in **v0.44.0** (2026-11-06). **Phase 12's UAT was run by an agent on 2026-10-31** (82 of 89 pass) and waits on one issue and one real-project run. The current work is closing Phase 12 (the roadmap's *Current focus* section). **Phase 16 (Verified Landing)** was built on 2026-11-06 ahead of that close, merged on 2026-11-08 (PR #71), shipped in v0.47.0, and waits on one real-PR run: Phase 17 made initiative the default and doubt the only reason to ask, and Phase 16 lets a verified PR land on its own. Together they replace the category-based human gates with a decision record the person can audit.
-
-> **Parking lot (kept as candidates):** cross-project learning corpus, `/writ-design` Mode A modernization, eval Tier 2 expansion, a measured-performance workflow, command consolidation (measured after Phase 17), and formal verification (watch only; checked 2026-11-05). **Partly covered by Phase 17's supervisor:** `/implement-phase` orchestration hygiene (pilot story, standing orders, and brief template stay candidates). **Superseded:** the decision-trail review (its panel is gone; the decision log is checked by the supervisor and read by `/retro`). **Retired:** friction signals ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 17* section for the authoritative list.
+1. People decide what and why; the model decides how.
+2. Nothing is done until someone other than its author has proved it.
+3. Say it in the person's words.
+4. Subtract before you add. A check comes back only when a recorded miss calls for it.
+5. One source, no copies.
+6. Lead with the recommendation, and say no when no is the answer.
+7. Use Writ to build Writ.

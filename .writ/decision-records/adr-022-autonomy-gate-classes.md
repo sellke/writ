@@ -1,5 +1,7 @@
 # ADR-022: Autonomy Gate Classes — Where Humans Stay, and the Reversibility Precondition
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > **Date:** 2026-08-11
 > **Status:** Accepted
 > **Category:** Autonomy & Governance

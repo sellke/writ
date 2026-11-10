@@ -1,5 +1,7 @@
 # ADR-019: Full-Surface Leanness Measurement, the Coverage Guard, and the Reduction Ratchet
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-07-26
 > **Status:** Accepted
 > **Category:** Framework Architecture

@@ -1,5 +1,7 @@
 # ADR-020: The Component Contract — Every Component Declares Problem, Outcome, and Exit Criteria
 
+> **Superseded 2026-11-09** by [ADR-036](adr-036-plain-language-skills.md). Kept as history.
+
 > **Date:** 2026-08-11 (amended 2026-08-11 — see Amendments)
 > **Status:** Accepted
 > **Category:** Framework Architecture

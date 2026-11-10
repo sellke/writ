@@ -1,0 +1,69 @@
+{
+  "answers": {
+    "A1_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A1_unproven": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "A2_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A2_unproven": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A3_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A3_unproven": {
+      "noul": 0.13,
+      "type": "noul"
+    },
+    "A4_asserted": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A4_unproven": {
+      "noul": 0.94,
+      "type": "noul"
+    },
+    "A5_asserted": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A5_unproven": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A6_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A6_unproven": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A7_could_be_checked": {
+      "noul": 0.08,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 2991,
+    "output_tokens": 265
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "proofs/bulk-archive",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 10158,
+    "seconds": 0.271,
+    "source": "live"
+  }
+}

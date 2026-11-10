@@ -101,3 +101,5 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-11-09T12:55:46Z — `2026-11-08-writ-agents-registered` archived (evidence: no knowledge evidence yet, via PR #74)
 - 2026-11-09T19:02:04Z — `2026-11-09-delete-merged-branches` archived (evidence: no knowledge evidence yet, via PR #76)
 - 2026-11-10T01:30:04Z — `2026-10-25-gate-upgrade-removal-measurement` archived (evidence: no knowledge evidence yet, via PR #77)
+- 2026-11-10T03:56:07Z — `2026-11-06-pr-ready-and-ledger` archived (evidence: no knowledge evidence yet, at the 1.0 reconcile)
+- 2026-11-10T03:56:07Z — `2026-11-06-ship-watch-and-merge` archived (evidence: no knowledge evidence yet, at the 1.0 reconcile)

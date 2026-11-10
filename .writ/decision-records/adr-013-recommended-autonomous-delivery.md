@@ -1,5 +1,7 @@
 # ADR-013: Recommended Autonomous Delivery
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > Status: Accepted
 > Date: 2026-07-10 (revised 2026-07-17)
 > Deciders: Adam (product owner)

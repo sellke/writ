@@ -1,0 +1,20 @@
+{
+  "name": "writ",
+  "interface": {
+    "displayName": "Writ"
+  },
+  "plugins": [
+    {
+      "name": "writ",
+      "source": {
+        "source": "local",
+        "path": "./plugins/writ"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

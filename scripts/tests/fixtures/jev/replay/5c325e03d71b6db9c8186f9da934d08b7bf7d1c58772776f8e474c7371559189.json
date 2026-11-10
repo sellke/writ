@@ -1,0 +1,57 @@
+{
+  "answers": {
+    "A1_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A1_unproven": {
+      "noul": 0.11,
+      "type": "noul"
+    },
+    "A2_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A2_unproven": {
+      "noul": 0.18,
+      "type": "noul"
+    },
+    "A4_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A4_unproven": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "A5_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A5_unproven": {
+      "noul": 0.11,
+      "type": "noul"
+    },
+    "A6_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A6_unproven": {
+      "noul": 0.05,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 2555,
+    "output_tokens": 204
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "proofs/hold-queue",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 8457,
+    "seconds": 0.283,
+    "source": "live"
+  }
+}

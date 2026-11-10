@@ -1,0 +1,7 @@
+sandbox outbound log, filter: to=+447700900123, window: 2026-04-13 00:00 to 2026-04-14 12:00
+
+2026-04-13 10:30:00  queued     to=+447700900123  id=SM3f1a
+2026-04-13 10:30:01  delivered  to=+447700900123  id=SM3f1a
+    body: Northside Physio: your appointment is on Tue 14 Apr at 10:30. Reply C to confirm or X to cancel.
+
+1 message matched.

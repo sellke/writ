@@ -1,0 +1,109 @@
+{
+  "answers": {
+    "A1+A2_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A1+A3_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A1+A4_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A1+A5_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A1_out_of_scope": {
+      "noul": 0.1,
+      "type": "noul"
+    },
+    "A1_unclear": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A2+A3_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A2+A4_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A2+A5_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A2_out_of_scope": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A2_unclear": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "A3+A4_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A3+A5_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A3_out_of_scope": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A3_unclear": {
+      "noul": 0.97,
+      "type": "noul"
+    },
+    "A4+A5_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A4_out_of_scope": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "A4_unclear": {
+      "noul": 0.1,
+      "type": "noul"
+    },
+    "A5_out_of_scope": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A5_unclear": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "contract_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "contract_gap": {
+      "noul": 0.96,
+      "type": "noul"
+    },
+    "contract_no_measure": {
+      "noul": 0.01,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 3372,
+    "output_tokens": 484
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "contracts/course-certificate",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 13345,
+    "seconds": 0.3,
+    "source": "live"
+  }
+}

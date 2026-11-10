@@ -1,47 +1,34 @@
-name: Eval Tier 1
+name: Checks
 
 on:
   pull_request:
   push:
 
 jobs:
-  eval:
-    # Linux is enough for every suite (2026-10-20). A grep of scripts/*.sh and
-    # scripts/tests/*.sh for BSD-only calls (stat -f, date -r, sed -i '',
-    # readlink -f, grep -P, md5, gdate, gsed, pbcopy, sw_vers, xcrun,
-    # mktemp -t) found none. In an ubuntu:24.04 container, as a non-root user
-    # with no git identity, the bash-tests step ran 35 tests with 0 failures,
-    # and eval.sh, the SKILL.md check, and pytest passed.
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Verify SKILL.md is up to date with manifest
-        run: |
-          out="$(bash scripts/gen-skill.sh --check)" || true
-          printf '%s\n' "$out"
-          [ "$(printf '%s\n' "$out" | sed -n '1p')" = pass ]
+      - name: Skills, manifests, and README hold together
+        run: python3 scripts/check.py
 
-      - name: Run Writ Eval Tier 1
-        run: bash scripts/eval.sh --report=eval-report.md
-
-      # The suite steps below use !cancelled() so each one runs and reports
-      # even when an earlier step failed.
-      # v7 is the newest major tag: setup-uv v8 and later publish only full
-      # version tags (v10.3.0 on 2026-10-20), with no v8/v9/v10 tag.
+      # The steps below use !cancelled() so each one runs and reports even
+      # when an earlier step failed.
       - uses: astral-sh/setup-uv@v7
         if: ${{ !cancelled() }}
 
-      - name: Run pytest (Python 3.9 floor)
+      - name: pytest on the Python 3.9 floor
         if: ${{ !cancelled() }}
-        run: uv run --python 3.9 pytest
+        run: uv run --isolated --python 3.9 --with pytest pytest
+
+      - name: pytest on current Python
+        if: ${{ !cancelled() }}
+        run: uv run --isolated --python 3.14 --with pytest pytest
 
       # Count failures and exit non-zero at the end, so one red test does not
-      # hide the others. The -f guard skips the literal glob when no test
-      # matches.
-      - name: Run bash tests
+      # hide the others.
+      - name: bash tests
         if: ${{ !cancelled() }}
         run: |
           fails=0
@@ -52,10 +39,3 @@ jobs:
           done
           echo "bash tests failed: $fails"
           [ "$fails" -eq 0 ]
-
-      - name: Upload eval report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eval-report
-          path: eval-report.md

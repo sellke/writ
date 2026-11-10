@@ -1,5 +1,7 @@
 # ADR-003: Context Engine Architecture
 
+> **Superseded 2026-11-09** by [ADR-035](adr-035-people-decide-what-model-decides-how.md). Kept as history.
+
 > **Status:** Accepted
 > **Date:** 2026-03-27
 > **Deciders:** Product owner

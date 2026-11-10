@@ -1,0 +1,2802 @@
+{
+ "contracts/bulk-archive-projects": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A1+A5_contradiction": [
+   0.17,
+   0.16
+  ],
+  "A1+A6_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A1_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A1_unclear": [
+   0.16,
+   0.12
+  ],
+  "A2+A3_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2+A5_contradiction": [
+   0.19,
+   0.24
+  ],
+  "A2+A6_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A2_unclear": [
+   0.04,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A3+A5_contradiction": [
+   0.09,
+   0.08
+  ],
+  "A3+A6_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A3_unclear": [
+   0.04,
+   0.03
+  ],
+  "A4+A5_contradiction": [
+   0.11,
+   0.09
+  ],
+  "A4+A6_contradiction": [
+   0.11,
+   0.13
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A4_unclear": [
+   0.03,
+   0.03
+  ],
+  "A5+A6_contradiction": [
+   0.08,
+   0.1
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A5_unclear": [
+   0.05,
+   0.05
+  ],
+  "A6_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A6_unclear": [
+   0.04,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.06,
+   0.06
+  ],
+  "contract_gap": [
+   0.31,
+   0.35
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/clinic-sms-reminders": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A6_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1_out_of_scope": [
+   0.04,
+   0.05
+  ],
+  "A1_unclear": [
+   0.03,
+   0.03
+  ],
+  "A2+A3_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A2+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A2_unclear": [
+   0.03,
+   0.03
+  ],
+  "A3+A4_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A3+A5_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A3+A6_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A3_out_of_scope": [
+   0.07,
+   0.12
+  ],
+  "A3_unclear": [
+   0.02,
+   0.02
+  ],
+  "A4+A5_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A4+A6_contradiction": [
+   0.09,
+   0.06
+  ],
+  "A4_out_of_scope": [
+   0.08,
+   0.09
+  ],
+  "A4_unclear": [
+   0.03,
+   0.03
+  ],
+  "A5+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A5_unclear": [
+   0.03,
+   0.03
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A6_unclear": [
+   0.04,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.05,
+   0.05
+  ],
+  "contract_gap": [
+   0.47,
+   0.49
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/coupon-codes": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1+A3_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A5_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A1_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A1_unclear": [
+   0.03,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.16,
+   0.15
+  ],
+  "A2+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A2_unclear": [
+   0.09,
+   0.06
+  ],
+  "A3+A4_contradiction": [
+   0.95,
+   0.95
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A3_unclear": [
+   0.06,
+   0.06
+  ],
+  "A4+A5_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A4_out_of_scope": [
+   0.07,
+   0.05
+  ],
+  "A4_unclear": [
+   0.08,
+   0.08
+  ],
+  "A5_out_of_scope": [
+   0.04,
+   0.05
+  ],
+  "A5_unclear": [
+   0.02,
+   0.02
+  ],
+  "contract_contradiction": [
+   0.98,
+   0.97
+  ],
+  "contract_gap": [
+   0.98,
+   0.97
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/course-certificate": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.03,
+   0.02
+  ],
+  "A1+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.1,
+   0.09
+  ],
+  "A1_unclear": [
+   0.98,
+   0.98
+  ],
+  "A2+A3_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A2+A4_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A2+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A2_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A2_unclear": [
+   0.06,
+   0.06
+  ],
+  "A3+A4_contradiction": [
+   0.03,
+   0.02
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A3_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A3_unclear": [
+   0.97,
+   0.97
+  ],
+  "A4+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A4_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A4_unclear": [
+   0.1,
+   0.1
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A5_unclear": [
+   0.08,
+   0.09
+  ],
+  "contract_contradiction": [
+   0.04,
+   0.04
+  ],
+  "contract_gap": [
+   0.96,
+   0.96
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/csv-invoice-export": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.17,
+   0.25
+  ],
+  "A1+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A1_unclear": [
+   0.03,
+   0.02
+  ],
+  "A2+A3_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.11,
+   0.12
+  ],
+  "A2+A5_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.04,
+   0.05
+  ],
+  "A2_unclear": [
+   0.04,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A3_unclear": [
+   0.04,
+   0.04
+  ],
+  "A4+A5_contradiction": [
+   0.09,
+   0.07
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A4_unclear": [
+   0.02,
+   0.02
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A5_unclear": [
+   0.02,
+   0.02
+  ],
+  "contract_contradiction": [
+   0.07,
+   0.06
+  ],
+  "contract_gap": [
+   0.8,
+   0.76
+  ],
+  "contract_no_measure": [
+   0.02,
+   0.02
+  ]
+ },
+ "contracts/expense-receipt-scan": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.05,
+   0.07
+  ],
+  "A1_unclear": [
+   0.07,
+   0.07
+  ],
+  "A2+A3_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A2+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A2_unclear": [
+   0.36,
+   0.32
+  ],
+  "A3+A4_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A3+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A3_out_of_scope": [
+   0.07,
+   0.08
+  ],
+  "A3_unclear": [
+   0.04,
+   0.04
+  ],
+  "A4+A5_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A4_out_of_scope": [
+   0.08,
+   0.07
+  ],
+  "A4_unclear": [
+   0.98,
+   0.98
+  ],
+  "A5_out_of_scope": [
+   0.06,
+   0.11
+  ],
+  "A5_unclear": [
+   0.07,
+   0.07
+  ],
+  "contract_contradiction": [
+   0.04,
+   0.03
+  ],
+  "contract_gap": [
+   0.98,
+   0.98
+  ],
+  "contract_no_measure": [
+   0.93,
+   0.93
+  ]
+ },
+ "contracts/gift-card-balance": {
+  "A1+A2_contradiction": [
+   0.02,
+   0.02
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A5_contradiction": [
+   0.25,
+   0.28
+  ],
+  "A1+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A1_unclear": [
+   0.1,
+   0.12
+  ],
+  "A2+A3_contradiction": [
+   0.1,
+   0.13
+  ],
+  "A2+A4_contradiction": [
+   0.15,
+   0.16
+  ],
+  "A2+A5_contradiction": [
+   0.33,
+   0.39
+  ],
+  "A2+A6_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A2_unclear": [
+   0.03,
+   0.03
+  ],
+  "A3+A4_contradiction": [
+   0.12,
+   0.15
+  ],
+  "A3+A5_contradiction": [
+   0.29,
+   0.33
+  ],
+  "A3+A6_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A3_unclear": [
+   0.04,
+   0.04
+  ],
+  "A4+A5_contradiction": [
+   0.41,
+   0.44
+  ],
+  "A4+A6_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A4_unclear": [
+   0.02,
+   0.02
+  ],
+  "A5+A6_contradiction": [
+   0.06,
+   0.08
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.05
+  ],
+  "A5_unclear": [
+   0.19,
+   0.22
+  ],
+  "A6_out_of_scope": [
+   0.96,
+   0.97
+  ],
+  "A6_unclear": [
+   0.42,
+   0.45
+  ],
+  "contract_contradiction": [
+   0.89,
+   0.9
+  ],
+  "contract_gap": [
+   0.14,
+   0.13
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/kitchen-display-orders": {
+  "A1+A2_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A6_contradiction": [
+   0.13,
+   0.15
+  ],
+  "A1_out_of_scope": [
+   0.24,
+   0.22
+  ],
+  "A1_unclear": [
+   0.03,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.06,
+   0.04
+  ],
+  "A2+A6_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.09
+  ],
+  "A2_unclear": [
+   0.07,
+   0.08
+  ],
+  "A3+A4_contradiction": [
+   0.14,
+   0.1
+  ],
+  "A3+A5_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A3+A6_contradiction": [
+   0.07,
+   0.09
+  ],
+  "A3_out_of_scope": [
+   0.06,
+   0.07
+  ],
+  "A3_unclear": [
+   0.05,
+   0.04
+  ],
+  "A4+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A4+A6_contradiction": [
+   0.21,
+   0.21
+  ],
+  "A4_out_of_scope": [
+   0.08,
+   0.08
+  ],
+  "A4_unclear": [
+   0.04,
+   0.04
+  ],
+  "A5+A6_contradiction": [
+   0.33,
+   0.28
+  ],
+  "A5_out_of_scope": [
+   0.04,
+   0.03
+  ],
+  "A5_unclear": [
+   0.03,
+   0.02
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A6_unclear": [
+   0.03,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.05,
+   0.06
+  ],
+  "contract_gap": [
+   0.85,
+   0.84
+  ],
+  "contract_no_measure": [
+   0.02,
+   0.02
+  ]
+ },
+ "contracts/library-hold-queue": {
+  "A1+A2_contradiction": [
+   0.02,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.16,
+   0.18
+  ],
+  "A1+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A6_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.07,
+   0.09
+  ],
+  "A1_unclear": [
+   0.02,
+   0.02
+  ],
+  "A2+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A2+A5_contradiction": [
+   0.06,
+   0.08
+  ],
+  "A2+A6_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.08,
+   0.08
+  ],
+  "A2_unclear": [
+   0.05,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A3+A5_contradiction": [
+   0.14,
+   0.14
+  ],
+  "A3+A6_contradiction": [
+   0.03,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.08,
+   0.08
+  ],
+  "A3_unclear": [
+   0.02,
+   0.03
+  ],
+  "A4+A5_contradiction": [
+   0.09,
+   0.12
+  ],
+  "A4+A6_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A4_out_of_scope": [
+   0.07,
+   0.08
+  ],
+  "A4_unclear": [
+   0.01,
+   0.02
+  ],
+  "A5+A6_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A5_unclear": [
+   0.03,
+   0.03
+  ],
+  "A6_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A6_unclear": [
+   0.03,
+   0.03
+  ],
+  "contract_contradiction": [
+   0.04,
+   0.05
+  ],
+  "contract_gap": [
+   0.36,
+   0.32
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/low-stock-alerts": {
+  "A1+A2_contradiction": [
+   0.06,
+   0.04
+  ],
+  "A1+A3_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A6_contradiction": [
+   0.02,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.02,
+   0.02
+  ],
+  "A1_unclear": [
+   0.03,
+   0.03
+  ],
+  "A2+A3_contradiction": [
+   0.08,
+   0.08
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.15,
+   0.11
+  ],
+  "A2+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A2_unclear": [
+   0.99,
+   0.98
+  ],
+  "A3+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3+A5_contradiction": [
+   0.08,
+   0.06
+  ],
+  "A3+A6_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A3_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A3_unclear": [
+   0.06,
+   0.07
+  ],
+  "A4+A5_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A4+A6_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A4_out_of_scope": [
+   0.03,
+   0.03
+  ],
+  "A4_unclear": [
+   0.02,
+   0.03
+  ],
+  "A5+A6_contradiction": [
+   0.12,
+   0.1
+  ],
+  "A5_out_of_scope": [
+   0.96,
+   0.95
+  ],
+  "A5_unclear": [
+   0.05,
+   0.05
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A6_unclear": [
+   0.09,
+   0.09
+  ],
+  "contract_contradiction": [
+   0.39,
+   0.39
+  ],
+  "contract_gap": [
+   0.15,
+   0.17
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/mobile-photo-upload": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.03,
+   0.02
+  ],
+  "A1+A4_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.02
+  ],
+  "A1_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A1_unclear": [
+   0.03,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A2+A4_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A2_out_of_scope": [
+   0.2,
+   0.24
+  ],
+  "A2_unclear": [
+   0.06,
+   0.07
+  ],
+  "A3+A4_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3_out_of_scope": [
+   0.09,
+   0.07
+  ],
+  "A3_unclear": [
+   0.06,
+   0.07
+  ],
+  "A4+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A4_out_of_scope": [
+   0.94,
+   0.92
+  ],
+  "A4_unclear": [
+   0.86,
+   0.85
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A5_unclear": [
+   0.05,
+   0.05
+  ],
+  "contract_contradiction": [
+   0.15,
+   0.1
+  ],
+  "contract_gap": [
+   0.96,
+   0.97
+  ],
+  "contract_no_measure": [
+   0.92,
+   0.93
+  ]
+ },
+ "contracts/parking-permit-renewal": {
+  "A1+A2_contradiction": [
+   0.04,
+   0.02
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A4_contradiction": [
+   0.07,
+   0.06
+  ],
+  "A1+A5_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A1+A6_contradiction": [
+   0.15,
+   0.17
+  ],
+  "A1+A7_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A1_out_of_scope": [
+   0.06,
+   0.06
+  ],
+  "A1_unclear": [
+   0.03,
+   0.03
+  ],
+  "A2+A3_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A2+A5_contradiction": [
+   0.11,
+   0.08
+  ],
+  "A2+A6_contradiction": [
+   0.09,
+   0.08
+  ],
+  "A2+A7_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.1,
+   0.11
+  ],
+  "A2_unclear": [
+   0.02,
+   0.02
+  ],
+  "A3+A4_contradiction": [
+   0.07,
+   0.06
+  ],
+  "A3+A5_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A3+A6_contradiction": [
+   0.07,
+   0.1
+  ],
+  "A3+A7_contradiction": [
+   0.05,
+   0.03
+  ],
+  "A3_out_of_scope": [
+   0.08,
+   0.07
+  ],
+  "A3_unclear": [
+   0.03,
+   0.02
+  ],
+  "A4+A5_contradiction": [
+   0.09,
+   0.07
+  ],
+  "A4+A6_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A4+A7_contradiction": [
+   0.07,
+   0.06
+  ],
+  "A4_out_of_scope": [
+   0.96,
+   0.96
+  ],
+  "A4_unclear": [
+   0.32,
+   0.33
+  ],
+  "A5+A6_contradiction": [
+   0.91,
+   0.94
+  ],
+  "A5+A7_contradiction": [
+   0.08,
+   0.06
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A5_unclear": [
+   0.03,
+   0.02
+  ],
+  "A6+A7_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A6_out_of_scope": [
+   0.09,
+   0.1
+  ],
+  "A6_unclear": [
+   0.07,
+   0.05
+  ],
+  "A7_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A7_unclear": [
+   0.02,
+   0.02
+  ],
+  "contract_contradiction": [
+   0.96,
+   0.97
+  ],
+  "contract_gap": [
+   0.47,
+   0.48
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/password-reset-limit": {
+  "A1+A2_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A3_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A1+A4_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A1+A5_contradiction": [
+   0.19,
+   0.09
+  ],
+  "A1+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A7_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A1_unclear": [
+   0.04,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A2+A4_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A2+A5_contradiction": [
+   0.08,
+   0.08
+  ],
+  "A2+A6_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A2+A7_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A2_unclear": [
+   0.05,
+   0.05
+  ],
+  "A3+A4_contradiction": [
+   0.56,
+   0.48
+  ],
+  "A3+A5_contradiction": [
+   0.09,
+   0.08
+  ],
+  "A3+A6_contradiction": [
+   0.07,
+   0.07
+  ],
+  "A3+A7_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3_out_of_scope": [
+   0.08,
+   0.07
+  ],
+  "A3_unclear": [
+   0.08,
+   0.08
+  ],
+  "A4+A5_contradiction": [
+   0.68,
+   0.65
+  ],
+  "A4+A6_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A4+A7_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A4_unclear": [
+   0.11,
+   0.12
+  ],
+  "A5+A6_contradiction": [
+   0.07,
+   0.08
+  ],
+  "A5+A7_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A5_out_of_scope": [
+   0.06,
+   0.05
+  ],
+  "A5_unclear": [
+   0.06,
+   0.09
+  ],
+  "A6+A7_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A6_unclear": [
+   0.03,
+   0.03
+  ],
+  "A7_out_of_scope": [
+   0.13,
+   0.09
+  ],
+  "A7_unclear": [
+   0.03,
+   0.03
+  ],
+  "contract_contradiction": [
+   0.38,
+   0.31
+  ],
+  "contract_gap": [
+   0.64,
+   0.46
+  ],
+  "contract_no_measure": [
+   0.97,
+   0.96
+  ]
+ },
+ "contracts/recurring-donations": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.06
+  ],
+  "A1+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A6_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A1_unclear": [
+   0.02,
+   0.02
+  ],
+  "A2+A3_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A6_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A2_out_of_scope": [
+   0.03,
+   0.03
+  ],
+  "A2_unclear": [
+   0.03,
+   0.03
+  ],
+  "A3+A4_contradiction": [
+   0.14,
+   0.16
+  ],
+  "A3+A5_contradiction": [
+   0.19,
+   0.26
+  ],
+  "A3+A6_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A3_unclear": [
+   0.03,
+   0.02
+  ],
+  "A4+A5_contradiction": [
+   0.36,
+   0.35
+  ],
+  "A4+A6_contradiction": [
+   0.08,
+   0.1
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.07
+  ],
+  "A4_unclear": [
+   0.11,
+   0.1
+  ],
+  "A5+A6_contradiction": [
+   0.14,
+   0.11
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A5_unclear": [
+   0.04,
+   0.05
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A6_unclear": [
+   0.04,
+   0.03
+  ],
+  "contract_contradiction": [
+   0.05,
+   0.05
+  ],
+  "contract_gap": [
+   0.62,
+   0.64
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/refund-window": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1+A4_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A5_contradiction": [
+   0.12,
+   0.13
+  ],
+  "A1+A6_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A1_unclear": [
+   0.04,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.29,
+   0.23
+  ],
+  "A2+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.91,
+   0.89
+  ],
+  "A2+A6_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.11,
+   0.09
+  ],
+  "A2_unclear": [
+   0.04,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A3+A5_contradiction": [
+   0.2,
+   0.16
+  ],
+  "A3+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.09,
+   0.09
+  ],
+  "A3_unclear": [
+   0.99,
+   0.99
+  ],
+  "A4+A5_contradiction": [
+   0.41,
+   0.41
+  ],
+  "A4+A6_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A4_out_of_scope": [
+   0.08,
+   0.08
+  ],
+  "A4_unclear": [
+   0.1,
+   0.1
+  ],
+  "A5+A6_contradiction": [
+   0.12,
+   0.08
+  ],
+  "A5_out_of_scope": [
+   0.06,
+   0.05
+  ],
+  "A5_unclear": [
+   0.03,
+   0.02
+  ],
+  "A6_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A6_unclear": [
+   0.05,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.85,
+   0.81
+  ],
+  "contract_gap": [
+   0.45,
+   0.39
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.02
+  ]
+ },
+ "contracts/saved-search-alerts": {
+  "A1+A2_contradiction": [
+   0.02,
+   0.02
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A6_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A1_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A1_unclear": [
+   0.05,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A2+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2+A6_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.13,
+   0.11
+  ],
+  "A2_unclear": [
+   0.98,
+   0.98
+  ],
+  "A3+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A3+A6_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A3_out_of_scope": [
+   0.08,
+   0.07
+  ],
+  "A3_unclear": [
+   0.06,
+   0.07
+  ],
+  "A4+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A4+A6_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A4_unclear": [
+   0.98,
+   0.98
+  ],
+  "A5+A6_contradiction": [
+   0.07,
+   0.05
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A5_unclear": [
+   0.04,
+   0.05
+  ],
+  "A6_out_of_scope": [
+   0.03,
+   0.03
+  ],
+  "A6_unclear": [
+   0.04,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.05,
+   0.05
+  ],
+  "contract_gap": [
+   0.43,
+   0.36
+  ],
+  "contract_no_measure": [
+   0.96,
+   0.97
+  ]
+ },
+ "contracts/seat-limit-plans": {
+  "A1+A2_contradiction": [
+   0.05,
+   0.04
+  ],
+  "A1+A3_contradiction": [
+   0.04,
+   0.05
+  ],
+  "A1+A4_contradiction": [
+   0.26,
+   0.22
+  ],
+  "A1+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A6_contradiction": [
+   0.06,
+   0.09
+  ],
+  "A1_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A1_unclear": [
+   0.03,
+   0.03
+  ],
+  "A2+A3_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2+A4_contradiction": [
+   0.82,
+   0.79
+  ],
+  "A2+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2+A6_contradiction": [
+   0.08,
+   0.08
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.08
+  ],
+  "A2_unclear": [
+   0.02,
+   0.02
+  ],
+  "A3+A4_contradiction": [
+   0.48,
+   0.51
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A3+A6_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A3_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A3_unclear": [
+   0.06,
+   0.05
+  ],
+  "A4+A5_contradiction": [
+   0.13,
+   0.16
+  ],
+  "A4+A6_contradiction": [
+   0.08,
+   0.08
+  ],
+  "A4_out_of_scope": [
+   0.15,
+   0.14
+  ],
+  "A4_unclear": [
+   0.06,
+   0.06
+  ],
+  "A5+A6_contradiction": [
+   0.07,
+   0.05
+  ],
+  "A5_out_of_scope": [
+   0.27,
+   0.29
+  ],
+  "A5_unclear": [
+   0.05,
+   0.05
+  ],
+  "A6_out_of_scope": [
+   0.05,
+   0.05
+  ],
+  "A6_unclear": [
+   0.05,
+   0.04
+  ],
+  "contract_contradiction": [
+   0.72,
+   0.78
+  ],
+  "contract_gap": [
+   0.17,
+   0.2
+  ],
+  "contract_no_measure": [
+   0.93,
+   0.94
+  ]
+ },
+ "contracts/shift-swap-requests": {
+  "A1+A2_contradiction": [
+   0.02,
+   0.02
+  ],
+  "A1+A3_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A5_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A1_unclear": [
+   0.04,
+   0.05
+  ],
+  "A2+A3_contradiction": [
+   0.03,
+   0.04
+  ],
+  "A2+A4_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A2+A5_contradiction": [
+   0.05,
+   0.05
+  ],
+  "A2_out_of_scope": [
+   0.04,
+   0.04
+  ],
+  "A2_unclear": [
+   0.04,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.07,
+   0.06
+  ],
+  "A3+A5_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A3_out_of_scope": [
+   0.06,
+   0.07
+  ],
+  "A3_unclear": [
+   0.03,
+   0.03
+  ],
+  "A4+A5_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A4_out_of_scope": [
+   0.05,
+   0.07
+  ],
+  "A4_unclear": [
+   0.99,
+   0.98
+  ],
+  "A5_out_of_scope": [
+   0.05,
+   0.06
+  ],
+  "A5_unclear": [
+   0.03,
+   0.03
+  ],
+  "contract_contradiction": [
+   0.05,
+   0.05
+  ],
+  "contract_gap": [
+   0.96,
+   0.95
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/team-invite-links": {
+  "A1+A2_contradiction": [
+   0.02,
+   0.02
+  ],
+  "A1+A3_contradiction": [
+   0.05,
+   0.06
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A1_out_of_scope": [
+   0.08,
+   0.06
+  ],
+  "A1_unclear": [
+   0.03,
+   0.04
+  ],
+  "A2+A3_contradiction": [
+   0.08,
+   0.07
+  ],
+  "A2+A4_contradiction": [
+   0.06,
+   0.05
+  ],
+  "A2+A5_contradiction": [
+   0.04,
+   0.04
+  ],
+  "A2_out_of_scope": [
+   0.07,
+   0.06
+  ],
+  "A2_unclear": [
+   0.03,
+   0.04
+  ],
+  "A3+A4_contradiction": [
+   0.12,
+   0.15
+  ],
+  "A3+A5_contradiction": [
+   0.07,
+   0.08
+  ],
+  "A3_out_of_scope": [
+   0.05,
+   0.04
+  ],
+  "A3_unclear": [
+   0.04,
+   0.04
+  ],
+  "A4+A5_contradiction": [
+   0.06,
+   0.07
+  ],
+  "A4_out_of_scope": [
+   0.06,
+   0.07
+  ],
+  "A4_unclear": [
+   0.04,
+   0.05
+  ],
+  "A5_out_of_scope": [
+   0.97,
+   0.97
+  ],
+  "A5_unclear": [
+   0.21,
+   0.23
+  ],
+  "contract_contradiction": [
+   0.08,
+   0.07
+  ],
+  "contract_gap": [
+   0.98,
+   0.98
+  ],
+  "contract_no_measure": [
+   0.01,
+   0.01
+  ]
+ },
+ "contracts/weekly-digest-email": {
+  "A1+A2_contradiction": [
+   0.03,
+   0.03
+  ],
+  "A1+A3_contradiction": [
+   0.06,
+   0.04
+  ],
+  "A1+A4_contradiction": [
+   0.04,
+   0.03
+  ],
+  "A1+A5_contradiction": [
+   0.2,
+   0.23
+  ],
+  "A1_out_of_scope": [
+   0.17,
+   0.22
+  ],
+  "A1_unclear": [
+   0.04,
+   0.05
+  ],
+  "A2+A3_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A2+A4_contradiction": [
+   0.11,
+   0.13
+  ],
+  "A2+A5_contradiction": [
+   0.06,
+   0.06
+  ],
+  "A2_out_of_scope": [
+   0.03,
+   0.03
+  ],
+  "A2_unclear": [
+   0.05,
+   0.06
+  ],
+  "A3+A4_contradiction": [
+   0.07,
+   0.06
+  ],
+  "A3+A5_contradiction": [
+   0.3,
+   0.28
+  ],
+  "A3_out_of_scope": [
+   0.87,
+   0.9
+  ],
+  "A3_unclear": [
+   0.11,
+   0.09
+  ],
+  "A4+A5_contradiction": [
+   0.09,
+   0.09
+  ],
+  "A4_out_of_scope": [
+   0.04,
+   0.05
+  ],
+  "A4_unclear": [
+   0.04,
+   0.04
+  ],
+  "A5_out_of_scope": [
+   0.07,
+   0.07
+  ],
+  "A5_unclear": [
+   0.05,
+   0.05
+  ],
+  "contract_contradiction": [
+   0.09,
+   0.11
+  ],
+  "contract_gap": [
+   0.62,
+   0.59
+  ],
+  "contract_no_measure": [
+   0.98,
+   0.99
+  ]
+ },
+ "proofs/bulk-archive": {
+  "A1_asserted": [
+   0.02,
+   0.02
+  ],
+  "A1_unproven": [
+   0.07,
+   0.06
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.98,
+   0.98
+  ],
+  "A3_asserted": [
+   0.02,
+   0.02
+  ],
+  "A3_unproven": [
+   0.13,
+   0.13
+  ],
+  "A4_asserted": [
+   0.04,
+   0.04
+  ],
+  "A4_unproven": [
+   0.94,
+   0.91
+  ],
+  "A5_asserted": [
+   0.98,
+   0.98
+  ],
+  "A5_unproven": [
+   0.98,
+   0.98
+  ],
+  "A6_asserted": [
+   0.02,
+   0.02
+  ],
+  "A6_unproven": [
+   0.05,
+   0.06
+  ],
+  "A7_could_be_checked": [
+   0.08,
+   0.06
+  ]
+ },
+ "proofs/coupon-codes": {
+  "A1_asserted": [
+   0.02,
+   0.02
+  ],
+  "A1_unproven": [
+   0.09,
+   0.07
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.07,
+   0.07
+  ],
+  "A3_asserted": [
+   0.02,
+   0.02
+  ],
+  "A3_unproven": [
+   0.98,
+   0.98
+  ],
+  "A4_asserted": [
+   0.98,
+   0.98
+  ],
+  "A4_unproven": [
+   0.97,
+   0.97
+  ],
+  "A5_asserted": [
+   0.97,
+   0.98
+  ],
+  "A5_unproven": [
+   0.82,
+   0.77
+  ]
+ },
+ "proofs/csv-export": {
+  "A1_asserted": [
+   0.02,
+   0.02
+  ],
+  "A1_unproven": [
+   0.08,
+   0.08
+  ],
+  "A2_asserted": [
+   0.02,
+   0.02
+  ],
+  "A2_unproven": [
+   0.25,
+   0.15
+  ],
+  "A3_asserted": [
+   0.02,
+   0.02
+  ],
+  "A3_unproven": [
+   0.19,
+   0.17
+  ],
+  "A4_asserted": [
+   0.02,
+   0.02
+  ],
+  "A4_unproven": [
+   0.08,
+   0.09
+  ],
+  "A5_asserted": [
+   0.01,
+   0.02
+  ],
+  "A5_unproven": [
+   0.1,
+   0.09
+  ],
+  "A6_could_be_checked": [
+   0.11,
+   0.09
+  ]
+ },
+ "proofs/gift-card": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.08,
+   0.06
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.98,
+   0.99
+  ],
+  "A3_asserted": [
+   0.01,
+   0.01
+  ],
+  "A3_unproven": [
+   0.55,
+   0.54
+  ],
+  "A4_could_be_checked": [
+   0.97,
+   0.97
+  ],
+  "A5_could_be_checked": [
+   0.09,
+   0.11
+  ]
+ },
+ "proofs/hold-queue": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.11,
+   0.11
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.18,
+   0.23
+  ],
+  "A4_asserted": [
+   0.01,
+   0.01
+  ],
+  "A4_unproven": [
+   0.07,
+   0.06
+  ],
+  "A5_asserted": [
+   0.01,
+   0.01
+  ],
+  "A5_unproven": [
+   0.11,
+   0.1
+  ],
+  "A6_asserted": [
+   0.01,
+   0.01
+  ],
+  "A6_unproven": [
+   0.05,
+   0.06
+  ]
+ },
+ "proofs/kitchen-screen": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.98,
+   0.99
+  ],
+  "A2_asserted": [
+   0.02,
+   0.01
+  ],
+  "A2_unproven": [
+   0.3,
+   0.26
+  ],
+  "A3_asserted": [
+   0.02,
+   0.02
+  ],
+  "A3_unproven": [
+   0.98,
+   0.99
+  ],
+  "A4_could_be_checked": [
+   0.95,
+   0.93
+  ],
+  "A5_asserted": [
+   0.99,
+   0.99
+  ],
+  "A5_unproven": [
+   0.61,
+   0.6
+  ],
+  "A6_asserted": [
+   0.01,
+   0.01
+  ],
+  "A6_unproven": [
+   0.13,
+   0.14
+  ]
+ },
+ "proofs/low-stock": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.4,
+   0.34
+  ],
+  "A2_asserted": [
+   0.02,
+   0.01
+  ],
+  "A2_unproven": [
+   0.15,
+   0.26
+  ],
+  "A3_asserted": [
+   0.02,
+   0.01
+  ],
+  "A3_unproven": [
+   0.99,
+   0.99
+  ],
+  "A4_asserted": [
+   0.99,
+   0.99
+  ],
+  "A4_unproven": [
+   0.95,
+   0.96
+  ],
+  "A5_could_be_checked": [
+   0.05,
+   0.05
+  ],
+  "A6_could_be_checked": [
+   0.97,
+   0.97
+  ]
+ },
+ "proofs/monthly-gifts": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.17,
+   0.29
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.12,
+   0.1
+  ],
+  "A3_asserted": [
+   0.01,
+   0.01
+  ],
+  "A3_unproven": [
+   0.2,
+   0.19
+  ],
+  "A4_asserted": [
+   0.01,
+   0.01
+  ],
+  "A4_unproven": [
+   0.18,
+   0.31
+  ],
+  "A5_asserted": [
+   0.01,
+   0.01
+  ],
+  "A5_unproven": [
+   0.19,
+   0.2
+  ],
+  "A6_could_be_checked": [
+   0.14,
+   0.17
+  ]
+ },
+ "proofs/permit-renewal": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.43,
+   0.37
+  ],
+  "A2_could_be_checked": [
+   0.97,
+   0.97
+  ],
+  "A3_asserted": [
+   0.01,
+   0.01
+  ],
+  "A3_unproven": [
+   0.99,
+   0.99
+  ],
+  "A4_could_be_checked": [
+   0.96,
+   0.96
+  ],
+  "A5_asserted": [
+   0.01,
+   0.01
+  ],
+  "A5_unproven": [
+   0.13,
+   0.06
+  ],
+  "A6_could_be_checked": [
+   0.05,
+   0.07
+  ]
+ },
+ "proofs/saved-search": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.07,
+   0.05
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.98,
+   0.98
+  ],
+  "A3_asserted": [
+   0.03,
+   0.03
+  ],
+  "A3_unproven": [
+   0.96,
+   0.97
+  ],
+  "A4_asserted": [
+   0.99,
+   0.99
+  ],
+  "A4_unproven": [
+   0.76,
+   0.75
+  ],
+  "A5_asserted": [
+   0.01,
+   0.01
+  ],
+  "A5_unproven": [
+   0.17,
+   0.15
+  ],
+  "A6_could_be_checked": [
+   0.97,
+   0.97
+  ]
+ },
+ "proofs/sms-reminders": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.09,
+   0.12
+  ],
+  "A2_asserted": [
+   0.01,
+   0.01
+  ],
+  "A2_unproven": [
+   0.09,
+   0.09
+  ],
+  "A3_asserted": [
+   0.01,
+   0.01
+  ],
+  "A3_unproven": [
+   0.09,
+   0.11
+  ],
+  "A4_asserted": [
+   0.01,
+   0.01
+  ],
+  "A4_unproven": [
+   0.1,
+   0.11
+  ],
+  "A6_asserted": [
+   0.02,
+   0.01
+  ],
+  "A6_unproven": [
+   0.18,
+   0.17
+  ],
+  "A7_could_be_checked": [
+   0.09,
+   0.07
+  ]
+ },
+ "proofs/team-invite": {
+  "A1_asserted": [
+   0.01,
+   0.01
+  ],
+  "A1_unproven": [
+   0.06,
+   0.07
+  ],
+  "A2_asserted": [
+   0.98,
+   0.98
+  ],
+  "A2_unproven": [
+   0.95,
+   0.92
+  ],
+  "A3_asserted": [
+   0.02,
+   0.01
+  ],
+  "A3_unproven": [
+   0.1,
+   0.1
+  ],
+  "A4_could_be_checked": [
+   0.95,
+   0.95
+  ],
+  "A5_asserted": [
+   0.98,
+   0.98
+  ],
+  "A5_unproven": [
+   0.94,
+   0.94
+  ]
+ }
+}

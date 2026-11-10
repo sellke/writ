@@ -1,0 +1,38 @@
+{
+  "_about": "Gold labels for scripts/tests/fixtures/jev. Each fixture lists the flags a careful human reader would raise, as '<criterion id or contract> <code>'. Everything not listed is gold-negative. Thresholds are fitted on the dev split only (calibrate.py).",
+  "contracts/csv-invoice-export": {"split": "dev", "gold": []},
+  "contracts/clinic-sms-reminders": {"split": "dev", "gold": []},
+  "contracts/bulk-archive-projects": {"split": "dev", "gold": []},
+  "contracts/saved-search-alerts": {"split": "dev", "gold": ["A2 unclear", "A4 unclear", "contract no_measure"]},
+  "contracts/team-invite-links": {"split": "dev", "gold": ["A5 out_of_scope", "contract gap"]},
+  "contracts/refund-window": {"split": "dev", "gold": ["A3 unclear", "contract contradiction"]},
+  "contracts/mobile-photo-upload": {"split": "dev", "gold": ["A4 out_of_scope", "contract gap", "contract no_measure"]},
+  "contracts/password-reset-limit": {"split": "dev", "gold": ["contract contradiction", "contract no_measure"]},
+  "contracts/shift-swap-requests": {"split": "dev", "gold": ["A4 unclear", "contract gap"]},
+  "contracts/gift-card-balance": {"split": "dev", "gold": ["A6 out_of_scope", "contract contradiction"]},
+
+  "contracts/recurring-donations": {"split": "test", "gold": []},
+  "contracts/kitchen-display-orders": {"split": "test", "gold": []},
+  "contracts/library-hold-queue": {"split": "test", "gold": []},
+  "contracts/course-certificate": {"split": "test", "gold": ["A1 unclear", "A3 unclear", "contract gap"]},
+  "contracts/coupon-codes": {"split": "test", "gold": ["contract contradiction", "contract gap"]},
+  "contracts/seat-limit-plans": {"split": "test", "gold": ["contract contradiction", "contract no_measure"]},
+  "contracts/weekly-digest-email": {"split": "test", "gold": ["A3 out_of_scope", "contract no_measure"]},
+  "contracts/low-stock-alerts": {"split": "test", "gold": ["A2 unclear", "A5 out_of_scope"]},
+  "contracts/expense-receipt-scan": {"split": "test", "gold": ["A4 unclear", "contract gap", "contract no_measure"]},
+  "contracts/parking-permit-renewal": {"split": "test", "gold": ["A4 out_of_scope", "contract contradiction"]},
+
+  "proofs/csv-export": {"split": "dev", "gold": []},
+  "proofs/sms-reminders": {"split": "dev", "gold": []},
+  "proofs/saved-search": {"split": "dev", "gold": ["A2 unproven", "A3 unproven", "A4 asserted", "A6 could_be_checked"]},
+  "proofs/team-invite": {"split": "dev", "gold": ["A2 asserted", "A4 could_be_checked", "A5 asserted"]},
+  "proofs/gift-card": {"split": "dev", "gold": ["A2 unproven", "A4 could_be_checked", "A6 missing"]},
+  "proofs/bulk-archive": {"split": "dev", "gold": ["A2 unproven", "A4 unproven", "A5 asserted"]},
+
+  "proofs/monthly-gifts": {"split": "test", "gold": []},
+  "proofs/hold-queue": {"split": "test", "gold": []},
+  "proofs/kitchen-screen": {"split": "test", "gold": ["A1 unproven", "A3 unproven", "A4 could_be_checked", "A5 asserted"]},
+  "proofs/coupon-codes": {"split": "test", "gold": ["A3 unproven", "A4 asserted", "A5 asserted", "A6 missing"]},
+  "proofs/permit-renewal": {"split": "test", "gold": ["A2 could_be_checked", "A3 unproven", "A4 could_be_checked"]},
+  "proofs/low-stock": {"split": "test", "gold": ["A3 unproven", "A4 asserted", "A6 could_be_checked"]}
+}
