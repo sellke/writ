@@ -1,0 +1,12 @@
+$ pytest tests/export/test_amount_format.py -v
+============================= test session starts ==============================
+collected 6 items
+
+tests/export/test_amount_format.py::test_one_decimal_is_padded PASSED    [ 16%]
+tests/export/test_amount_format.py::test_zero_is_two_decimals PASSED     [ 33%]
+tests/export/test_amount_format.py::test_million_has_no_separator PASSED [ 50%]
+tests/export/test_amount_format.py::test_no_currency_symbol PASSED       [ 66%]
+tests/export/test_amount_format.py::test_dot_is_decimal_separator PASSED [ 83%]
+tests/export/test_amount_format.py::test_negative_credit_note PASSED     [100%]
+
+============================== 6 passed in 0.41s ===============================

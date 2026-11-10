@@ -1,0 +1,208 @@
+{
+  "backend": "vercel-gateway",
+  "model": "typesafe-ai/jev",
+  "calibrated_on": "2026-11-09",
+  "codes": {
+    "unclear": {
+      "flag": 0.6,
+      "check": 0.3
+    },
+    "out_of_scope": {
+      "flag": 0.55,
+      "check": 0.3
+    },
+    "contradiction": {
+      "flag": 0.5,
+      "check": 0.3
+    },
+    "gap": {
+      "flag": 0.9,
+      "check": 0.85
+    },
+    "no_measure": {
+      "flag": 0.5,
+      "check": 0.3
+    },
+    "unproven": {
+      "flag": 0.7,
+      "check": 0.3
+    },
+    "asserted": {
+      "flag": 0.5,
+      "check": 0.3
+    },
+    "could_be_checked": {
+      "flag": 0.55,
+      "check": 0.3
+    }
+  },
+  "calibration": {
+    "fit_split": "dev",
+    "rule": "Per code, on the dev split only. Start from the TypeSafe docs' 0.70 flag / 0.30 check. flag: if every gold positive scores at least 0.10 above every gold negative, flag = the midpoint between the lowest positive and the highest negative, rounded to 0.05 and kept within 0.50 to 0.70 when that range lies inside the gap (recall is cheap: a wrong flag costs one re-read). Otherwise flag = 0.05 above the highest gold negative, rounded up to 0.05, and at least 0.70; if fewer than half of the gold positives reach that, the code did not separate and is check-only (flag = null). check: 0.30, raised to 0.05 above the highest score on a fully clean dev document when one reaches 0.30, and never above flag. A contract's contradiction score is the highest of its whole-list answer and its pair answers. A line whose gold label is the other code of its pair (unproven / asserted, unclear / out_of_scope) is left out of that code's counts.",
+    "fixtures": {
+      "dev": {
+        "contracts": 10,
+        "proofs": 6
+      },
+      "test": {
+        "contracts": 10,
+        "proofs": 6
+      }
+    },
+    "check_only": [],
+    "splits": {
+      "dev": {
+        "unclear": {
+          "tp": 4,
+          "fn": 0,
+          "fp": 0,
+          "tn": 50,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "out_of_scope": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 50,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "contradiction": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "gap": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "no_measure": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "unproven": {
+          "tp": 5,
+          "fn": 0,
+          "fp": 0,
+          "tn": 19,
+          "fn_checked": 0,
+          "tn_checked": 1
+        },
+        "asserted": {
+          "tp": 4,
+          "fn": 0,
+          "fp": 0,
+          "tn": 19,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "could_be_checked": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 4,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "clean_documents": {
+          "total": 5,
+          "no_flag": 5,
+          "fully_quiet": 5
+        }
+      },
+      "test": {
+        "unclear": {
+          "tp": 4,
+          "fn": 0,
+          "fp": 0,
+          "tn": 50,
+          "fn_checked": 0,
+          "tn_checked": 1
+        },
+        "out_of_scope": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 50,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "contradiction": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 4
+        },
+        "gap": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 1
+        },
+        "no_measure": {
+          "tp": 3,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "unproven": {
+          "tp": 5,
+          "fn": 0,
+          "fp": 0,
+          "tn": 18,
+          "fn_checked": 0,
+          "tn_checked": 3
+        },
+        "asserted": {
+          "tp": 4,
+          "fn": 0,
+          "fp": 0,
+          "tn": 18,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "could_be_checked": {
+          "tp": 4,
+          "fn": 0,
+          "fp": 0,
+          "tn": 3,
+          "fn_checked": 0,
+          "tn_checked": 0
+        },
+        "clean_documents": {
+          "total": 5,
+          "no_flag": 5,
+          "fully_quiet": 3
+        }
+      }
+    },
+    "run_to_run": {
+      "requests": 32,
+      "answers": 684,
+      "moved": 367,
+      "moved_more_than_0.05": 19,
+      "moved_more_than_0.10": 4,
+      "largest_difference": 0.18,
+      "answers_that_changed_band": 8,
+      "answers_that_crossed_flag": 2
+    }
+  }
+}

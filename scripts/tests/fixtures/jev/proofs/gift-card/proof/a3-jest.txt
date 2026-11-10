@@ -1,0 +1,15 @@
+> npm test -- balance-form
+
+ PASS  src/balance/balance-form.test.tsx
+  balance form
+    ✓ shows the length message for an empty number (31 ms)
+    ✓ shows the length message for a 15-digit number (9 ms)
+    ✓ shows the length message for a 17-digit number (8 ms)
+    ✓ shows the length message for an empty PIN (8 ms)
+    ✓ shows the length message for a 3-digit PIN (7 ms)
+    ✓ shows the length message for a 5-digit PIN (8 ms)
+    ✓ never calls the lookup API when a field has the wrong length (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Time:        1.84 s

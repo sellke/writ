@@ -1,0 +1,9 @@
+mail catcher, message 4 of 4
+
+From: City Libraries <no-reply@staging.example.test>
+To: member1@example.test
+Subject: Your hold is ready to collect
+Date: Wed, 04 Nov 2026 11:40:09 +0000
+
+The Salt Path is ready for you at Central Library.
+We will keep it for 7 days, until Wednesday 11 November.

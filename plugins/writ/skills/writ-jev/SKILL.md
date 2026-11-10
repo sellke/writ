@@ -18,7 +18,7 @@ It runs only when both of these are true:
 1. `.writ/config.md` names a provider. `python3 jev.py setup typesafe` or `python3 jev.py setup vercel-gateway` writes the line; `python3 jev.py setup none` turns it off.
 2. The provider's API key is set in the environment: `TYPESAFE_API_KEY` for TypeSafe, `AI_GATEWAY_API_KEY` for the Vercel AI Gateway. The person sets it themselves, in their shell. Never ask for a key in the conversation and never write one to a file.
 
-`python3 jev.py status` prints `ready` or `off` and the reason.
+`python3 jev.py status` prints `ready` or `off` and the reason. The provider line is always read from the project that owns the spec, so switching it on in one project never sends another project's text.
 
 Turning it on is the person's call, because it sends text outside the project. Before they decide, tell them what goes: the text of the contract, and for a proof the evidence lines and any text files they cite. Files that look like secrets are skipped.
 

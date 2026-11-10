@@ -1,0 +1,21 @@
+$ npx playwright test archive.spec.ts
+
+Running 2 tests using 1 worker
+
+  ✓  1 archive.spec.ts:8:5 › opens the confirmation dialog (1.9s)
+  ✘  2 archive.spec.ts:21:5 › confirming moves the projects to Archived (6.3s)
+
+  1) archive.spec.ts:21:5 › confirming moves the projects to Archived
+
+    Error: expect(received).toHaveText(expected)
+
+    Expected string: "3 projects archived"
+    Received string: "0 projects archived"
+
+      27 |   await page.getByRole('button', { name: 'Archive' }).click();
+    > 28 |   await expect(page.getByTestId('list-notice')).toHaveText('3 projects archived');
+      29 |   await expect(page.getByRole('tab', { name: 'Archived' })).toContainText('3');
+
+  1 failed
+    archive.spec.ts:21:5 › confirming moves the projects to Archived
+  1 passed (9.1s)

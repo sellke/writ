@@ -1,0 +1,13 @@
+mail catcher, message 1 of 1
+
+From: Brightside Studio <no-reply@staging.example.test>
+To: sam@example.test
+Subject: You're invited to Brightside Studio
+Date: Thu, 05 Nov 2026 09:14:22 +0000
+
+Marta Okafor invited you to join Brightside Studio.
+
+Join the workspace:
+https://staging.example.test/join/inv_7Hq2
+
+This link works for 7 days.

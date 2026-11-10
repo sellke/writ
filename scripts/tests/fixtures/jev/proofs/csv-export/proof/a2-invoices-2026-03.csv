@@ -1,0 +1,7 @@
+invoice_number,client_name,issue_date,due_date,net_amount,tax_amount,total,status
+INV-0311,Harbour Studio,2026-03-02,2026-04-01,1200.00,240.00,1440.00,paid
+INV-0312,Kestrel Legal,2026-03-05,2026-04-04,860.50,172.10,1032.60,sent
+INV-0313,Moss & Vale,2026-03-11,2026-04-10,4300.00,860.00,5160.00,paid
+INV-0314,Harbour Studio,2026-03-18,2026-04-17,95.00,19.00,114.00,overdue
+INV-0315,Tern Outdoors,2026-03-24,2026-04-23,12500.00,2500.00,15000.00,sent
+INV-0316,Kestrel Legal,2026-03-30,2026-04-29,0.00,0.00,0.00,void

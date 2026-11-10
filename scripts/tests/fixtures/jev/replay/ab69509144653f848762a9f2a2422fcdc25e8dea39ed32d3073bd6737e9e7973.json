@@ -1,0 +1,57 @@
+{
+  "answers": {
+    "A1_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A1_unproven": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "A2_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A2_unproven": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "A3_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A3_unproven": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A4_asserted": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A4_unproven": {
+      "noul": 0.97,
+      "type": "noul"
+    },
+    "A5_asserted": {
+      "noul": 0.97,
+      "type": "noul"
+    },
+    "A5_unproven": {
+      "noul": 0.82,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 2448,
+    "output_tokens": 204
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "proofs/coupon-codes",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 7940,
+    "seconds": 0.356,
+    "source": "live"
+  }
+}

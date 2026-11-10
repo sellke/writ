@@ -1,0 +1,137 @@
+{
+  "answers": {
+    "A1+A2_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A1+A3_contradiction": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A1+A4_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A1+A5_contradiction": {
+      "noul": 0.12,
+      "type": "noul"
+    },
+    "A1+A6_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A1_out_of_scope": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "A1_unclear": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A2+A3_contradiction": {
+      "noul": 0.29,
+      "type": "noul"
+    },
+    "A2+A4_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A2+A5_contradiction": {
+      "noul": 0.91,
+      "type": "noul"
+    },
+    "A2+A6_contradiction": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A2_out_of_scope": {
+      "noul": 0.11,
+      "type": "noul"
+    },
+    "A2_unclear": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A3+A4_contradiction": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "A3+A5_contradiction": {
+      "noul": 0.2,
+      "type": "noul"
+    },
+    "A3+A6_contradiction": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "A3_out_of_scope": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "A3_unclear": {
+      "noul": 0.99,
+      "type": "noul"
+    },
+    "A4+A5_contradiction": {
+      "noul": 0.41,
+      "type": "noul"
+    },
+    "A4+A6_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "A4_out_of_scope": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "A4_unclear": {
+      "noul": 0.1,
+      "type": "noul"
+    },
+    "A5+A6_contradiction": {
+      "noul": 0.12,
+      "type": "noul"
+    },
+    "A5_out_of_scope": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "A5_unclear": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "A6_out_of_scope": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "A6_unclear": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "contract_contradiction": {
+      "noul": 0.85,
+      "type": "noul"
+    },
+    "contract_gap": {
+      "noul": 0.45,
+      "type": "noul"
+    },
+    "contract_no_measure": {
+      "noul": 0.01,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 4234,
+    "output_tokens": 638
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "contracts/refund-window",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 16984,
+    "seconds": 0.322,
+    "source": "live"
+  }
+}

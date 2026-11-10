@@ -93,4 +93,19 @@ Jev reads the two documents and flags lines for a second look. It never decides 
 
 ## Calibration record
 
-See `plugins/writ/skills/writ-jev/thresholds.json` for the fitted values and the fixture counts behind them.
+**2026-11-09, authored fixtures.** Fitted values and counts are in `plugins/writ/skills/writ-jev/thresholds.json`; the fixtures and recorded responses are under `scripts/tests/fixtures/jev/`.
+
+- 20 contracts and 12 proofs, half for fitting and half held out, through the Vercel AI Gateway (`typesafe-ai/jev`; the gateway does not say which Jev version it serves).
+- On both halves every seeded defect was flagged and no clean document was flagged. All five held-out clean documents stayed free of flags; three of the five were fully quiet, and two drew a weaker `check` line.
+- These scores overstate it. One author wrote the fixtures and the questions, and the seeded defects are blatant.
+- `gap` is fragile: clean contracts scored up to 0.85 against real gaps at 0.96 to 0.98, so its cut-off sits at 0.90.
+- Run to run, 684 answers scored twice: the largest move was 0.18, four moved more than 0.10, and two crossed a flag cut-off. No document's first line changed.
+- A contract is about 4,200 input tokens and a proof about 2,600; each comes back in 0.3 to 0.5 seconds.
+- The direct TypeSafe backend was not exercised (no key on the machine).
+
+**2026-11-09, first real documents.** The contract and proof from the first end-to-end run on a sample app, which nobody wrote for calibration:
+
+- Contract, 11 criteria: one flag ("the page itself behaves as before") and one `check` ("display correctly in Excel and Google Sheets"). Both are lines a careful reader would question. Two runs agreed.
+- Proof, 10 rows: five flags and two `check` lines. Three flags landed on rows where the verifier's own text said part of the criterion was not observed, including one it had marked "Proved (parsing only)". Two landed on rows with terse evidence; the proof named its evidence files without the `proof/` path, so no file was read. `writ-verify` now asks for the path.
+- Half the rows flagged is more than a clean proof should draw, and on this proof most of the flags were right. One document settles nothing; the fifty-document refit stands.
+- **A defect found and fixed on this run:** with no `--repo`, the script read the opt-in from the current directory when the spec's own project had no config, so a project that had not opted in had its contract sent. The opt-in is now read only from the project that owns the spec, with a test for it.

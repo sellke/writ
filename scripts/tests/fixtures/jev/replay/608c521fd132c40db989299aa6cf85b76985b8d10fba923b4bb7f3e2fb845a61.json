@@ -1,0 +1,61 @@
+{
+  "answers": {
+    "A1_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A1_unproven": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A2_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A2_unproven": {
+      "noul": 0.3,
+      "type": "noul"
+    },
+    "A3_asserted": {
+      "noul": 0.02,
+      "type": "noul"
+    },
+    "A3_unproven": {
+      "noul": 0.98,
+      "type": "noul"
+    },
+    "A4_could_be_checked": {
+      "noul": 0.95,
+      "type": "noul"
+    },
+    "A5_asserted": {
+      "noul": 0.99,
+      "type": "noul"
+    },
+    "A5_unproven": {
+      "noul": 0.61,
+      "type": "noul"
+    },
+    "A6_asserted": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "A6_unproven": {
+      "noul": 0.13,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "usage": {
+    "input_tokens": 2402,
+    "output_tokens": 225
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "proofs/kitchen-screen",
+    "recorded_on": "2026-11-09",
+    "request_bytes": 7846,
+    "seconds": 0.276,
+    "source": "live"
+  }
+}

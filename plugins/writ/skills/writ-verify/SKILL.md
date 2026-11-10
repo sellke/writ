@@ -42,7 +42,7 @@ Change nothing in the product. You may add a test that reproduces a failure, so 
 In the spec's **Proof** section, replacing any earlier proof:
 
 - the commit you verified, and the date;
-- one line per criterion in the template's form: `- **A1. Proved.**` then what you ran, what it showed, and where the evidence file is;
+- one line per criterion in the template's form: `- **A1. Proved.**` then what you ran, what it showed, and the evidence file by its path, such as `proof/a1-export.txt`;
 - **Try it yourself:** steps a person can follow in the running product to see the main result;
 - **Not covered:** anything in the contract you could not reach, and why.
 

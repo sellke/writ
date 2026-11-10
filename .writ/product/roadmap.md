@@ -17,7 +17,9 @@ Each bet says what it is, why it should move a measure, how we will know, and it
   - One sample change goes problem → contract → build → proof on Claude Code, on Cursor, and on Codex.
   - The installer puts the skills in a fresh project and takes them out again on each target.
   - 1.0.0 is released.
-- **State:** built on branch `writ-1.0` (2026-11-09), by direct edits at the maintainer's direction, not through 0.x's own pipeline. Not merged, not released. Cursor and Codex runs and the install from GitHub are open; see the branch's pull request for what was and was not checked.
+- **State:** built on branch `writ-1.0` (2026-11-09), by direct edits at the maintainer's direction, not through 0.x's own pipeline. Not merged, not released.
+  - Checked: `check.py`, pytest on 3.9 and 3.14, and the bash tests pass. On Claude Code a sample change went contract → build → independent proof, headless, on a mid-tier model. On the Codex CLI the skills are discovered, `writ-spec` asks one question with a recommendation, and `writ` built a small change and handed it to a helper. The installer was run by hand for both destinations. Jev was fitted on authored fixtures and run on the sample contract and proof ([ADR-037](../decision-records/adr-037-jev-second-reader.md)).
+  - Open: any run in Cursor or the ChatGPT desktop app; a Codex run outside its sandbox, which could not commit or start the app; the Cursor and Codex plugin manifests, which are written from the vendors' documentation and not yet loaded by either tool; the install line from GitHub, which needs this branch on `main`; the release itself.
 
 ## Next
 

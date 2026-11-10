@@ -1,0 +1,9 @@
+$ curl -s -o /dev/null -w "%{http_code} %{content_type}\n" \
+    -b "session=<sales user session>" \
+    "https://preview.example.test/invoices/export?month=2026-03"
+403 text/html; charset=utf-8
+
+$ curl -s -b "session=<sales user session>" \
+    "https://preview.example.test/invoices/export?month=2026-03" | head -3
+<h1>403 Forbidden</h1>
+<p>You need the Finance role to export invoices.</p>
