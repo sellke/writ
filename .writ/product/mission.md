@@ -32,7 +32,7 @@ It ships as ten plain-language skills named `writ` and `writ-*`, and works in Cl
 
 **Objective:** a product manager takes a business problem to a shipped, proved change without an engineer translating in either direction.
 
-**Measures** (proposed 2026-11-09; the maintainer confirms or changes them):
+**Measures** (agreed 2026-11-09):
 
 1. One product manager who did not build Writ completes problem → contract → build → proof → shipped change, unaided, on a real product. Look: when the first outside trial ends.
 2. Across the first ten builds, the person is asked nothing about method. Count questions by kind from the session history.
