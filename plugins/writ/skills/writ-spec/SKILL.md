@@ -23,7 +23,7 @@ The spec is a contract between the person and whoever builds. It says what and w
 
 3. **Draft the contract** from `spec-template.md` in this folder and save it as `.writ/specs/<date>-<name>/spec.md` with `Status: Draft`. For the acceptance criteria:
    - each is a situation and a result someone can see or measure;
-   - one condition per line;
+   - one condition per line. If part of a result can be checked by running the product and part only by a person looking (how a file opens in another program, how a page reads), make them two lines, so the proof can settle one and hand the other to the person;
    - cover what happens when things go wrong, not only when they go right;
    - no judgment words without a number or an example;
    - nothing about how it is built.

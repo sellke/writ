@@ -109,3 +109,9 @@ Jev reads the two documents and flags lines for a second look. It never decides 
 - Proof, 10 rows: five flags and two `check` lines. Three flags landed on rows where the verifier's own text said part of the criterion was not observed, including one it had marked "Proved (parsing only)". Two landed on rows with terse evidence; the proof named its evidence files without the `proof/` path, so no file was read. `writ-verify` now asks for the path.
 - Half the rows flagged is more than a clean proof should draw, and on this proof most of the flags were right. One document settles nothing; the fifty-document refit stands.
 - **A defect found and fixed on this run:** with no `--repo`, the script read the opt-in from the current directory when the spec's own project had no config, so a project that had not opted in had its contract sent. The opt-in is now read only from the project that owns the spec, with a test for it.
+
+**2026-11-10, a second real proof.** The proof a Cursor helper wrote for the same sample contract, 11 rows:
+
+- Two flags and two `check` lines. One flag, `unproven` at 0.91, landed on the one row the helper had marked proved on half its evidence: the criterion says the file holds a leading `'` and the spreadsheet shows text, and only the file was checked. The helper's own "Not covered" list left that row out, so with the second reader off nothing would have pointed at it.
+- The other flag, `could_be_checked` at 0.62, landed on a row correctly left to a person (how a title with a comma shows in a spreadsheet). That one is a wrong flag.
+- Two real proofs are still not a fit. The fifty-document refit stands.

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] - 2026-11-10
 
 **Writ 1.0: rebuilt for the product manager. Ten plain-language skills, one rule for who decides, an independent verifier, and a one-file spec replace the 0.x commands, agents, adapters, and scripts.** ([ADR-034](.writ/decision-records/adr-034-product-manager-audience.md), [ADR-035](.writ/decision-records/adr-035-people-decide-what-model-decides-how.md), [ADR-036](.writ/decision-records/adr-036-plain-language-skills.md), [ADR-037](.writ/decision-records/adr-037-jev-second-reader.md), [surface audit](.writ/research/2026-11-09-writ-1.0-surface-audit.md))
 
@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `scripts/check.py` replaces `eval.sh` and its 71 checks. It fails on a skill whose name and folder disagree, a reference that does not resolve, a platform tool name in a skill, a manifest version that differs from `VERSION`, and a skill the README leaves out.
 - Product docs: the mission is rewritten; the roadmap is Now / Next / Later; Phases 1 to 17 are in `.writ/product/roadmap-history.md`. Twenty decision records are marked superseded.
 - Built by direct edits on branch `writ-1.0` at the maintainer's direction. Everything removed is at tag `v0.49.0`.
+- Run before release in Claude Code, the Codex command line, Cursor's agent command line, and the ChatGPT desktop app. In each, a sample change was built from an agreed contract and a separate helper wrote the proof. What was and was not checked is in the [roadmap](.writ/product/roadmap.md).
 
 ## [0.49.0] - 2026-11-09
 
