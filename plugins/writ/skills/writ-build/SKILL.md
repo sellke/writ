@@ -55,6 +55,6 @@ Write for the person who owns the product:
 - **Waiting on you:** each `Needs a person` criterion with what to look at, and any open contract question.
 - **What changed from the contract,** and why.
 - **What is not done or not checked.**
-- The branch name, and that `writ-ship` opens the pull request when they are ready.
+- The branch name, and that calling `writ-ship` when they are ready opens the pull request, merges it, and releases it. "Open the PR" stops at the pull request.
 
 Do not merge, release, or start the next spec on your own.
