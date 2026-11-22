@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-11-22
+
+**Calling `/writ-ship` now takes your work all the way: pull request, merge, and release, without asking again.** ([PR #82](https://github.com/sellke/writ/pull/82))
+
+### Changed
+- **`/writ-ship` or "ship it" is your word for the whole path.** Writ opens the pull request, merges it once it is proved and its checks pass, and releases. The version and release notes it chose are in its final report, not in a question. If you used `/writ-ship` expecting it to stop at the pull request, say "open the PR" instead.
+- **A narrower request stays narrow.** "Open the PR" stops at a pull request that is ready to merge, "merge" stops after the merge, and "release" covers only the release.
+- **It still stops** for a question only you can settle, such as a choice about the agreed scope, or for a step it cannot complete, and says which.
+- **Writ's rules no longer ask twice.** Merging and releasing are still yours to decide. Once you have asked for one, Writ takes that as your answer.
+- The README and the build report describe `/writ-ship` the same way.
+
 ## [1.0.1] - 2026-11-22
 
 **Writ's wording reads naturally to American readers: "agree on what to build," not "agree what to build."** ([PR #80](https://github.com/sellke/writ/pull/80))
