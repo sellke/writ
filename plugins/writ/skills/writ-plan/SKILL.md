@@ -17,7 +17,7 @@ Read `.writ/product/mission.md`, `.writ/product/roadmap.md`, and the decision re
 - what shipped that the plan never mentions,
 - the specific edits you would make.
 
-Agree the edits, make them, and stop. Do not rewrite a plan that only drifted. If the person wants a new direction, continue below.
+Agree on the edits, make them, and stop. Do not rewrite a plan that only drifted. If the person wants a new direction, continue below.
 
 ## If there is no plan, or the direction is changing
 
@@ -38,7 +38,7 @@ Then settle, in this order:
 
 Say what you think. "I would start with X because Y. The alternative is Z, which risks W" is more useful than a list of options. Challenge a plan too big for the people and time available, a measure nobody can observe, and a bet with no link to the objective.
 
-When it holds together, show the plan on one screen and ask the person to agree it or change it.
+When it holds together, show the plan on one screen and ask the person to agree to it or change it.
 
 ## Write it down
 

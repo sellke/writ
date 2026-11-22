@@ -11,7 +11,7 @@ and `proof`: the nearest folder above the spec that holds `.writ/`, so the
 opt-in is always read from the project that owns the spec. Default for
 `status` and `setup`: the current directory.
 
-`contract` reads a spec before a person agrees it and flags criteria that are
+`contract` reads a spec before a person agrees to it and flags criteria that are
 unclear, out of scope, or contradict each other, and a contract with a gap or
 no measure. `proof` reads the Proof section before a person relies on it and
 flags `Proved` rows whose evidence does not show the criterion or only asserts
@@ -812,7 +812,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("setup", help="write the Judgment Provider line (never a key)")
     p.add_argument("provider", choices=SETUP_PROVIDERS)
     p.add_argument("--repo", **repo)
-    for name, text in (("contract", "flag unclear lines in a contract before it is agreed"),
+    for name, text in (("contract", "flag unclear lines in a contract before it is agreed to"),
                        ("proof", "flag weak rows in a proof before it is relied on")):
         p = sub.add_parser(name, help=text)
         p.add_argument("spec", type=Path, help="path to spec.md")

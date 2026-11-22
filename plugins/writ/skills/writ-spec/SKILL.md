@@ -1,6 +1,6 @@
 ---
 name: writ-spec
-description: Agree what will be built before anything is built - the problem, the outcome and its measure, what is in and out, and the acceptance criteria - and write it as one spec file the person signs off. Also changes an agreed spec. Use for any capability users will rely on. Part of Writ.
+description: Agree on what will be built before anything is built - the problem, the outcome and its measure, what is in and out, and the acceptance criteria - and write it as one spec file the person signs off on. Also changes an agreed-on spec. Use for any capability users will rely on. Part of Writ.
 ---
 
 # Writ spec
@@ -32,11 +32,11 @@ The spec is a contract between the person and whoever builds. It says what and w
 
 4. **Second reader, if set up.** If `../writ-jev/jev.py` exists, run `python3 <its path> contract <spec path>`. Each `flag` line names something a careful reader would stumble on. Fix the wording where the fix is obvious and keep the rest as questions for the person. `off` means it is not set up. Carry on, and do not mention it to the person.
 
-5. **Show the person the whole contract** in the conversation, with any open questions on top. Ask them to agree it or change it. Nothing gets built from a Draft.
+5. **Show the person the whole contract** in the conversation, with any open questions on top. Ask them to agree to it or change it. Nothing gets built from a Draft.
 
 6. **On agreement,** set `Status: Agreed` with the date and their name, and commit the file. Say that `writ-build` is next, and stop. Start building only if they asked for that in the same request.
 
-## Change an agreed spec
+## Change an agreed-on spec
 
 A contract can change. It cannot change silently.
 

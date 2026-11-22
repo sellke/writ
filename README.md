@@ -23,7 +23,7 @@
 Writ is a way for a product manager and an AI coding agent to work together. It is ten short skills that run in Claude Code, Cursor, and Codex.
 
 - **You decide what and why. The model decides how.** Writ asks you about the problem, the objective, what is in and out, how things should look and read, and whether to merge and release. It does not ask you which library to use.
-- **A contract before a build.** One file states the problem, the outcome and its measure, the scope, and how anyone could tell it is done. Nothing is built until you agree it, and it cannot change without you.
+- **A contract before a build.** One file states the problem, the outcome and its measure, the scope, and how anyone could tell it is done. Nothing is built until you agree to it, and it cannot change without you.
 - **Proof, not a report.** A verifier that did not write the change checks every line of the contract against the running product, writes down what it ran and what it saw, and gives you steps to try it yourself.
 - **Plain files in git.** Your plan, contracts, decisions, and proofs live under `.writ/` and outlast any session, model, or tool.
 
@@ -108,7 +108,7 @@ Folders appear when they are first needed. There is no setup step.
 
 ## A second reader (optional)
 
-`writ-jev` adds [TypeSafe's Jev](https://docs.typesafe.ai/introduction) as a second reader of the two documents you decide from. Before you agree a contract, it flags criteria that two people could read differently, that contradict each other, or that leave a case out. Before you read a proof, it flags lines whose evidence does not show what they claim.
+`writ-jev` adds [TypeSafe's Jev](https://docs.typesafe.ai/introduction) as a second reader of the two documents you decide from. Before you agree to a contract, it flags criteria that two people could read differently, that contradict each other, or that leave a case out. Before you read a proof, it flags lines whose evidence does not show what they claim.
 
 It only points. It never decides anything, and Writ works the same without it. It is off until you add a provider line to `.writ/config.md` and set the provider's API key; `/writ-jev` walks you through it. When on, it sends the contract's text and the proof's evidence text to the provider.
 
