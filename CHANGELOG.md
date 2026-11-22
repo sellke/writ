@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-11-22
+
+**Writ's wording reads naturally to American readers: "agree on what to build," not "agree what to build."** ([PR #80](https://github.com/sellke/writ/pull/80))
+
+### Changed
+- **"Agree" and "sign off" take their usual small words.** The skills now say "an agreed-on spec," "agree to it," "agree on the edits," and "signs off on" where they said "an agreed spec," "agree it," "agree the edits," and "signs off." The assistant repeats a skill's wording, so you will hear the new phrasing in conversation too.
+- **The tagline is "Agree on what to build. Let the model build it. See proof it works."** in the README and in the Claude Code, Cursor, and Codex plugin listings.
+- A spec's `Status: Agreed` label and the roadmap state "spec agreed" are unchanged. Existing specs and roadmaps need no edits.
+
+### Internal
+- The help text in `writ-jev`'s `jev.py` uses the same wording.
+
 ## [1.0.0] - 2026-11-10
 
 **Writ 1.0: rebuilt for the product manager. Ten plain-language skills, one rule for who decides, an independent verifier, and a one-file spec replace the 0.x commands, agents, adapters, and scripts.** ([ADR-034](.writ/decision-records/adr-034-product-manager-audience.md), [ADR-035](.writ/decision-records/adr-035-people-decide-what-model-decides-how.md), [ADR-036](.writ/decision-records/adr-036-plain-language-skills.md), [ADR-037](.writ/decision-records/adr-037-jev-second-reader.md), [surface audit](.writ/research/2026-11-09-writ-1.0-surface-audit.md))
