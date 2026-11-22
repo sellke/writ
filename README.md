@@ -22,7 +22,7 @@
 
 Writ is a way for a product manager and an AI coding agent to work together. It is ten short skills that run in Claude Code, Cursor, and Codex.
 
-- **You decide what and why. The model decides how.** Writ asks you about the problem, the objective, what is in and out, how things should look and read, and whether to merge and release. It does not ask you which library to use.
+- **You decide what and why. The model decides how.** Writ asks you about the problem, the objective, what is in and out, and how things should look and read. It merges and releases when you ask it to ship. It does not ask you which library to use.
 - **A contract before a build.** One file states the problem, the outcome and its measure, the scope, and how anyone could tell it is done. Nothing is built until you agree to it, and it cannot change without you.
 - **Proof, not a report.** A verifier that did not write the change checks every line of the contract against the running product, writes down what it ran and what it saw, and gives you steps to try it yourself.
 - **Plain files in git.** Your plan, contracts, decisions, and proofs live under `.writ/` and outlast any session, model, or tool.
@@ -46,7 +46,7 @@ Writ says it back as a goal, a problem, and a done-when, picks the step that fit
 | `/writ-spec` | The contract for one change | What is in, what is out, what done means |
 | `/writ-build` | The model builds it its own way and has it verified | Only changes to the contract |
 | `/writ-verify` | Independent proof against the running product | What only a person can judge |
-| `/writ-ship` | Pull request, then merge and release | When to merge; when to release |
+| `/writ-ship` | Pull request, then merge and release | Nothing. Calling it is your word to merge and release |
 | `/writ-issue` | A bug or idea captured in two minutes | Nothing |
 | `/writ-retro` | Did it move the measure, and what changes next | Which changes to make |
 
