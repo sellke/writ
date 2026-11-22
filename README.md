@@ -10,7 +10,7 @@
 \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 </pre>
 
-**Agree what to build. Let the model build it. See proof it works.**
+**Agree on what to build. Let the model build it. See proof it works.**
 
 *A writ is a written command by an authority: you.*
 

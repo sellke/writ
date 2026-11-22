@@ -4,7 +4,7 @@
 
 ## What this project is
 
-Writ is a way for a product manager and an AI coding agent to work together: agree what to build, let the model build it, see proof it works. The product is ten plain-language skills. There is no application code and no build step.
+Writ is a way for a product manager and an AI coding agent to work together: agree on what to build, let the model build it, see proof it works. The product is ten plain-language skills. There is no application code and no build step.
 
 ## Where things are
 
