@@ -27,7 +27,7 @@ The person says what they want. You say it back, pick the step, and start.
 | Unsettled: several shapes could work, or it is about look and feel | `writ-prototype` |
 | A capability users will rely on, or anything too big to hold in one sitting | `writ-spec`, then `writ-build` |
 | A bug, or a small change with one obvious shape | build it now (below) |
-| An agreed spec, or an item on the roadmap | `writ-build` |
+| An agreed-on spec, or an item on the roadmap | `writ-build` |
 | "Does it work?", "show me", "check this" | `writ-verify` |
 | "Ship it", "open the pull request", "merge", "release" | `writ-ship` |
 | "Note this for later" | `writ-issue` |
@@ -48,7 +48,7 @@ Report where things stand, from the files under `.writ/` and from git, in this o
 
 1. **Waiting on you:** each decision, with a recommendation.
 2. **In progress:** each spec being built and how far along it is, in plain words.
-3. **Ready:** agreed specs not yet started, and proved work not yet shipped.
+3. **Ready:** agreed-on specs not yet started, and proved work not yet shipped.
 4. **Next:** the top item on the roadmap and the step that starts it.
 
 If there is no product plan yet, say so and offer `writ-plan`. Keep the whole report to one screen.

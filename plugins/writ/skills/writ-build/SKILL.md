@@ -1,6 +1,6 @@
 ---
 name: writ-build
-description: Build what an agreed spec describes and come back with proof. The model plans and builds its own way, an independent verifier checks every acceptance criterion against the running product, and the person hears only about changes to the contract. Use with a spec, a roadmap item, or "build the next thing". Part of Writ.
+description: Build what an agreed-on spec describes and come back with proof. The model plans and builds its own way, an independent verifier checks every acceptance criterion against the running product, and the person hears only about changes to the contract. Use with a spec, a roadmap item, or "build the next thing". Part of Writ.
 ---
 
 # Writ build

@@ -1,6 +1,6 @@
 ---
 name: writ-jev
-description: Optional second reader for Writ, backed by TypeSafe's Jev. Flags unclear, contradictory, or incomplete acceptance criteria before a contract is agreed, and proof lines whose evidence does not show what they claim. Used by writ-spec and writ-verify; run directly to turn it on or off or to check its status. Part of Writ.
+description: Optional second reader for Writ, backed by TypeSafe's Jev. Flags unclear, contradictory, or incomplete acceptance criteria before a contract is agreed to, and proof lines whose evidence does not show what they claim. Used by writ-spec and writ-verify; run directly to turn it on or off or to check its status. Part of Writ.
 ---
 
 # Writ Jev
