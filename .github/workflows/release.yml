@@ -51,8 +51,23 @@ jobs:
             echo "target=$target"
             echo "notes=$notes"
           } >> "$GITHUB_OUTPUT"
-          echo "Release $tag on commit $target, with these notes:"
-          cat "$notes"
+          # Say only what this run, or merging this pull request, will publish.
+          # A pull request is checked out as a test merge, so HEAD^1 is main.
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if git diff --quiet HEAD^1 HEAD -- VERSION; then
+              echo "Merging this pull request publishes nothing: it does not change VERSION."
+            elif git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "Merging this pull request publishes nothing: $tag already exists."
+            else
+              echo "Merging this pull request will publish $tag on the merge commit, with these notes:"
+              cat "$notes"
+            fi
+          elif [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "This run is not on main, so it publishes nothing."
+          else
+            echo "Release $tag on commit $target, with these notes:"
+            cat "$notes"
+          fi
 
       - name: Tag and publish
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
