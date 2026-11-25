@@ -45,7 +45,7 @@ WRIT_SRC=/path/to/this/repo bash /path/to/this/repo/scripts/install.sh --dry-run
 
 **Python floor: 3.9**, the macOS system interpreter, declared in `pyproject.toml`. `jev.py` and `check.py` must run on it with the standard library alone.
 
-`VERSION`, `pyproject.toml`, and the three plugin manifests carry the same version. A release changes all five in one commit, with a `## [<version>]` section in `CHANGELOG.md`. When that change reaches main, `.github/workflows/release.yml` tags the commit on main that brought it in `v<version>` and publishes the GitHub release from that section. Its check on a pull request says whether merging will publish anything. To retry one that stopped, run that workflow by hand on main.
+`VERSION`, `pyproject.toml`, and the three plugin manifests carry the same version. A release changes all five in one commit, with a `## [<version>]` section in `CHANGELOG.md`. When that change reaches main, `.github/workflows/release.yml` tags the commit on main that brought it in `v<version>` and publishes the GitHub release from that section. Its check on a pull request into main says whether merging will publish anything. To retry one that stopped, run that workflow by hand on main.
 
 ## Why it is shaped this way
 
