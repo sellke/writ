@@ -1,0 +1,75 @@
+# Publishes a release when a change to VERSION reaches main: an annotated tag
+# v<VERSION> on the commit that changed it, and a GitHub release whose notes are
+# that version's section of CHANGELOG.md. On a pull request it only shows what
+# it would publish. Running it again after a release changes nothing, so it can
+# also be run by hand from the Actions tab to finish one that stopped halfway.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  pull_request:
+    paths: [VERSION, CHANGELOG.md, .github/workflows/release.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find the version, the commit that set it, and its notes
+        id: plan
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag="v$version"
+          target="$(git log -1 --first-parent --format=%H -- VERSION)"
+          notes="$RUNNER_TEMP/notes.md"
+          awk -v head="## [$version]" '
+            index($0, head) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes"
+          if ! grep -q '[^[:space:]]' "$notes"; then
+            echo "::error file=CHANGELOG.md::No release notes under '## [$version]'. Add that section before releasing."
+            exit 1
+          fi
+          {
+            echo "tag=$tag"
+            echo "target=$target"
+            echo "notes=$notes"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release $tag on commit $target, with these notes:"
+          cat "$notes"
+
+      - name: Tag and publish
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          TARGET: ${{ steps.plan.outputs.target }}
+          NOTES: ${{ steps.plan.outputs.notes }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "$TAG" "$TARGET"
+            git push origin "refs/tags/$TAG"
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Nothing to do."
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$NOTES"
+          fi
