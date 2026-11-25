@@ -1,7 +1,7 @@
 # Publishes a release when a change to VERSION reaches main: an annotated tag
 # v<VERSION> on the commit that changed it, and a GitHub release whose notes are
-# that version's section of CHANGELOG.md. On a pull request it only shows what
-# it would publish. Running it again after a release changes nothing, so it can
+# that version's section of CHANGELOG.md. On a pull request into main it only
+# says whether merging will publish anything. Running it again after a release changes nothing, so it can
 # also be run by hand from the Actions tab to finish one that stopped halfway.
 name: Release
 
@@ -9,7 +9,10 @@ on:
   push:
     branches: [main]
     paths: [VERSION]
+  # Only pull requests into main: a release can only come from main, so a
+  # preview on any other pull request would promise a release that never comes.
   pull_request:
+    branches: [main]
     paths: [VERSION, CHANGELOG.md, .github/workflows/release.yml]
   workflow_dispatch:
 
