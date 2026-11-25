@@ -47,7 +47,7 @@ Stop and switch to `writ-spec` if the change turns out to touch many parts of th
 Report where things stand, from the files under `.writ/` and from git, in this order:
 
 1. **Waiting on you:** each decision, with a recommendation.
-2. **In progress:** each spec being built and how far along it is, in plain words.
+2. **In progress:** each spec being built and how far along it is, in plain words. Name the sessions and helpers working on it by their labels, where your environment shows them.
 3. **Ready:** agreed-on specs not yet started, and proved work not yet shipped.
 4. **Next:** the top item on the roadmap and the step that starts it.
 
