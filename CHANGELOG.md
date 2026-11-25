@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] - 2026-11-25
+
+**Every helper and session Writ starts for a piece of work now carries that work's name plus its job, so you can see in Claude Code which ones belong together and what each is for.** ([PR #84](https://github.com/sellke/writ/pull/84))
+
+### Changed
+- **Helpers are labeled `<name> · <job>`,** such as `invoice-export · build`, `invoice-export · verify #2`, or `invoice-export · draft B`. The name is the spec, prototype, or research record's name without the date, so it is the same every time. A small change with no record gets a short name of its own.
+- **Writ titles or tags its own session the same way** when the work starts, where your environment allows it. In a Claude Code cloud session, your session list then reads by piece of work.
+- **`/writ` with no request** names the sessions and helpers working on each spec by those labels, where your environment shows them.
+- Nothing to change in existing projects. Sessions started before this release keep their titles.
+
+### Internal
+- Chosen with `writ-prototype` over a crew list file in each spec folder and one session per job. The record is in `.writ/prototypes/2026-11-25-line-of-sight/choice.md`.
+
 ## [1.0.2] - 2026-11-22
 
 **Calling `/writ-ship` now takes your work all the way: pull request, merge, and release, without asking again.** ([PR #82](https://github.com/sellke/writ/pull/82))
