@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.4] - 2026-11-25
+
+**Writ retitles its session as the work moves on, so the title always names the step the session is on now.** ([PR #87](https://github.com/sellke/writ/pull/87))
+
+### Changed
+- **The session title follows the work.** Where your environment lets Writ title its session, it retitles it `<name> · <job>` whenever the work moves to another step or another piece of work, for example from `invoice-export · prototype` to `invoice-export · build`. In 1.0.3 the title was set once, when the work started, and could go out of date.
+
+### Internal
+- **Releases publish themselves.** When a version change reaches main, the release workflow tags it and publishes the GitHub release from this changelog. On a pull request into main, its check says whether merging will publish anything. ([PR #86](https://github.com/sellke/writ/pull/86), [PR #87](https://github.com/sellke/writ/pull/87))
+
 ## [1.0.3] - 2026-11-25
 
 **Every helper and session Writ starts for a piece of work now carries that work's name plus its job, so you can see in Claude Code which ones belong together and what each is for.** ([PR #84](https://github.com/sellke/writ/pull/84))
