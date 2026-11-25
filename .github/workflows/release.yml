@@ -16,8 +16,10 @@ on:
 permissions:
   contents: write
 
+# One queue per branch, so a pull request's preview can never cancel a release
+# waiting to run on main. GitHub keeps only one waiting run per queue.
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
