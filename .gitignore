@@ -7,3 +7,4 @@ __pycache__/
 uv.lock
 eval-report.md
 .claude/agent-memory/
+.claude/settings.local.json
